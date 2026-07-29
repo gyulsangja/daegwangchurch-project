@@ -1,0 +1,12 @@
+
+> daegwang-church@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.10 (Turbopack)
+- Local:         http://localhost:3001
+- Network:       http://106.10.101.138:3001
+✓ Ready in 1423ms
+Creating turbopack project {
+  dir: 'C:\\Users\\gyulgyul\\Desktop\\gyulgyul\\daegwangchurch',
+  testMode: true
+}

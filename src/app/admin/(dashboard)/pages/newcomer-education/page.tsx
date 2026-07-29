@@ -1,0 +1,3 @@
+import { FixedPageForm } from "@/components/admin/fixed-page-form";
+import { getNewcomerEducationContent } from "@/features/pages/queries";
+export default async function AdminNewcomerEducationPage() { const page = await getNewcomerEducationContent(false); return <div className="mx-auto max-w-[90rem]"><p className="text-sm font-bold text-primary-700">NEWCOMER EDUCATION</p><h1 className="mt-1 text-3xl font-extrabold tracking-[-0.04em]">새가족 교육 관리</h1><p className="mt-2 text-text-secondary">교육 과정, 운영 정보와 신청 방법을 수정합니다.</p><FixedPageForm variant="newcomerEducation" content={page.content} status={page.status} /></div>; }

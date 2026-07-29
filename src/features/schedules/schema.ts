@@ -1,0 +1,4 @@
+import { z } from "zod";
+const optional = (max: number) => z.string().trim().max(max, `${max}자 이내로 입력해 주세요.`).transform((v) => v || undefined);
+export const scheduleFormSchema = z.object({ name: z.string().trim().min(1, "예배명을 입력해 주세요.").max(80), dayLabel: z.string().trim().min(1, "요일을 입력해 주세요.").max(40), timeLabel: z.string().trim().min(1, "시간을 입력해 주세요.").max(80), location: optional(120), note: optional(500), sortOrder: z.coerce.number().int().min(0).max(9999), isVisible: z.boolean() });
+export function parseScheduleFormData(formData: FormData) { return scheduleFormSchema.safeParse({ name: formData.get("name"), dayLabel: formData.get("dayLabel"), timeLabel: formData.get("timeLabel"), location: formData.get("location") ?? "", note: formData.get("note") ?? "", sortOrder: formData.get("sortOrder"), isVisible: formData.get("isVisible") === "on" }); }
