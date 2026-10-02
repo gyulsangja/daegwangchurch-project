@@ -1,0 +1,15 @@
+"use client";
+import Alert from "@mui/material/Alert";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import MenuItem from "@mui/material/MenuItem";
+import Paper from "@mui/material/Paper";
+import TextField from "@mui/material/TextField";
+import { LoaderCircle, Save } from "lucide-react";
+import Link from "next/link";
+import { useActionState, useMemo } from "react";
+import { Button } from "@daegwang/web-ui/components/ui/button";
+import { createAdminProfileAction, updateAdminProfileAction, type AdminProfileActionState } from "../../features/admins/actions";
+import { adminRoleLabels } from "@daegwang/contracts/features/admins/schema";
+export type AdminProfileFormValues = { id?: string; authUserId?: string; email?: string; displayName?: string; role?: keyof typeof adminRoleLabels; isActive?: boolean };
+export function AdminProfileForm({ values = {} }: { values?: AdminProfileFormValues }) { const action = useMemo(() => values.id ? updateAdminProfileAction.bind(null, values.id) : createAdminProfileAction, [values.id]); const [state, formAction, pending] = useActionState(action, {} as AdminProfileActionState); const error = (name: string) => state.errors?.[name]?.[0]; return <form action={formAction} className="mt-8 grid gap-6 lg:grid-cols-[1fr_20rem]"><Paper variant="outlined" className="flex flex-col gap-6 p-5 md:p-7">{state.message ? <Alert severity="error">{state.message}</Alert> : null}<Alert severity="info">Supabase Dashboard의 Authentication → Users에서 사용자를 먼저 만든 뒤 해당 사용자의 UUID와 이메일을 입력하세요.</Alert><TextField required fullWidth label="Supabase Auth 사용자 UUID" name="authUserId" defaultValue={values.authUserId ?? ""} error={Boolean(error("authUserId"))} helperText={error("authUserId") ?? "예: 00000000-0000-0000-0000-000000000000"} /><div className="grid gap-6 sm:grid-cols-2"><TextField required fullWidth type="email" label="로그인 이메일" name="email" defaultValue={values.email ?? ""} error={Boolean(error("email"))} helperText={error("email")} /><TextField required fullWidth label="표시 이름" name="displayName" defaultValue={values.displayName ?? ""} error={Boolean(error("displayName"))} helperText={error("displayName")} /></div></Paper><Paper component="aside" variant="outlined" className="flex h-fit flex-col gap-5 p-5 lg:sticky lg:top-24"><h2 className="font-extrabold">권한 설정</h2><TextField select fullWidth size="small" label="역할" name="role" defaultValue={values.role ?? "ADMIN"}>{Object.entries(adminRoleLabels).map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}</TextField><FormControlLabel control={<Checkbox name="isActive" defaultChecked={values.isActive ?? true} />} label="로그인 허용" /><Alert severity="warning">최고 관리자는 문의, 관리자 계정과 활동 기록을 확인할 수 있습니다.</Alert><div className="grid gap-2"><Button type="submit" disabled={pending}>{pending ? <LoaderCircle className="size-4 animate-spin" /> : <Save className="size-4" />}{pending ? "저장 중" : "저장"}</Button><Button asChild variant="secondary"><Link href="/admin/admins">취소</Link></Button></div></Paper></form>; }

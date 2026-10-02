@@ -35,3 +35,18 @@ pnpm-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.vercel
+
+# npm workspaces
+**/node_modules/
+**/.next/
+**/dist/
+/packages/database/src/generated/
+
+# Secrets and machine-specific outputs
+.env.*
+!.env.example
+*.log
+**/test-results/
+**/playwright-report/

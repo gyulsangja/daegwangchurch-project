@@ -1,0 +1,488 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  PRIVATE
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+}
+
+enum WorshipContentType {
+  SUNDAY_MORNING
+  FIRST_HOUR
+  SUNDAY_AFTERNOON
+  WEDNESDAY
+  SPECIAL
+  PRAISE
+}
+
+enum MinistryType {
+  ELEMENTARY
+  YOUTH
+  YOUNG_ADULT
+  NEWCOMER
+  BLESSING_FOOTBALL
+  OTHER
+}
+
+enum InquiryType {
+  NEWCOMER
+  COUNSELING
+  PRAYER
+  GENERAL
+}
+
+enum InquiryStatus {
+  NEW
+  CHECKED
+  CONTACTING
+  COMPLETED
+  ON_HOLD
+}
+
+enum MediaVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum ActivityAction {
+  CREATE
+  UPDATE
+  DELETE
+  RESTORE
+  PUBLISH
+  UNPUBLISH
+  LOGIN
+  LOGOUT
+}
+
+model AdminProfile {
+  id           String        @id @default(cuid())
+  authUserId   String        @unique @db.Uuid
+  email        String        @unique
+  displayName  String
+  role         AdminRole     @default(ADMIN)
+  isActive     Boolean       @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  inquiryNotes InquiryNote[]
+  activityLogs ActivityLog[]
+
+  @@index([role, isActive])
+  @@map("admin_profiles")
+}
+
+model Media {
+  id                 String           @id @default(cuid())
+  bucket             String
+  objectPath         String           @unique
+  originalName       String
+  mimeType           String
+  sizeBytes          Int
+  width              Int?
+  height             Int?
+  altText            String?
+  visibility         MediaVisibility  @default(PUBLIC)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  deletedAt          DateTime?
+  people             Person[]         @relation("PersonProfileImage")
+  ministries         Ministry[]       @relation("MinistryCoverImage")
+  worshipContents    WorshipContent[] @relation("WorshipThumbnail")
+  bulletinsAsPdf     Bulletin[]       @relation("BulletinPdf")
+  bulletinsAsCover   Bulletin[]       @relation("BulletinCover")
+  events             Event[]          @relation("EventCoverImage")
+  albums             Album[]          @relation("AlbumCoverImage")
+  albumImages        AlbumImage[]
+  noticeAttachments  NoticeAttachment[]
+  inquiryAttachments Inquiry[]        @relation("InquiryAttachment")
+
+  @@index([bucket, visibility, deletedAt])
+  @@map("media")
+}
+
+model Page {
+  id          String        @id @default(cuid())
+  key         String        @unique
+  title       String
+  description String?
+  content     Json
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+
+  @@index([status, publishedAt, deletedAt])
+  @@map("pages")
+}
+
+model HistoryItem {
+  id        String   @id @default(cuid())
+  year      Int
+  month     Int?
+  day       Int?
+  title     String
+  content   String?
+  sortOrder Int      @default(0)
+  isVisible Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@index([isVisible, year, sortOrder, deletedAt])
+  @@map("history_items")
+}
+
+model WorshipSchedule {
+  id        String   @id @default(cuid())
+  name      String
+  dayLabel  String
+  timeLabel String
+  location  String?
+  note      String?
+  sortOrder Int      @default(0)
+  isVisible Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@index([isVisible, sortOrder, deletedAt])
+  @@map("worship_schedules")
+}
+
+model Person {
+  id             String   @id @default(cuid())
+  name           String
+  position       String
+  ministry       String?
+  introduction   String?
+  career         Json?
+  profileImageId String?
+  profileImage   Media?   @relation("PersonProfileImage", fields: [profileImageId], references: [id], onDelete: SetNull)
+  quote          String?
+  isSeniorPastor Boolean  @default(false)
+  isVisible      Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  @@index([isVisible, sortOrder, deletedAt])
+  @@map("people")
+}
+
+model Ministry {
+  id             String       @id @default(cuid())
+  name           String
+  slug           String       @unique
+  type           MinistryType
+  introduction   String
+  audience       String?
+  meetingDay     String?
+  meetingTime    String?
+  location       String?
+  leader         String?
+  contactName    String?
+  contactValue   String?
+  showContact    Boolean      @default(false)
+  coverImageId   String?
+  coverImage     Media?       @relation("MinistryCoverImage", fields: [coverImageId], references: [id], onDelete: SetNull)
+  sections       Json?
+  status         ContentStatus @default(DRAFT)
+  sortOrder      Int          @default(0)
+  publishedAt    DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+
+  @@index([status, sortOrder, publishedAt, deletedAt])
+  @@map("ministries")
+}
+
+model WorshipContent {
+  id             String             @id @default(cuid())
+  type           WorshipContentType
+  title          String
+  slug           String             @unique
+  contentDate    DateTime
+  youtubeUrl     String
+  youtubeVideoId String
+  thumbnailUrl   String?
+  thumbnailId    String?
+  thumbnail      Media?             @relation("WorshipThumbnail", fields: [thumbnailId], references: [id], onDelete: SetNull)
+  description    String?
+  preacher       String?
+  sermonTitle    String?
+  scripture      String?
+  summary        String?
+  status         ContentStatus      @default(DRAFT)
+  isPinned       Boolean            @default(false)
+  isLive         Boolean            @default(false)
+  publishedAt    DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  deletedAt      DateTime?
+  bulletins      Bulletin[]
+  revisions      WorshipRevision[]
+  publications   WorshipPublication[]
+
+  @@index([type, status, isPinned, contentDate, deletedAt])
+  @@index([youtubeVideoId])
+  @@map("worship_contents")
+}
+
+model Notice {
+  id              String             @id @default(cuid())
+  title           String
+  slug            String             @unique
+  category        String
+  content         Json
+  status          ContentStatus      @default(DRAFT)
+  isImportant     Boolean            @default(false)
+  isPinned        Boolean            @default(false)
+  publishStartsAt DateTime?
+  publishEndsAt   DateTime?
+  publishedAt     DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  deletedAt       DateTime?
+  attachments     NoticeAttachment[]
+
+  @@index([status, isPinned, publishedAt, deletedAt])
+  @@index([category, status, deletedAt])
+  @@map("notices")
+}
+
+model NoticeAttachment {
+  id        String   @id @default(cuid())
+  noticeId  String
+  notice    Notice   @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  mediaId   String
+  media     Media    @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@unique([noticeId, mediaId])
+  @@index([noticeId, sortOrder])
+  @@map("notice_attachments")
+}
+
+model Bulletin {
+  id               String           @id @default(cuid())
+  title            String
+  slug             String           @unique
+  worshipDate      DateTime
+  summary          String?
+  pdfMediaId       String
+  pdfMedia         Media            @relation("BulletinPdf", fields: [pdfMediaId], references: [id], onDelete: Restrict)
+  coverMediaId     String?
+  coverMedia       Media?           @relation("BulletinCover", fields: [coverMediaId], references: [id], onDelete: SetNull)
+  worshipContentId String?
+  worshipContent   WorshipContent? @relation(fields: [worshipContentId], references: [id], onDelete: SetNull)
+  status           ContentStatus    @default(DRAFT)
+  publishedAt      DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  deletedAt        DateTime?
+
+  @@index([status, worshipDate, deletedAt])
+  @@map("bulletins")
+}
+
+model Event {
+  id           String        @id @default(cuid())
+  title        String
+  slug         String        @unique
+  category     String
+  startsAt     DateTime
+  endsAt       DateTime?
+  isAllDay     Boolean       @default(false)
+  location     String?
+  ministryName String?
+  description  Json?
+  coverImageId String?
+  coverImage   Media?        @relation("EventCoverImage", fields: [coverImageId], references: [id], onDelete: SetNull)
+  status       ContentStatus @default(DRAFT)
+  publishedAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?
+
+  @@index([status, startsAt, deletedAt])
+  @@index([category, startsAt, deletedAt])
+  @@map("events")
+}
+
+model Album {
+  id           String        @id @default(cuid())
+  title        String
+  slug         String        @unique
+  eventDate    DateTime
+  category     String
+  description  String?
+  coverImageId String?
+  coverImage   Media?        @relation("AlbumCoverImage", fields: [coverImageId], references: [id], onDelete: SetNull)
+  status       ContentStatus @default(DRAFT)
+  showOnMain   Boolean       @default(false)
+  publishedAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?
+  images       AlbumImage[]
+
+  @@index([status, showOnMain, eventDate, deletedAt])
+  @@map("albums")
+}
+
+model AlbumImage {
+  id        String   @id @default(cuid())
+  albumId   String
+  album     Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  mediaId   String
+  media     Media    @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+  caption   String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@unique([albumId, mediaId])
+  @@index([albumId, sortOrder])
+  @@map("album_images")
+}
+
+model Inquiry {
+  id                String        @id @default(cuid())
+  type              InquiryType
+  status            InquiryStatus @default(NEW)
+  name              String
+  phone             String?
+  email             String?
+  preferredContact  String?
+  title             String?
+  content           String
+  privacyAgreedAt   DateTime
+  attachmentMediaId String?
+  attachment        Media?        @relation("InquiryAttachment", fields: [attachmentMediaId], references: [id], onDelete: SetNull)
+  checkedAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  deletedAt         DateTime?
+  notes             InquiryNote[]
+
+  @@index([status, type, createdAt, deletedAt])
+  @@map("inquiries")
+}
+
+model InquiryNote {
+  id        String       @id @default(cuid())
+  inquiryId String
+  inquiry   Inquiry      @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    AdminProfile @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  content   String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([inquiryId, createdAt])
+  @@map("inquiry_notes")
+}
+
+model InquiryRateLimit {
+  key             String   @id
+  windowStartedAt DateTime
+  requestCount    Int      @default(1)
+  expiresAt       DateTime
+  updatedAt       DateTime @updatedAt
+
+  @@index([expiresAt])
+  @@map("inquiry_rate_limits")
+}
+
+model SiteSetting {
+  id             String   @id @default(cuid())
+  singletonKey   String   @unique @default("SITE")
+  siteName       String
+  description    String?
+  canonicalUrl   String
+  address        String?
+  addressDetail  String?
+  phone          String?
+  email          String?
+  mapLatitude    Decimal? @db.Decimal(10, 7)
+  mapLongitude   Decimal? @db.Decimal(10, 7)
+  youtubeUrl     String?
+  socialLinks    Json?
+  contactOptions Json?
+  seoDefaults    Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+model ActivityLog {
+  id         String         @id @default(cuid())
+  actorId    String?
+  actor      AdminProfile?  @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action     ActivityAction
+  entityType String
+  entityId   String?
+  summary    String?
+  changes    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime       @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId, createdAt])
+  @@map("activity_logs")
+}
+
+enum PublicationChannel {
+  WEB
+  APP
+}
+
+model WorshipRevision {
+  id               String              @id @default(cuid())
+  worshipContentId String
+  worshipContent   WorshipContent      @relation(fields: [worshipContentId], references: [id], onDelete: Restrict)
+  revisionNo       Int
+  type             WorshipContentType
+  payload          Json
+  createdAt        DateTime            @default(now())
+  publications     WorshipPublication[]
+
+  @@unique([worshipContentId, revisionNo])
+  @@unique([worshipContentId, id])
+  @@map("worship_revisions")
+}
+
+model WorshipPublication {
+  id                  String             @id @default(cuid())
+  worshipContentId    String
+  worshipContent      WorshipContent     @relation(fields: [worshipContentId], references: [id], onDelete: Restrict)
+  channel             PublicationChannel
+  publishedRevisionId String
+  publishedRevision   WorshipRevision    @relation(fields: [worshipContentId, publishedRevisionId], references: [worshipContentId, id], onDelete: Restrict)
+  sourceUpdatedAt     DateTime
+  startsAt            DateTime
+  endsAt              DateTime?
+
+  @@unique([worshipContentId, channel])
+  @@index([channel, startsAt, id])
+  @@map("worship_publications")
+}

@@ -1,0 +1,13 @@
+"use server";
+import { revalidatePath } from "@/lib/revalidate";
+import { redirect } from "next/navigation";
+import { parseHistoryFormData } from "@daegwang/contracts/features/history/schema";
+import { requireAdmin } from "../../lib/auth/permissions";
+import { getPrisma } from "@daegwang/database/prisma";
+
+export type HistoryActionState = { message?: string; errors?: Record<string, string[]> };
+function paths() { revalidatePath("/admin/pages/history"); revalidatePath("/about/history"); }
+function parse(formData: FormData): { ok: true; data: ReturnType<typeof parseHistoryFormData>["data"] & object } | { ok: false; state: HistoryActionState } { const result = parseHistoryFormData(formData); return result.success ? { ok: true, data: result.data } : { ok: false, state: { message: "입력값을 확인해 주세요.", errors: result.error.flatten().fieldErrors } }; }
+export async function createHistoryAction(_state: HistoryActionState, formData: FormData): Promise<HistoryActionState> { const admin = await requireAdmin(); const parsed = parse(formData); if (!parsed.ok) return parsed.state; let id = ""; try { await getPrisma().$transaction(async (tx) => { const item = await tx.historyItem.create({ data: parsed.data }); id = item.id; await tx.activityLog.create({ data: { actorId: admin.id, action: "CREATE", entityType: "HistoryItem", entityId: item.id, summary: `교회연혁 '${item.title}' 등록` } }); }); } catch (error) { console.error(error); return { message: "연혁을 저장하지 못했습니다." }; } paths(); redirect(`/admin/pages/history/${id}/edit`); }
+export async function updateHistoryAction(id: string, _state: HistoryActionState, formData: FormData): Promise<HistoryActionState> { const admin = await requireAdmin(); const parsed = parse(formData); if (!parsed.ok) return parsed.state; try { await getPrisma().$transaction(async (tx) => { const item = await tx.historyItem.update({ where: { id }, data: parsed.data }); await tx.activityLog.create({ data: { actorId: admin.id, action: "UPDATE", entityType: "HistoryItem", entityId: item.id, summary: `교회연혁 '${item.title}' 수정` } }); }); } catch (error) { console.error(error); return { message: "연혁을 수정하지 못했습니다." }; } paths(); redirect(`/admin/pages/history/${id}/edit`); }
+export async function deleteHistoryAction(id: string) { const admin = await requireAdmin(); await getPrisma().$transaction(async (tx) => { const item = await tx.historyItem.update({ where: { id }, data: { deletedAt: new Date() } }); await tx.activityLog.create({ data: { actorId: admin.id, action: "DELETE", entityType: "HistoryItem", entityId: item.id, summary: `교회연혁 '${item.title}' 삭제` } }); }); paths(); redirect("/admin/pages/history"); }

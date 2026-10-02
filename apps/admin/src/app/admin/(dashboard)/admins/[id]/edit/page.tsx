@@ -1,0 +1,8 @@
+import Chip from "@mui/material/Chip";
+import Paper from "@mui/material/Paper";
+import { notFound } from "next/navigation";
+import { AdminProfileForm } from "../../../../../../components/admin/admin-profile-form";
+import { getAdminProfile } from "@daegwang/server/features/admins/queries";
+import { requireSuperAdmin } from "../../../../../../lib/auth/permissions";
+const date = (value: Date) => new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(value);
+export default async function EditAdminPage({ params }: { params: Promise<{ id: string }> }) { await requireSuperAdmin(); const { id } = await params; const item = await getAdminProfile(id); if (!item) notFound(); return <div className="mx-auto max-w-[90rem]"><p className="text-sm font-bold text-primary-700">EDIT ADMIN</p><h1 className="mt-1 text-3xl font-extrabold">관리자 수정</h1><AdminProfileForm values={{ id: item.id, authUserId: item.authUserId, email: item.email, displayName: item.displayName, role: item.role, isActive: item.isActive }} /><section className="mt-10"><h2 className="text-xl font-extrabold">최근 활동</h2>{item.activityLogs.length ? <div className="mt-4 grid gap-3">{item.activityLogs.map((log) => <Paper key={log.id} variant="outlined" className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center"><Chip size="small" label={log.action} className="w-fit" /><p className="flex-1 font-bold">{log.summary || `${log.entityType} 작업`}</p><time className="text-sm text-text-secondary">{date(log.createdAt)}</time></Paper>)}</div> : <Paper variant="outlined" className="mt-4 p-6 text-text-secondary">활동 기록이 없습니다.</Paper>}</section></div>; }
