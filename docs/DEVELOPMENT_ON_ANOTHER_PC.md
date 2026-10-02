@@ -9,7 +9,7 @@ Git, Node.js 24 LTS 계열(프로젝트 최소 22.13), Codex를 설치하고 본
     cd daegwangchurch-project
     npm ci
 
-비공개 저장소이므로 clone 도중 GitHub 로그인 창이 나올 수 있다. npm ci는 생성 클라이언트를 만들지만 운영 DB migration/seed는 실행하지 않는다.
+저장소는 사용자 선택에 따라 Public이다. clone은 로그인 없이 가능하며, 변경사항을 push할 때는 본인 GitHub 로그인이 필요하다. npm ci는 생성 클라이언트를 만들지만 운영 DB migration/seed는 실행하지 않는다.
 
 ## 환경변수
 PowerShell 예시:
