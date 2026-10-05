@@ -1,0 +1,146 @@
+// Run against a separate Expo preview configured with the fake auth host below.
+// No real credentials, accounts, emails or database mutations are used.
+import { chromium } from '@playwright/test';
+import assert from 'node:assert/strict';
+import { mkdir } from 'node:fs/promises';
+const base = process.env.MOBILE_MEMBER_TEST_URL || 'http://localhost:8089';
+await mkdir('test-results', { recursive: true });
+const browser = await chromium.launch({ channel: 'msedge', headless: true });
+try {
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  const errors = []; page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (message.text().includes('Unexpected text node')) errors.push(message.text()); });
+  const owner = '11111111-1111-4111-8111-111111111111';
+  const user = { id: owner, email: 'browser-test@example.invalid', aud: 'authenticated', role: 'authenticated', app_metadata: { provider: 'email', providers: ['email'] }, user_metadata: {}, created_at: new Date().toISOString(), is_anonymous: false };
+  const token = [Buffer.from('{"alg":"HS256","typ":"JWT"}').toString('base64url'), Buffer.from(JSON.stringify({ sub: owner, aud: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600 })).toString('base64url'), 'test-signature'].join('.');
+  const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,content-type,apikey,x-client-info,x-supabase-api-version', 'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS', 'Content-Type': 'application/json' };
+  const authBase = process.env.MOBILE_MEMBER_TEST_AUTH_URL || 'https://member-test.invalid';
+  assert.ok(['https://member-test.invalid', 'http://127.0.0.1:3210'].includes(authBase));
+  await page.route(`${authBase}/auth/v1/**`, route => {
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers });
+    if (route.request().url().includes('/logout')) return route.fulfill({ status: 204, headers });
+    if (route.request().postDataJSON()?.password !== 'test-only-password') return route.fulfill({ status: 400, headers, body: '{"error_code":"invalid_credentials","msg":"Invalid login credentials"}' });
+    return route.fulfill({ headers, body: JSON.stringify({ access_token: token, refresh_token: 'test-refresh', expires_in: 3600, token_type: 'bearer', user }) });
+  });
+  const rows = new Map(); let sequence = 0; let failSave = false; let conflict = false;
+  const scheduleRows = new Map(); let scheduleSequence = 0;
+  const today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+  const event = { id: 'event-1', title: '테스트 공식 행사', category: '행사', startsAt: new Date(`${today}T10:00:00+09:00`).toISOString(), endsAt: new Date(`${today}T11:00:00+09:00`).toISOString(), isAllDay: false, location: '테스트 장소', ministryName: null, description: '테스트 공식 행사 내용' };
+  await page.route('**/api/v1/events**', route => route.fulfill({ headers, body: JSON.stringify(new URL(route.request().url()).pathname.endsWith('/event-1') ? { data: event } : { data: [event], nextPage: null }) }));
+  await page.route('**/api/v1/me/schedules**', route => {
+    const request = route.request(); const url = new URL(request.url()); const method = request.method();
+    if (method === 'OPTIONS') return route.fulfill({ status: 204, headers });
+    assert.equal(request.headers().authorization, `Bearer ${token}`);
+    const send = (data, status = 200) => route.fulfill({ headers, status, body: JSON.stringify(data) });
+    const id = url.pathname.split('/').at(-1);
+    if (method === 'GET') return id === 'schedules' ? send({ data: [...scheduleRows.values()].filter(row => !url.searchParams.get('eventId') || row.eventId === url.searchParams.get('eventId')), nextPage: null }) : scheduleRows.has(id) ? send({ data: scheduleRows.get(id) }) : send({}, 404);
+    const input = request.postDataJSON();
+    if (method === 'POST') { const previous = [...scheduleRows.values()].find(row => input.kind === 'CHURCH' && row.eventId === input.eventId); const row = previous ?? { id: `schedule-${++scheduleSequence}`, version: 1, content: input.kind === 'PERSONAL' ? input : null, eventId: input.kind === 'CHURCH' ? event.id : null, event: input.kind === 'CHURCH' ? event : null }; scheduleRows.set(row.id, row); return send({ data: row }, 201); }
+    if (input.version !== scheduleRows.get(id)?.version) return send({}, 409);
+    if (method === 'PATCH') { const row = scheduleRows.get(id); row.version++; row.content = input.content; return send({ data: { id, version: row.version } }); }
+    scheduleRows.delete(id); return route.fulfill({ status: 204, headers });
+  });
+  await page.route('**/api/v1/me/records**', route => {
+    const request = route.request(); const url = new URL(request.url()); const method = request.method();
+    if (method === 'OPTIONS') return route.fulfill({ status: 204, headers });
+    assert.equal(request.headers().authorization, `Bearer ${token}`);
+    const send = (body, status = 200) => route.fulfill({ status, headers, body: JSON.stringify(body) });
+    const id = url.pathname.split('/').at(-1); const detail = id !== 'records';
+    if (method === 'GET') return detail ? rows.has(id) ? send({ data: rows.get(id) }) : send({}, 404) : send({ data: [...rows.values()].filter(row => (!url.searchParams.get('kind') || row.content.kind === url.searchParams.get('kind')) && (!url.searchParams.get('reflectionId') || row.content.reflectionId === url.searchParams.get('reflectionId'))), nextPage: null });
+    if (failSave) return send({}, 503);
+    const input = request.postDataJSON();
+    if (method === 'POST') { const row = { id: `record-${++sequence}`, version: 1, content: input, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }; rows.set(row.id, row); return send({ data: row }, 201); }
+    if (conflict || input.version !== rows.get(id)?.version) return send({}, 409);
+    if (method === 'PATCH') { const row = rows.get(id); row.content = input.content; row.version++; return send({ data: { id, version: row.version } }); }
+    rows.delete(id); return route.fulfill({ status: 204, headers });
+  });
+  const worship = { id: 'example-1', version: 1, type: 'FIRST_HOUR', title: '테스트 연결 말씀', contentDate: '2026-10-04', scriptureReference: '요한복음 15:1', preacher: null, sermonTitle: null, description: null, summary: null, youtube: { videoId: 'T0000000001', url: 'https://www.youtube.com/watch?v=T0000000001', thumbnailUrl: null } };
+  let bookmark = null;
+  await page.route('**/api/v1/me/bookmarks**', route => {
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers });
+    assert.equal(route.request().headers().authorization, `Bearer ${token}`);
+    const send = data => route.fulfill({ headers, body: JSON.stringify(data) });
+    if (route.request().method() === 'GET') return send({ data: bookmark ? [bookmark] : [], nextPage: null });
+    if (route.request().method() === 'POST') { bookmark = { id: 'bookmark-1', worshipId: worship.id, createdAt: new Date().toISOString(), worship }; return send({ data: bookmark }); }
+    bookmark = null; return route.fulfill({ status: 204, headers });
+  });
+  await page.route('**/api/v1/worship**', route => route.fulfill({ headers, body: JSON.stringify(new URL(route.request().url()).pathname.endsWith('/example-1') ? { data: worship } : { data: [worship], nextCursor: null }) }));
+  await page.route('https://www.youtube.com/**', route => route.fulfill({ body: 'Video test fixture' }));
+  const press = name => page.getByRole('button', { name, exact: true }).press('Enter');
+  await page.goto(`${base}/records/new?kind=PRAYER`);
+  await press('로그인');
+  await page.getByLabel('이메일', { exact: true }).fill(user.email);
+  await page.getByLabel('비밀번호', { exact: true }).fill('wrong-password'); await press('로그인');
+  await page.getByText('이메일과 비밀번호를 확인해 주세요.', { exact: false }).waitFor();
+  await page.screenshot({ path: 'test-results/mobile-login.png' });
+  await page.getByLabel('비밀번호', { exact: true }).fill('test-only-password'); await press('로그인');
+  await page.getByLabel('오늘의 기도', { exact: true }).fill('테스트 개인 기도');
+  await page.screenshot({ path: 'test-results/mobile-prayer-editor.png' });
+  await press('뒤로'); await page.getByText('작성을 그만둘까요?', { exact: true }).waitFor(); await press('취소');
+  assert.equal(await page.getByLabel('오늘의 기도', { exact: true }).inputValue(), '테스트 개인 기도');
+  failSave = true; await press('비공개로 저장'); await page.getByText('개인 기록 서비스를 이용할 수 없습니다.', { exact: false }).waitFor();
+  assert.equal(await page.getByLabel('오늘의 기도', { exact: true }).inputValue(), '테스트 개인 기도');
+  failSave = false; await press('비공개로 저장'); await page.getByText('테스트 개인 기도', { exact: true }).waitFor();
+  assert.equal(rows.size, 1); assert.equal(rows.get('record-1').content.title, '');
+  await press('기록 수정'); await page.getByLabel('오늘의 기도', { exact: true }).fill('충돌 중에도 보존할 글');
+  conflict = true; await press('비공개로 저장'); await page.getByText('다른 곳에서 수정된 기록입니다.', { exact: false }).waitFor();
+  assert.equal(await page.getByLabel('오늘의 기도', { exact: true }).inputValue(), '충돌 중에도 보존할 글');
+  await press('뒤로'); await press('저장하지 않고 나가기');
+  await page.getByText('테스트 개인 기도', { exact: true }).waitFor();
+  conflict = false; await press('기록 수정'); await page.getByLabel('오늘의 기도', { exact: true }).fill('수정된 개인 기도'); await press('비공개로 저장');
+  await page.getByText('수정된 개인 기도', { exact: true }).waitFor();
+  await page.screenshot({ path: 'test-results/mobile-prayer-detail.png' });
+  await page.setViewportSize({ width: 320, height: 320 });
+  await press('기록 삭제');
+  const deleteDialog = page.getByRole('dialog', { name: '기록을 삭제할까요?', exact: true }); await deleteDialog.waitFor();
+  const dialogBounds = await deleteDialog.boundingBox(); assert.ok(dialogBounds.y >= 0 && dialogBounds.y + dialogBounds.height <= 320);
+  await page.getByRole('button', { name: '취소', exact: true }).click(); assert.equal(rows.size, 1);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await press('기록 삭제'); await press('삭제하기'); await page.getByText('저장된 기록이 없습니다', { exact: true }).waitFor(); assert.equal(rows.size, 0);
+  await press('뒤로'); await page.getByRole('button', { name: '나의 묵상', exact: true }).waitFor();
+  await page.screenshot({ path: 'test-results/mobile-my-member.png' });
+  await press('나의 묵상'); await press('말씀에서 묵상 시작하기');
+  await page.getByRole('button', { name: '2026-10-04 테스트 연결 말씀 상세 보기' }).press('Enter');
+  await press('말씀 저장'); await page.getByRole('button', { name: '저장 해제', exact: true }).waitFor(); assert.equal(bookmark?.worshipId, worship.id);
+  await press('묵상 기록하기'); await page.getByRole('textbox', { name: '나의 묵상', exact: true }).fill('테스트 묵상 내용').catch(async cause => { console.log(await page.locator('body').innerText()); console.log(errors); throw cause; });
+  await page.screenshot({ path: 'test-results/mobile-reflection-editor.png' });
+  await press('묵상 저장'); await page.getByText('테스트 묵상 내용', { exact: true }).waitFor();
+  assert.equal(rows.get('record-2').content.worship.id, 'example-1');
+  await press('이 묵상을 기도로 이어가기'); await page.getByLabel('오늘의 기도', { exact: true }).fill('묵상에서 이어진 기도'); await press('비공개로 저장');
+  await page.getByText('묵상에서 이어진 기도', { exact: true }).waitFor(); assert.equal(rows.get('record-3').content.reflectionId, 'record-2');
+  await press('뒤로'); await page.waitForURL(url => url.pathname === '/records'); await press('뒤로'); await page.waitForURL(url => url.pathname === '/my'); await press('특별히 품고 있는 기도'); await press('특별기도 기록하기');
+  await page.getByLabel('기도제목', { exact: true }).fill('특별기도 테스트');
+  await page.screenshot({ path: 'test-results/mobile-special-prayer-editor.png' });
+  await press('특별기도로 저장'); await page.getByText('특별기도 테스트', { exact: true }).waitFor();
+  assert.equal(rows.get('record-4').content.body, '');
+  await press('응답/감사 남기기'); await page.getByLabel('응답일 · 선택', { exact: true }).fill('2026-10-04'); await page.getByLabel('감사 기록 · 선택', { exact: true }).fill('감사 테스트'); await press('특별기도로 저장');
+  await page.waitForURL(url => /^\/records\/[^/]+$/.test(url.pathname) && url.pathname !== '/records/new');
+  await page.getByText('감사 테스트', { exact: true }).waitFor();
+  await press('뒤로'); await page.waitForURL(url => url.pathname === '/records'); await press('뒤로'); await page.waitForURL(url => url.pathname === '/my');
+  await press('저장한 말씀'); await page.getByRole('button', { name: worship.title, exact: true }).waitFor(); await page.screenshot({ path: 'test-results/mobile-saved-worship.png' });
+  await press('저장 해제'); await page.getByText('저장한 말씀이 없습니다', { exact: true }).waitFor(); assert.equal(bookmark, null);
+  await press('뒤로'); await page.waitForURL(url => url.pathname === '/my'); await press('나의 일정'); await press('개인 일정 등록');
+  await page.getByLabel('일정 제목', { exact: true }).fill('테스트 개인 일정');
+  await page.screenshot({ path: 'test-results/mobile-schedule-editor.png' });
+  await page.getByLabel('종료 시간 · 한국 시간', { exact: true }).fill('09:00'); await press('일정 저장');
+  await page.getByText('제목과 날짜·시간을 확인해 주세요.', { exact: false }).waitFor();
+  await page.getByLabel('종료 시간 · 한국 시간', { exact: true }).fill('11:00');
+  await press('일정 저장');
+  await page.getByText('테스트 개인 일정', { exact: true }).waitFor(); await press('일정 수정');
+  await page.getByLabel('메모 · 선택', { exact: true }).fill('수정한 일정 메모'); await press('일정 저장');
+  await page.waitForURL(url => /^\/schedules\/[^/]+$/.test(url.pathname));
+  await page.getByText('수정한 일정 메모', { exact: true }).waitFor();
+  await press('뒤로'); await page.waitForURL(url => url.pathname === '/schedules');
+  await press(event.title); await press('내 일정에 추가'); await page.getByText('교회 일정을 저장할까요?', { exact: true }).waitFor(); await press('일정 저장');
+  await page.getByRole('button', { name: '내 일정에서 해제', exact: true }).waitFor(); assert.equal(scheduleRows.size, 2);
+  await press('뒤로'); await page.waitForURL(url => url.pathname === '/schedules'); await page.getByText('교회 · 저장됨', { exact: false }).waitFor();
+  assert.equal(await page.getByRole('button', { name: event.title, exact: true }).count(), 1);
+  await page.screenshot({ path: 'test-results/mobile-member-schedules.png' });
+  await press('테스트 개인 일정'); await press('일정 삭제'); await press('삭제하기'); await page.waitForURL(url => url.pathname === '/schedules');
+  assert.equal(await page.getByRole('button', { name: '테스트 개인 일정', exact: true }).count(), 0);
+  await press(event.title); await press('내 일정에서 해제'); await press('저장 해제'); await page.getByRole('button', { name: '내 일정에 추가', exact: true }).waitFor(); assert.equal(scheduleRows.size, 0);
+  await press('뒤로'); await page.waitForURL(url => url.pathname === '/schedules'); await press('뒤로'); await page.waitForURL(url => url.pathname === '/my'); await press('로그아웃'); await page.getByText('나의 신앙생활 기록', { exact: true }).filter({ visible: true }).waitFor();
+  await page.goBack(); assert.equal(await page.getByText('감사 테스트', { exact: true }).count(), 0);
+  assert.deepEqual(errors, []);
+  console.log('Member browser checks passed: guest return, invalid/valid login, private create/read/update/delete, save failure and conflict preserve input, discard confirmation, reflection link, optional prayer title, special prayer and gratitude, bookmark save/remove, personal schedules, event save/remove without duplication, logout clears private content. Auth/API are fixtures only.');
+} finally { await browser.close(); }

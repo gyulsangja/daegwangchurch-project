@@ -1,183 +1,59 @@
-import {
-  ArrowRight,
-  BookOpenText,
-  CalendarDays,
-  Clock3,
-  MapPin,
-  Play,
-  Sparkles,
-  UsersRound,
-} from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
+import Image from 'next/image';
+import Link from 'next/link';
+import { ArrowRight, BookOpenText, CalendarDays, MapPin, Play, HeartHandshake } from 'lucide-react';
+import { HomeHero } from '../../components/site/home-hero';
+import { getPublishedWorshipContents } from '@daegwang/server/features/worship/queries';
+import { getHomePageContent } from '@daegwang/server/features/pages/queries';
+import { getPublicSchedules } from '@daegwang/server/features/schedules/queries';
+import { getPublishedNotices } from '@daegwang/server/features/notices/queries';
+import { getPublishedBulletins } from '@daegwang/server/features/bulletins/queries';
+import { getPublishedEvents } from '@daegwang/server/features/events/queries';
+import { worshipTypeLabels } from '@daegwang/contracts/features/worship/schema';
 
-import { Button } from "@daegwang/web-ui/components/ui/button";
-import { getPublishedWorshipContents } from "@daegwang/server/features/worship/queries";
-import { getHomePageContent } from "@daegwang/server/features/pages/queries";
-import { getPublicSchedules } from "@daegwang/server/features/schedules/queries";
-import { getPublishedNotices } from "@daegwang/server/features/notices/queries";
-import { getPublishedBulletins } from "@daegwang/server/features/bulletins/queries";
-import { getPublishedEvents } from "@daegwang/server/features/events/queries";
-
-export default async function HomePage() {
-  const [sundayContents, firstHourContents, schedules, homePage, notices, bulletins, events] = await Promise.all([
-    getPublishedWorshipContents("SUNDAY_MORNING", 1),
-    getPublishedWorshipContents("FIRST_HOUR", 1),
-    getPublicSchedules(),
-    getHomePageContent(),
-    getPublishedNotices("", 3),
-    getPublishedBulletins("", 1),
-    getPublishedEvents("", 1),
-  ]);
-  const latestSunday = sundayContents[0];
-  const latestFirstHour = firstHourContents[0];
-  const content = homePage.content;
-  const worshipTimes = schedules.slice(0, 3);
-
-  return (
-    <>
-      <section className="relative overflow-hidden bg-background-warm">
-        <div aria-hidden="true" className="absolute inset-y-0 right-0 hidden w-[34%] bg-primary-50 lg:block" />
-        <div aria-hidden="true" className="absolute right-[8%] top-24 size-44 rounded-full border-[28px] border-primary-100/80 lg:block" />
-        <div className="container-site relative grid min-h-[38rem] items-center gap-12 py-20 lg:grid-cols-[1.2fr_0.8fr] lg:py-24">
-          <div className="max-w-3xl">
-            <p className="mb-6 inline-flex items-center gap-2 rounded-full bg-primary-100 px-4 py-2 text-sm font-bold text-primary-700">
-              <Sparkles aria-hidden="true" className="size-4" />
-              {content.heroBadge}
-            </p>
-            <h1 className="text-balance text-[clamp(2.75rem,7vw,5.7rem)] font-extrabold leading-[1.03] tracking-[-0.065em] text-text-primary">
-              {content.heroTitleBefore}
-              <br />
-              <span className="text-primary-600">{content.heroTitleAccent}</span>
-              <br />
-              {content.heroTitleAfter}
-            </h1>
-            <p className="mt-7 max-w-xl text-lg leading-8 text-text-secondary md:text-xl">
-              {content.heroDescription}
-            </p>
-            <div className="mt-9 flex flex-wrap gap-3">
-              <Button asChild size="lg">
-                <Link href="/about/worship-info">
-                  예배 안내 <ArrowRight aria-hidden="true" className="size-4" />
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="secondary">
-                <Link href="/newcomer/guide">처음 오셨나요?</Link>
-              </Button>
-            </div>
-          </div>
-          <aside className="relative rounded-[2rem] border border-border bg-white p-6 shadow-[0_24px_70px_rgba(38,35,33,0.08)] md:p-8">
-            <p className="text-sm font-bold tracking-[0.08em] text-primary-700">WORSHIP WITH US</p>
-            <h2 className="mt-2 text-2xl font-extrabold tracking-[-0.04em]">이번 주 예배 안내</h2>
-            <div className="mt-6 divide-y divide-border">
-              {worshipTimes.map((schedule, index) => {
-                const Icon = index === 0 ? Clock3 : CalendarDays;
-                return <div key={schedule.id} className="flex items-center gap-4 py-4 first:pt-0 last:pb-0">
-                  <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary-50 text-primary-700">
-                    <Icon aria-hidden="true" className="size-5" />
-                  </span>
-                  <div className="flex-1">
-                    <p className="font-bold">{schedule.name}</p>
-                    <p className="text-sm text-text-secondary">{schedule.dayLabel} {schedule.timeLabel}{schedule.location ? ` · ${schedule.location}` : ""}</p>
-                  </div>
-                </div>;
-              })}
-            </div>
-            {worshipTimes.length === 0 ? <p className="mt-6 rounded-xl bg-background-muted px-4 py-3 text-sm text-text-secondary">예배시간을 준비하고 있습니다.</p> : null}
-          </aside>
-        </div>
-      </section>
-
-      {content.showWorship ? <section aria-labelledby="latest-worship" className="py-20 md:py-28">
-        <div className="container-site">
-          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-sm font-bold tracking-[0.12em] text-primary-700">LATEST WORSHIP</p>
-              <h2 id="latest-worship" className="mt-2 text-3xl font-extrabold tracking-[-0.045em] md:text-5xl">
-                {content.worshipTitle}
-              </h2>
-            </div>
-            <Link href="/worship/sunday-morning" className="focus-ring inline-flex min-h-11 items-center gap-2 rounded-full font-bold text-primary-700">
-              지난 예배 보기 <ArrowRight aria-hidden="true" className="size-4" />
-            </Link>
-          </div>
-          <div className="mt-10 grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
-            <article className="overflow-hidden rounded-[1.75rem] bg-text-primary text-white">
-              <Link href={latestSunday ? `/worship/videos/${latestSunday.slug}` : "/worship/sunday-morning"} className="relative flex aspect-video items-center justify-center overflow-hidden bg-[#34302d]">
-                {latestSunday?.thumbnailUrl ? <Image src={latestSunday.thumbnailUrl} alt="" fill sizes="(min-width: 1024px) 60vw, 100vw" className="object-cover opacity-75" /> : null}
-                <span className="relative z-10 flex size-16 items-center justify-center rounded-full bg-primary-600 shadow-lg">
-                  <Play aria-hidden="true" className="ml-1 size-7 fill-white" />
-                </span>
-              </Link>
-              <div className="p-6 md:p-8">
-                <p className="text-sm font-bold text-primary-100">최신 주일 오전예배</p>
-                <h3 className="mt-2 text-2xl font-bold tracking-[-0.03em]">{latestSunday?.title ?? "예배 영상이 곧 연결됩니다"}</h3>
-                <p className="mt-3 text-sm text-white/70">{latestSunday ? latestSunday.contentDate.toISOString().slice(0, 10) : "공개된 예배 영상이 아직 없습니다."}</p>
-              </div>
-            </article>
-            <article className="flex flex-col rounded-[1.75rem] border border-border bg-primary-50 p-7 md:p-8">
-              <span className="flex size-12 items-center justify-center rounded-full bg-white text-primary-700">
-                <BookOpenText aria-hidden="true" className="size-6" />
-              </span>
-              <p className="mt-8 text-sm font-bold text-primary-700">매일의 묵상</p>
-              <h3 className="mt-2 text-3xl font-extrabold tracking-[-0.04em]">{latestFirstHour?.title ?? "첫 시간 주님께"}</h3>
-              <p className="mt-4 leading-7 text-text-secondary">
-                {latestFirstHour?.summary ?? latestFirstHour?.description ?? "하루의 첫 시간을 말씀과 기도로 열어가는 독산대광교회의 묵상 영상입니다."}
-              </p>
-              <Link href={latestFirstHour ? `/worship/videos/${latestFirstHour.slug}` : "/worship/first-hour"} className="focus-ring mt-auto inline-flex min-h-11 items-center gap-2 rounded-full pt-8 font-bold text-primary-700">
-                오늘의 묵상 보기 <ArrowRight aria-hidden="true" className="size-4" />
-              </Link>
-            </article>
-          </div>
-        </div>
-      </section> : null}
-
-      {content.showNews ? <section className="border-y border-border bg-white py-20 md:py-24"><div className="container-site"><div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between"><div><p className="text-sm font-bold tracking-[0.12em] text-primary-700">CHURCH NEWS</p><h2 className="mt-2 text-3xl font-extrabold tracking-[-0.045em] md:text-5xl">{content.newsTitle}</h2></div><Link href="/news/notices" className="font-bold text-primary-700">모든 소식 보기 <ArrowRight className="ml-1 inline size-4" /></Link></div><div className="mt-10 grid gap-5 lg:grid-cols-3">{notices.map((notice) => <Link key={notice.id} href={`/news/notices/${notice.slug}`} className="rounded-2xl border border-border p-6 transition hover:border-primary-400"><p className="text-sm font-bold text-primary-700">{notice.category}</p><h3 className="mt-3 line-clamp-2 text-xl font-extrabold">{notice.title}</h3><p className="mt-5 text-sm text-text-secondary">{notice.publishedAt?.toLocaleDateString("ko-KR") ?? notice.createdAt.toLocaleDateString("ko-KR")}</p></Link>)}{notices.length === 0 ? <div className="rounded-2xl border border-border p-6 text-text-secondary">등록된 공지사항이 없습니다.</div> : null}</div><div className="mt-5 grid gap-5 md:grid-cols-2"><Link href={bulletins[0] ? `/news/bulletins/${bulletins[0].slug}` : "/news/bulletins"} className="rounded-2xl bg-primary-50 p-6"><p className="text-sm font-bold text-primary-700">LATEST BULLETIN</p><h3 className="mt-2 text-xl font-extrabold">{bulletins[0]?.title ?? "최근 주보 보기"}</h3></Link><Link href={events[0] ? `/news/events/${events[0].slug}` : "/news/events"} className="rounded-2xl bg-background-warm p-6"><p className="text-sm font-bold text-primary-700">UPCOMING EVENT</p><h3 className="mt-2 text-xl font-extrabold">{events[0]?.title ?? "교회 일정 보기"}</h3></Link></div></div></section> : null}
-
-      {content.showChurch ? <section className="bg-background-warm py-20 md:py-28">
-        <div className="container-site grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
-          <div className="relative min-h-80 overflow-hidden rounded-[2rem] bg-primary-600 p-8 text-white md:min-h-[28rem]">
-            <span aria-hidden="true" className="absolute -bottom-20 -right-16 size-72 rounded-full border-[48px] border-white/15" />
-            <p className="relative text-sm font-bold tracking-[0.12em] text-primary-100">{content.sinceLabel}</p>
-            <p className="relative mt-6 max-w-sm whitespace-pre-line text-4xl font-extrabold leading-tight tracking-[-0.05em] md:text-5xl">{content.motto}</p>
-          </div>
-          <div>
-            <p className="text-sm font-bold tracking-[0.12em] text-primary-700">OUR CHURCH</p>
-            <h2 className="mt-3 text-balance text-3xl font-extrabold leading-tight tracking-[-0.045em] md:text-5xl">
-              {content.churchTitle}
-            </h2>
-            <p className="mt-6 text-lg leading-8 text-text-secondary">
-              {content.churchDescription}
-            </p>
-            <div className="mt-8 grid gap-4 sm:grid-cols-2">
-              <Link href="/about/church" className="focus-ring flex min-h-28 items-center gap-4 rounded-2xl border border-border bg-white p-5 font-bold hover:border-primary-500">
-                <UsersRound aria-hidden="true" className="size-6 text-primary-600" />
-                교회 소개
-              </Link>
-              <Link href="/location" className="focus-ring flex min-h-28 items-center gap-4 rounded-2xl border border-border bg-white p-5 font-bold hover:border-primary-500">
-                <MapPin aria-hidden="true" className="size-6 text-primary-600" />
-                찾아오시는 길
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section> : null}
-
-      {content.showWelcome ? <section className="py-20 md:py-28">
-        <div className="container-site rounded-[2rem] bg-text-primary px-6 py-14 text-center text-white md:px-12 md:py-20">
-          <p className="text-sm font-bold tracking-[0.12em] text-primary-100">WELCOME HOME</p>
-          <h2 className="text-balance mx-auto mt-4 max-w-3xl text-3xl font-extrabold tracking-[-0.045em] md:text-5xl">
-            {content.welcomeTitle}
-          </h2>
-          <p className="mx-auto mt-5 max-w-2xl text-white/70">
-            {content.welcomeDescription}
-          </p>
-          <Button asChild size="lg" className="mt-8 bg-white text-text-primary hover:bg-primary-50">
-            <Link href="/newcomer/guide">새가족 안내 보기</Link>
-          </Button>
-        </div>
-      </section> : null}
-    </>
-  );
+function More({ href, children }: { href: string; children: React.ReactNode }) {
+  return <Link href={href} className="home-more">{children}<ArrowRight aria-hidden="true" className="size-4" /></Link>;
 }
-export const dynamic = "force-dynamic";
+export default async function HomePage() {
+  const [sunday, firstHour, schedules, homePage, notices, bulletins, events] = await Promise.all([
+    getPublishedWorshipContents('SUNDAY_MORNING', 1), getPublishedWorshipContents('FIRST_HOUR', 1), getPublicSchedules(), getHomePageContent(),
+    getPublishedNotices('', 3), getPublishedBulletins('', 1), getPublishedEvents('', 2),
+  ]);
+  const content = homePage.content;
+  const sermon = sunday[0]; const devotional = firstHour[0]; const bulletin = bulletins[0];
+  return <>
+    <HomeHero content={content} schedules={schedules.slice(0, 3)} />
+    {content.showWorship && <section aria-labelledby="home-word" className="home-word-section">
+      <div className="container-site">
+        <div className="home-section-heading"><div><p className="church-eyebrow">예배에서 일상으로</p><h2 id="home-word" className="home-section-title">말씀이 머무는 시간</h2></div><p className="max-w-sm text-sm leading-7 text-text-secondary">주일에 들은 말씀을 되새기고,<br className="hidden md:block" /> 매일의 첫시간을 하나님과 함께 엽니다.</p></div>
+        <div className="home-word-grid">
+          <article aria-labelledby="home-sunday" className="home-sermon">
+            <div className="flex items-center justify-between gap-4"><h3 id="home-sunday" className="text-sm font-semibold">{worshipTypeLabels.SUNDAY_MORNING}</h3><span className="text-xs text-white/70">{sermon?.contentDate.toISOString().slice(0, 10) ?? '함께 듣는 말씀'}</span></div>
+            {sermon?.thumbnailUrl && <Link href={`/worship/videos/${sermon.slug}`} aria-label={`${sermon.title} 영상 보기`} className="home-sermon-image"><Image src={sermon.thumbnailUrl} alt="" fill sizes="(min-width: 1024px) 58vw, 100vw" className="object-cover" /><span className="home-play"><Play aria-hidden="true" className="size-5 fill-current" /></span></Link>}
+            <div className={sermon?.thumbnailUrl ? 'mt-6' : 'py-10 md:py-14'}>{!sermon && <BookOpenText aria-hidden="true" className="mb-8 size-10 stroke-1 text-[#c4d4bb]" />}<h4 className="max-w-xl text-2xl font-semibold leading-relaxed md:text-3xl">{sermon?.title ?? <>한 주의 중심에,<br />하나님의 말씀을.</>}</h4><p className="mt-4 max-w-lg text-sm leading-7 text-white/75">{sermon ? [sermon.scripture, sermon.preacher].filter(Boolean).join(' · ') : '공개된 예배 영상이 등록되면 이곳에서 함께 들으실 수 있습니다.'}</p></div>
+            <More href={sermon ? `/worship/videos/${sermon.slug}` : '/worship/sunday-morning'}>{sermon ? '이번 주 말씀 듣기' : '예배 영상 모아보기'}</More>
+          </article>
+          <article aria-labelledby="home-first-hour" className="home-devotional">
+            <BookOpenText aria-hidden="true" className="size-7 stroke-[1.3] text-primary-700" /><p className="mt-6 text-xs font-semibold tracking-wider text-primary-700">하루를 여는 묵상</p><h3 id="home-first-hour" className="mt-3 text-2xl font-bold">{worshipTypeLabels.FIRST_HOUR}</h3><div className="my-7 h-px w-10 bg-[#b6bba5]" />
+            {devotional ? <><p className="text-xs text-text-secondary">{devotional.contentDate.toISOString().slice(0, 10)}</p><h4 className="mt-3 text-xl font-semibold leading-relaxed">{devotional.title}</h4><p className="mt-3 line-clamp-4 text-sm leading-7 text-text-secondary">{devotional.summary || devotional.description || devotional.scripture}</p></> : <p className="max-w-xs leading-8 text-text-secondary">분주한 하루에 앞서<br />말씀을 읽고 마음을 모으는<br />작은 시간을 가져보세요.</p>}
+            <div className="mt-auto pt-8"><More href={devotional ? `/worship/videos/${devotional.slug}` : '/worship/first-hour'}>{devotional ? '최근 묵상 열기' : '첫시간 만나보기'}</More></div>
+          </article>
+        </div>
+      </div>
+    </section>}
+    {content.showNews && <section aria-labelledby="home-community" className="home-community-section"><div className="container-site">
+      <div className="home-section-heading"><div><p className="church-eyebrow">함께 살아가는 교회</p><h2 id="home-community" className="home-section-title">우리 공동체의 소식</h2></div><More href="/news/notices">소식 더보기</More></div>
+      <div className="home-community-grid">
+        <article aria-labelledby="home-bulletin" className="home-bulletin"><div className="home-bulletin-paper" aria-hidden="true"><BookOpenText className="size-6 stroke-1" /><span className="mt-7 text-xs tracking-[.25em]">대광교회</span><span className="mt-2 text-3xl font-semibold">주보</span><span className="mt-8 h-px w-12 bg-current opacity-30" /><span className="mt-3 text-xs">예배와 공동체의 이야기</span></div><div><h3 id="home-bulletin" className="text-sm font-semibold text-primary-700">한눈에 보는 교회생활</h3><h4 className="mt-3 text-xl font-bold leading-relaxed">{bulletin?.title ?? '주보로 만나는 대광교회'}</h4><p className="mt-2 text-sm leading-7 text-text-secondary">{bulletin ? bulletin.worshipDate.toISOString().slice(0, 10) : '예배 순서와 한 주의 소식을 담습니다.'}</p><More href={bulletin ? `/news/bulletins/${bulletin.slug}` : '/news/bulletins'}>{bulletin ? '주보 열기' : '주보 모아보기'}</More></div></article>
+        <div className="min-w-0">
+          <article aria-labelledby="home-notices"><div className="flex items-center justify-between border-b border-text-primary pb-4"><h3 id="home-notices" className="text-lg font-bold">교회에서 전하는 소식</h3><Link href="/news/notices" aria-label="공지사항 전체 보기" className="inline-flex size-11 items-center justify-center"><ArrowRight aria-hidden="true" className="size-5" /></Link></div>{notices.length ? <ul className="divide-y divide-border">{notices.map(item => <li key={item.id}><Link href={`/news/notices/${item.slug}`} className="block py-5"><span className="text-xs text-primary-700">{item.category}</span><h4 className="mt-2 text-lg font-semibold leading-relaxed">{item.title}</h4><p className="mt-2 text-xs text-text-secondary">{(item.publishedAt ?? item.createdAt).toISOString().slice(0, 10)}</p></Link></li>)}</ul> : <p className="py-8 text-sm leading-7 text-text-secondary">교회의 새로운 소식이 준비되면<br />이곳에서 전해드리겠습니다.</p>}</article>
+          <article aria-labelledby="home-events" className="home-events"><CalendarDays aria-hidden="true" className="mt-1 size-6 shrink-0 stroke-[1.3] text-primary-700" /><div className="min-w-0 flex-1"><h3 id="home-events" className="font-bold">함께할 다음 만남</h3>{events.length ? events.map(item => <Link key={item.id} href={`/news/events/${item.slug}`} className="mt-3 block text-sm leading-7 underline decoration-border underline-offset-4">{item.title}</Link>) : <p className="mt-2 text-sm leading-7 text-text-secondary">예배와 모임, 교회 일정을 확인하세요.</p>}<More href="/news/events">일정 살펴보기</More></div></article>
+        </div>
+      </div>
+    </div></section>}
+    {(content.showChurch || content.showWelcome) && <section aria-labelledby="home-belong" className="home-belong-section"><div className="container-site home-belong-grid">
+      <div>{content.showChurch ? <><p className="church-eyebrow">대광교회라는 공동체</p><h2 id="home-belong" className="home-section-title max-w-lg">{content.churchTitle}</h2><p className="mt-6 max-w-lg leading-8 text-text-secondary">{content.churchDescription}</p><More href="/about/church">우리 교회 이야기</More></> : <><p className="church-eyebrow">당신의 첫 방문을 기다립니다</p><h2 id="home-belong" className="home-section-title">대광교회에 오신 것을 환영합니다</h2></>}</div>
+      {content.showWelcome ? <div className="home-welcome-note"><HeartHandshake aria-hidden="true" className="size-8 stroke-[1.3] text-primary-700" /><h3 className="mt-5 text-2xl font-semibold leading-relaxed">{content.welcomeTitle}</h3><p className="mt-4 text-sm leading-7 text-text-secondary">{content.welcomeDescription}</p><More href="/newcomer/guide">처음 오신 분을 위한 안내</More><Link href="/location" className="mt-5 flex min-h-11 items-center gap-2 border-t border-border pt-5 text-sm font-semibold text-primary-700"><MapPin aria-hidden="true" className="size-4" />교회로 오시는 길<ArrowRight aria-hidden="true" className="ml-auto size-4" /></Link></div> : <div className="home-church-values"><BookOpenText aria-hidden="true" className="size-8 stroke-1" /><p className="mt-5 text-2xl font-semibold leading-relaxed">말씀으로 만나고,<br />삶으로 함께합니다.</p><More href="/about/vision">비전과 사명</More></div>}
+    </div></section>}
+  </>;
+}
+export const dynamic = 'force-dynamic';

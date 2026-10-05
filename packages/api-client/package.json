@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@daegwang/contracts": "*",
+    "@supabase/supabase-js": "^2.110.3",
     "zod": "^4.4.3"
   }
 }

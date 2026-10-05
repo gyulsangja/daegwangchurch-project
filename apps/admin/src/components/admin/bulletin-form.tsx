@@ -62,7 +62,7 @@ export function BulletinForm({ initialValues = {} }: { initialValues?: BulletinF
         <TextField select fullWidth size="small" label="상태" name="status" defaultValue={initialValues.status ?? "DRAFT"} error={Boolean(error("status"))} helperText={error("status")}>
           {Object.entries(bulletinStatusLabels).map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}
         </TextField>
-        <Alert severity="info">공개 상태로 저장하면 교회소식의 주보 페이지에 즉시 표시됩니다.</Alert>
+        <Alert severity="info">주보 PDF는 한 번만 올립니다. 홈페이지와 앱이 같은 주보를 사용하며 수정·비공개도 함께 반영됩니다. 앱에서는 서비스 연결 후 확인할 수 있습니다.</Alert>
         <div className="grid gap-2 pt-2">
           <Button type="submit" disabled={pending}>
             {pending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Save aria-hidden="true" className="size-4" />}

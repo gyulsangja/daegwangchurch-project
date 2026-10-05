@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { appWorshipSchema as itemSchema, appWorshipPageSchema as pageSchema } from '@daegwang/contracts/features/worship/app-contract';
 export type Worship = z.infer<typeof itemSchema>;
 export type WorshipPage = z.infer<typeof pageSchema>;
+export type WorshipListOptions = { type?: Worship['type'] | 'ALL'; group?: 'sermon' | 'sunday' | 'special'; q?: string; preacher?: string; scripture?: string; from?: string; to?: string; month?: string; cursor?: string; signal?: AbortSignal };
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
@@ -30,8 +31,11 @@ export function createWorshipClient(baseUrl: string | undefined, fetcher: typeof
     } finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); }
   }
   return {
-    async list(options: { month?: string; cursor?: string; signal?: AbortSignal } = {}): Promise<WorshipPage> {
-      const params = new URLSearchParams({ type: 'FIRST_HOUR', limit: '20' });
+    async list(options: WorshipListOptions = {}): Promise<WorshipPage> {
+      const params = new URLSearchParams({ limit: '20' });
+      if (options.type !== 'ALL') params.set('type', options.type ?? (options.group ? '' : 'FIRST_HOUR'));
+      if (params.get('type') === '') params.delete('type');
+      for (const key of ['group', 'q', 'preacher', 'scripture', 'from', 'to'] as const) if (options[key]) params.set(key, options[key]!);
       if (options.month) params.set('month', options.month);
       if (options.cursor) params.set('cursor', options.cursor);
       const parsed = pageSchema.safeParse(await read(`?${params}`, options.signal));

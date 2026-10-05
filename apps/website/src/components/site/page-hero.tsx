@@ -1,4 +1,5 @@
 import { cn } from "@daegwang/web-ui/lib/utils";
+import { sectionLabel } from './section-label';
 
 type PageHeroProps = {
   eyebrow: string;
@@ -9,14 +10,14 @@ type PageHeroProps = {
 
 export function PageHero({ eyebrow, title, description, className }: PageHeroProps) {
   return (
-    <section className={cn("border-b border-border bg-background-warm py-16 md:py-24", className)}>
-      <div className="container-site">
-        <p className="text-sm font-bold tracking-[0.12em] text-primary-700">{eyebrow}</p>
-        <h1 className="text-balance mt-3 max-w-4xl text-4xl font-extrabold leading-tight tracking-[-0.05em] md:text-6xl">
+    <section className={cn("church-page-hero border-b border-border py-12 md:py-16", className)}>
+      <div className="container-site relative church-page-intro">
+        <p className="church-eyebrow">{sectionLabel(eyebrow)}</p>
+        <h1 className="text-balance mt-4 max-w-4xl text-3xl leading-[1.5] tracking-[-0.035em] md:text-5xl">
           {title}
         </h1>
         {description ? (
-          <p className="mt-5 max-w-3xl text-lg leading-8 text-text-secondary md:text-xl">
+          <p className="church-page-description mt-5 max-w-3xl text-lg leading-8 text-text-secondary">
             {description}
           </p>
         ) : null}

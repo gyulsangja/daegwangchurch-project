@@ -3,6 +3,7 @@ import "server-only";
 import type { Prisma } from "@daegwang/database/generated/client";
 import { getPrisma } from "@daegwang/database/prisma";
 import { hasDatabaseConfig } from "@daegwang/config/env";
+import { publishedNoticeWhere } from './public-policy';
 
 type NoticeContent = { body?: unknown };
 
@@ -41,18 +42,6 @@ export async function getAdminNotice(id: string) {
     where: { id, deletedAt: null },
     include: { attachments: { include: { media: true }, orderBy: { sortOrder: "asc" } } },
   });
-}
-
-function publishedNoticeWhere(now: Date): Prisma.NoticeWhereInput {
-  return {
-    status: "PUBLISHED",
-    deletedAt: null,
-    AND: [
-      { OR: [{ publishedAt: null }, { publishedAt: { lte: now } }] },
-      { OR: [{ publishStartsAt: null }, { publishStartsAt: { lte: now } }] },
-      { OR: [{ publishEndsAt: null }, { publishEndsAt: { gt: now } }] },
-    ],
-  };
 }
 
 export async function getPublishedNotices(query = "", take = 30) {

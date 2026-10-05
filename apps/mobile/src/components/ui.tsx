@@ -11,13 +11,13 @@ export const styles = StyleSheet.create({
   caption: { fontFamily: 'NotoSansKR_400Regular', fontSize: 14, lineHeight: 21, color: colors.muted },
   button: { backgroundColor: colors.primary, borderRadius: 12, padding: 16, minHeight: 54, justifyContent: 'center' },
   buttonText: { fontFamily: 'NotoSansKR_700Bold', fontSize: 16, lineHeight: 24, color: 'white', textAlign: 'center' },
-  input: { fontFamily: 'NotoSansKR_400Regular', borderWidth: 1, borderColor: colors.line, borderRadius: 12, padding: 12, minHeight: 48, backgroundColor: 'white', color: colors.text },
+  input: { fontFamily: 'NotoSansKR_400Regular', fontSize: 16, lineHeight: 24, borderWidth: 1, borderColor: colors.line, borderRadius: 12, padding: 12, minHeight: 52, backgroundColor: 'white', color: colors.text },
 });
 export function Card({ title, children }: PropsWithChildren<{ title: string }>) {
-  return <View style={styles.card}><Text style={styles.title}>{title}</Text>{children && <Text style={styles.caption}>{children}</Text>}</View>;
+  return <View style={styles.card}><Text style={styles.title}>{title}</Text>{children === undefined || children === null || children === false || children === '' ? null : <Text selectable style={[styles.caption, { fontSize: 16, lineHeight: 26 }]}>{children}</Text>}</View>;
 }
-export function Action({ title, onPress, disabled = false }: { title: string; onPress: () => void; disabled?: boolean }) {
-  return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.button, { opacity: disabled || pressed ? 0.65 : 1 }]}><Text style={styles.buttonText}>{title}</Text></Pressable>;
+export function Action({ title, onPress, disabled = false, secondary = false }: { title: string; onPress: () => void; disabled?: boolean; secondary?: boolean }) {
+  return <Pressable accessibilityRole="button" aria-disabled={disabled} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.button, secondary && { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line }, { opacity: disabled || pressed ? 0.65 : 1 }]}><Text style={[styles.buttonText, secondary && { color: colors.primary }]}>{title}</Text></Pressable>;
 }
 export function Loading() { return <View style={styles.card}><ActivityIndicator color={colors.primary} accessibilityLabel="말씀을 불러오는 중" /><Text style={styles.caption}>말씀을 불러오고 있습니다.</Text></View>; }
 export function Failure({ message, retry }: { message: string; retry: () => void }) {

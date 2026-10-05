@@ -2,6 +2,8 @@
 
 작업 시작 시 docs/PROJECT_CONTEXT.md, docs/HANDOFF.md, docs/monorepo.md를 읽고 실제 Git/파일 상태를 확인한다. 다른 컴퓨터에서는 절대경로가 달라질 수 있으므로 저장소 루트를 기준으로 작업한다.
 
+회사 PC 등 다른 환경에서 이어받을 때는 docs/CONVERSATION_HANDOFF.md의 사용자 요청·결정·미정 사항과 docs/company-pc-checklist.md의 최신 절차를 먼저 확인한다. HANDOFF의 아래쪽 과거 기록보다 최상단의 최신 상태가 우선한다. 대화 인수인계에는 비밀값을 남기지 않는다.
+
 - 사용자와 한국어로 소통한다. 확정된 기획을 임의로 크게 바꾸지 않는다.
 - 미확정 UX는 구현 전에 구조부터 정리한다. 기존 Figma와 홈페이지 수정사항을 보존한다.
 - apps/website는 홈페이지, apps/admin은 CMS/API, apps/mobile은 Expo다. 앱 간 직접 소스 import를 금지하고 packages를 사용한다.

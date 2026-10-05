@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ArrowUpRight, Globe2, Sparkles } from "lucide-react";
+import { BookOpenText, HeartHandshake, Sprout } from "lucide-react";
 
 import { ContentShell, SectionTitle } from "../../../../components/site/content-shell";
 import { PageHero } from "../../../../components/site/page-hero";
@@ -7,7 +7,7 @@ import { getVisionPageContent } from "@daegwang/server/features/pages/queries";
 
 export const metadata: Metadata = {
   title: "비전과 사명",
-  description: "예배를 통해 세상이 회복됨을 믿는 독산대광교회의 목회철학입니다.",
+  description: "예배를 통해 세상이 회복됨을 믿는 대광교회의 목회철학입니다.",
   alternates: { canonical: "/about/vision" },
 };
 
@@ -24,15 +24,15 @@ export default async function VisionPage() {
       />
       <ContentShell>
         <section className="grid gap-6 lg:grid-cols-2">
-          <article className="rounded-[2rem] bg-primary-600 p-8 text-white md:p-12">
-            <Sparkles aria-hidden="true" className="size-8 text-primary-100" />
-            <p className="mt-12 text-sm font-bold tracking-[0.12em] text-primary-100">PASTORAL PHILOSOPHY</p>
-            <h2 className="mt-3 whitespace-pre-line text-3xl font-extrabold leading-tight tracking-[-0.045em] md:text-5xl">{content.philosophy}</h2>
+          <article className="rounded-xl border border-border bg-primary-50 p-8 md:p-12">
+            <BookOpenText aria-hidden="true" className="size-9 text-primary-700" strokeWidth={1.3} />
+            <p className="church-eyebrow mt-10">말씀 위에 세워가는 교회</p>
+            <h2 className="church-display mt-4 whitespace-pre-line text-3xl leading-relaxed md:text-4xl">{content.philosophy}</h2>
           </article>
-          <article className="rounded-[2rem] border border-border bg-background-warm p-8 md:p-12">
-            <Globe2 aria-hidden="true" className="size-8 text-primary-600" />
-            <p className="mt-12 text-sm font-bold tracking-[0.12em] text-primary-700">CHURCH MOTTO</p>
-            <h2 className="mt-3 whitespace-pre-line text-3xl font-extrabold leading-tight tracking-[-0.045em] md:text-5xl">{content.motto}</h2>
+          <article className="rounded-xl border border-border bg-background-warm p-8 md:p-12">
+            <Sprout aria-hidden="true" className="size-9 text-primary-700" strokeWidth={1.3} />
+            <p className="church-eyebrow mt-10">우리 공동체의 고백</p>
+            <h2 className="church-display mt-4 whitespace-pre-line text-3xl leading-relaxed md:text-4xl">{content.motto}</h2>
           </article>
         </section>
         <section className="mt-20 md:mt-28">
@@ -48,7 +48,7 @@ export default async function VisionPage() {
                   <p className="text-xs font-bold text-primary-700">0{index + 1}</p>
                   <p className="mt-2 text-lg font-extrabold">{item}</p>
                 </div>
-                <ArrowUpRight aria-hidden="true" className="size-5 text-primary-600" />
+                <HeartHandshake aria-hidden="true" className="ml-4 size-6 shrink-0 text-primary-600" strokeWidth={1.3} />
               </div>
             ))}
           </div>

@@ -1,32 +1,25 @@
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import Chip from "@mui/material/Chip";
-import { ArrowRight, CalendarDays } from "lucide-react";
+import { ArrowRight, CalendarDays, BookOpenText } from "lucide-react";
 import Link from "next/link";
 
 import type { ContentListItem } from "@daegwang/contracts/content/content-types";
 
 export function ContentList({ items, basePath }: { items: ContentListItem[]; basePath: string }) {
   if (items.length === 0) {
-    return <div className="rounded-2xl border border-border bg-white px-6 py-16 text-center text-text-secondary">표시할 콘텐츠가 없습니다.</div>;
+    return <div className="rounded-xl border border-border bg-background-warm px-6 py-14 text-center"><BookOpenText aria-hidden="true" className="mx-auto mb-4 size-9 text-primary-600" strokeWidth={1.3} /><p className="font-semibold">아직 등록된 소식이 없습니다.</p><p className="mt-2 text-sm leading-7 text-text-secondary">새로운 소식이 등록되면 이곳에서 확인하실 수 있습니다.</p></div>;
   }
 
   return (
-    <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+    <div className="divide-y divide-border border-y border-border">
       {items.map((item) => (
-        <Card component="article" key={item.slug} className="min-h-64">
-          <CardContent className="flex h-full min-h-64 flex-col p-6!">
-            <div className="flex items-center justify-between gap-3 text-sm">
-              <Chip label={item.category} size="small" color="primary" variant="outlined" />
+        <article key={item.slug} className="grid gap-4 py-7 md:grid-cols-[10rem_1fr] md:gap-8">
+            <div className="flex flex-wrap items-center gap-3 text-sm md:flex-col md:items-start">
+              <span className="rounded-md bg-primary-50 px-3 py-1 font-semibold text-primary-700">{item.category}</span>
               <span className="flex items-center gap-1 text-text-secondary"><CalendarDays aria-hidden="true" className="size-4" />{item.date}</span>
             </div>
-            <h2 className="mt-6 text-xl font-extrabold tracking-[-0.03em]">{item.title}</h2>
-            <p className="mt-3 line-clamp-2 text-sm leading-6 text-text-secondary">{item.summary}</p>
-            <Link href={`${basePath}/${item.slug}`} className="focus-ring mt-auto inline-flex min-h-11 items-center gap-2 rounded-full pt-5 font-bold text-primary-700">
-              자세히 보기 <ArrowRight aria-hidden="true" className="size-4" />
-            </Link>
-          </CardContent>
-        </Card>
+            <div><h2 className="text-xl font-semibold leading-relaxed"><Link href={`${basePath}/${item.slug}`} className="focus-ring rounded hover:text-primary-700">{item.title}</Link></h2>
+            <p className="mt-3 line-clamp-2 leading-7 text-text-secondary">{item.summary}</p>
+            <Link href={`${basePath}/${item.slug}`} aria-label={`${item.title} 자세히 보기`} className="church-text-link mt-3">자세히 보기 <ArrowRight aria-hidden="true" className="size-4" /></Link></div>
+        </article>
       ))}
     </div>
   );

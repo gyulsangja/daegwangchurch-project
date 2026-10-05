@@ -74,7 +74,8 @@ export function WorshipForm({ initialValues = {} }: { initialValues?: WorshipFor
         <TextField fullWidth multiline minRows={3} label="짧은 요약" name="summary" defaultValue={initialValues.summary ?? ""} error={Boolean(error("summary"))} helperText={error("summary")} />
       </Paper>
       <Paper component="aside" variant="outlined" className="flex h-fit flex-col gap-5 p-5 lg:sticky lg:top-24">
-        <h2 className="font-extrabold">홈페이지 공개 설정</h2>
+        <h2 className="font-extrabold">홈페이지·앱 공통 공개 설정</h2>
+        <Alert severity="info">한 번 등록한 말씀을 홈페이지와 앱에서 함께 사용합니다. 공개·수정·비공개 저장은 두 채널에 함께 반영됩니다. 앱에서는 서비스 연결 후 확인할 수 있습니다.</Alert>
         <TextField select fullWidth size="small" label="상태" name="status" defaultValue={initialValues.status ?? "DRAFT"} error={Boolean(error("status"))} helperText={error("status")}>
           {Object.entries(contentStatusLabels).map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}
         </TextField>

@@ -50,3 +50,9 @@ next-env.d.ts
 *.log
 **/test-results/
 **/playwright-report/
+/apps/mobile/dist-release-check/
+google-services.json
+GoogleService-Info.plist
+*.p8
+*service-account*.json
+*firebase-adminsdk*.json

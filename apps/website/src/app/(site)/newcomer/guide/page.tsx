@@ -8,7 +8,7 @@ import { Button } from "@daegwang/web-ui/components/ui/button";
 
 export const metadata: Metadata = {
   title: "처음 오셨나요?",
-  description: "독산대광교회를 처음 방문하는 분을 위한 안내입니다.",
+  description: "대광교회를 처음 방문하는 분을 위한 안내입니다.",
   alternates: { canonical: "/newcomer/guide" },
 };
 
@@ -55,7 +55,7 @@ export default function NewcomerGuidePage() {
         />
         <ol className="mt-10 grid gap-5 md:grid-cols-2">
           {guideSteps.map(({ title, description, href, icon: Icon }, index) => (
-            <li key={title} className="rounded-2xl border border-border p-6">
+            <li key={title} className="border-t border-border py-7 pr-6">
               <div className="flex items-center justify-between">
                 <span className="flex size-12 items-center justify-center rounded-full bg-primary-50 text-primary-700">
                   <Icon aria-hidden="true" className="size-6" />
@@ -70,10 +70,10 @@ export default function NewcomerGuidePage() {
             </li>
           ))}
         </ol>
-        <aside className="mt-12 rounded-[2rem] bg-text-primary p-8 text-white md:p-12">
-          <p className="text-sm font-bold tracking-[0.12em] text-primary-100">YOU ARE WELCOME</p>
-          <h2 className="mt-3 text-3xl font-extrabold tracking-[-0.04em]">궁금한 점이 있으신가요?</h2>
-          <p className="mt-4 max-w-2xl text-white/70">
+        <aside className="church-welcome mt-12 p-8 md:p-12">
+          <p className="church-eyebrow">첫 방문을 함께 준비하겠습니다</p>
+          <h2 className="mt-3 text-3xl leading-relaxed">궁금한 점이 있으신가요?</h2>
+          <p className="mt-4 max-w-2xl">
             새가족 방문과 교회 생활에 관한 질문을 온라인으로 안전하게 남길 수 있습니다.
           </p>
           <Button asChild className="mt-7 bg-white text-text-primary hover:bg-primary-50">

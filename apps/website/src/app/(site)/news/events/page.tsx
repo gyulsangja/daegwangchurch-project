@@ -5,7 +5,7 @@ import { getEventDescription, getPublishedEvents } from "@daegwang/server/featur
 
 export const metadata: Metadata = {
   title: "교회 일정",
-  description: "독산대광교회의 예배, 교육과 공동체 일정을 확인하세요.",
+  description: "대광교회의 예배, 교육과 공동체 일정을 확인하세요.",
   alternates: { canonical: "/news/events" },
 };
 

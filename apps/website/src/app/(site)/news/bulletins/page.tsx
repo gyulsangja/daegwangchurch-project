@@ -5,7 +5,7 @@ import { getPublishedBulletins } from "@daegwang/server/features/bulletins/queri
 
 export const metadata: Metadata = {
   title: "주보",
-  description: "독산대광교회의 주일예배 주보를 확인하세요.",
+  description: "대광교회의 주일예배 주보를 확인하세요.",
   alternates: { canonical: "/news/bulletins" },
 };
 

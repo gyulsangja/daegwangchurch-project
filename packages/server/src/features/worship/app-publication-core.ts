@@ -6,7 +6,7 @@ export class PublicationError extends Error {
   constructor(public code: "FORBIDDEN" | "NOT_FOUND" | "CONFLICT") { super(code); }
 }
 
-function snapshot(content: WorshipContent) {
+export function worshipSnapshot(content: WorshipContent) {
   return appWorshipSnapshotSchema.parse({
     type: content.type, title: content.title, contentDate: content.contentDate.toISOString().slice(0, 10),
     youtube: { videoId: content.youtubeVideoId, url: content.youtubeUrl, thumbnailUrl: content.thumbnailUrl },
@@ -37,7 +37,7 @@ export function createAppPublicationService(database: Pick<PrismaClient, "$trans
         const latest = await tx.worshipRevision.findFirst({ where: { worshipContentId: id }, orderBy: { revisionNo: "desc" } });
         const revision = await tx.worshipRevision.create({ data: {
           worshipContentId: id, revisionNo: (latest?.revisionNo ?? 0) + 1,
-          type: content.type, payload: snapshot(content),
+          type: content.type, payload: worshipSnapshot(content),
         } });
         const publication = await tx.worshipPublication.upsert({
           where: { worshipContentId_channel: { worshipContentId: id, channel: "APP" } },

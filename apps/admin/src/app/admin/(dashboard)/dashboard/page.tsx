@@ -24,6 +24,7 @@ export default async function DashboardPage() {
           <p className="text-sm font-bold text-primary-700">OVERVIEW</p>
           <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.04em]">대시보드</h1>
           <p className="mt-2 text-text-secondary">교회 홈페이지의 주요 콘텐츠 현황을 확인합니다.</p>
+          <Link href="/admin/app-operations" className="mt-3 inline-flex min-h-11 items-center font-bold text-primary-700">앱 공개 상태와 다음 작업 확인하기 →</Link>
         </div>
         <Button asChild>
           <Link href="/admin/worship/new"><Plus aria-hidden="true" className="size-4" /> 콘텐츠 등록</Link>

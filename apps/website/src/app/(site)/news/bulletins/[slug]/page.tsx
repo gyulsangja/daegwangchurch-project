@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!bulletin) return { title: "주보" };
   return {
     title: bulletin.title,
-    description: bulletin.summary ?? `${bulletin.worshipDate.toLocaleDateString("ko-KR")} 독산대광교회 주보`,
+    description: bulletin.summary ?? `${bulletin.worshipDate.toLocaleDateString("ko-KR")} 대광교회 주보`,
     alternates: { canonical: `/news/bulletins/${bulletin.slug}` },
   };
 }

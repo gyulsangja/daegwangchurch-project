@@ -2,8 +2,8 @@ import { useCallback, useRef, useState } from 'react';
 import { useFocusEffect, router } from 'expo-router';
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { worshipClient, type WorshipPage } from '../lib/api';
-import { Action, Card, Failure, Loading, styles } from '../components/ui';
+import { worshipClient, type WorshipPage } from '../../lib/api';
+import { Action, Card, Failure, Loading, styles } from '../../components/ui';
 
 export default function DevotionalList() {
   const [page, setPage] = useState<WorshipPage>({ data: [], nextCursor: null });

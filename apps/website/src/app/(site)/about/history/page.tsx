@@ -6,7 +6,7 @@ import { getPublicHistoryItems } from "@daegwang/server/features/history/queries
 
 export const metadata: Metadata = {
   title: "교회연혁",
-  description: "1988년부터 이어진 독산대광교회의 발자취입니다.",
+  description: "1988년부터 이어진 대광교회의 발자취입니다.",
   alternates: { canonical: "/about/history" },
 };
 

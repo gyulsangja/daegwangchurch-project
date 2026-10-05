@@ -56,14 +56,7 @@ export function parseWorshipFormData(formData: FormData) {
   return worshipFormSchema.safeParse(worshipFormDataToInput(formData));
 }
 
-export const worshipTypeLabels = {
-  SUNDAY_MORNING: "주일 오전예배",
-  FIRST_HOUR: "첫 시간 주님께",
-  SUNDAY_AFTERNOON: "주일 오후예배",
-  WEDNESDAY: "수요기도회",
-  SPECIAL: "특별예배",
-  PRAISE: "찬양",
-} as const;
+export { worshipTypeLabels } from './app-contract';
 
 export const contentStatusLabels = {
   DRAFT: "임시저장",

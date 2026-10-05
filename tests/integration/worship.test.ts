@@ -112,32 +112,22 @@ test("duplicate slug fails without an extra content or audit row", async () => {
   assert.equal(await db.activityLog.count(), logs);
 });
 
-test("APP is opt-in and publication snapshots stay stable until republish", async () => {
+test("one content save keeps WEB and APP identical and private saves withdraw both", async () => {
   const source = input({ status: "PUBLISHED" });
   const content = await service.create(actor, source);
-  assert.equal(await appQueries.detail(content.id), null);
-  assert.equal((await appQueries.list({})).data.some((row) => row.id === content.id), false);
-  const first = await publisher.publish(actor, content.id, content.updatedAt.toISOString());
-  const repeated = await publisher.publish(actor, content.id, content.updatedAt.toISOString());
-  assert.equal(first.publishedRevisionId, repeated.publishedRevisionId);
-  const edited = await service.update(actor, content.id, { ...source, title: "앱 새 제목", status: "PRIVATE" });
   assert.equal((await appQueries.detail(content.id))?.title, source.title);
-  assert.equal(await published.bySlug(edited.slug), null);
-  await assert.rejects(publisher.publish(actor, content.id, content.updatedAt.toISOString()), /CONFLICT/);
-  await publisher.publish(actor, content.id, edited.updatedAt.toISOString());
+  const edited = await service.update(actor, content.id, { ...source, title: "Updated shared title" });
   const dto = await appQueries.detail(content.id);
-  assert.equal(dto?.title, "앱 새 제목");
+  assert.equal(dto?.title, (await published.bySlug(edited.slug))?.title);
   assert.equal(dto?.version, 2);
-  assert.deepEqual(Object.keys(dto!).sort(), ["id", "version", "type", "title", "contentDate", "youtube", "preacher", "sermonTitle", "scriptureReference", "description", "summary"].sort());
-  await publisher.unpublish(actor, content.id, edited.updatedAt.toISOString());
+  await service.update(actor, content.id, { ...source, status: "PRIVATE" });
   assert.equal(await appQueries.detail(content.id), null);
-  assert.equal((await appQueries.list({})).data.some((row) => row.id === content.id), false);
-  assert.equal(await db.worshipRevision.count({ where: { worshipContentId: content.id } }), 2);
+  assert.equal(await published.bySlug(edited.slug), null);
 });
 
 test("APP start/end windows, channel and parent deletion apply to list and detail", async () => {
   for (const kind of ["FUTURE", "ENDED", "WEB", "DELETED"] as const) {
-    const content = await service.create(actor, input());
+    const content = await service.create(actor, input({ status: "PUBLISHED" }));
     const pub = await publisher.publish(actor, content.id, content.updatedAt.toISOString());
     if (kind === "FUTURE") await db.worshipPublication.update({ where: { id: pub.id }, data: { startsAt: new Date("2099-01-01") } });
     if (kind === "ENDED") await db.worshipPublication.update({ where: { id: pub.id }, data: { endsAt: clock } });
@@ -151,10 +141,9 @@ test("APP start/end windows, channel and parent deletion apply to list and detai
 test("APP list pagination and type filter use published snapshots", async () => {
   const ids: string[] = [];
   for (let index = 0; index < 3; index++) {
-    const source = input({ type: "PRAISE" });
+    const source = input({ type: "PRAISE", status: "PUBLISHED" });
     const content = await service.create(actor, source);
     await publisher.publish(actor, content.id, content.updatedAt.toISOString());
-    await service.update(actor, content.id, { ...source, type: "FIRST_HOUR" });
     ids.push(content.id);
   }
   const first = await appQueries.list({ type: "PRAISE", limit: 2 });
@@ -189,7 +178,8 @@ test("HTTP handlers return bounded DTOs, 404/422/503 and no-store", async () => 
   const handlers = createAppWorshipHandlers(() => appQueries, () => true);
   const content = await service.create(actor, input());
   assert.equal((await handlers.detail(content.id)).status, 404);
-  await publisher.publish(actor, content.id, content.updatedAt.toISOString());
+  const saved = await db.worshipContent.findUniqueOrThrow({ where: { id: content.id } });
+  await service.update(actor, content.id, { ...input(), youtubeUrl: saved.youtubeUrl, status: "PUBLISHED" });
   const response = await handlers.detail(content.id);
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("Cache-Control"), "no-store");
@@ -237,12 +227,12 @@ test("mobile client consumes real published DTOs and month filtering uses the pu
     const url = new URL(String(request));
     return url.pathname === "/api/v1/worship" ? handlers.list(new Request(url)) : handlers.detail(url.pathname.split("/").at(-1)!);
   });
-  const source = input({ contentDate: "2025-04-02" });
+  const source = input({ contentDate: "2025-04-02", status: "PUBLISHED" });
   const content = await service.create(actor, source);
   await publisher.publish(actor, content.id, content.updatedAt.toISOString());
   await service.update(actor, content.id, { ...source, contentDate: "2025-05-02" });
-  assert.ok((await mobile.list({ month: "2025-04" })).data.some((item) => item.id === content.id));
-  assert.equal((await mobile.detail(content.id)).contentDate, "2025-04-02");
-  assert.ok(!(await mobile.list({ month: "2025-05" })).data.some((item) => item.id === content.id));
+  assert.ok(!(await mobile.list({ month: "2025-04" })).data.some((item) => item.id === content.id));
+  assert.equal((await mobile.detail(content.id)).contentDate, "2025-05-02");
+  assert.ok((await mobile.list({ month: "2025-05" })).data.some((item) => item.id === content.id));
   assert.equal((await handlers.list(new Request("http://local/api/v1/worship?month=2025-13"))).status, 422);
 });

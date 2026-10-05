@@ -32,7 +32,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <br />한곳에서 관리합니다.
           </p>
           <p className="mt-6 max-w-md text-lg text-white/75">
-            독산대광교회 홈페이지와 앱 콘텐츠를 함께 관리하는 공간입니다.
+            대광교회 홈페이지와 앱 콘텐츠를 함께 관리하는 공간입니다.
           </p>
         </div>
         <p className="text-sm text-white/60">권한이 부여된 관리자만 접속할 수 있습니다.</p>

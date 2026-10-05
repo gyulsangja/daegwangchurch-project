@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "섬기는 사람들",
-  description: "독산대광교회를 섬기는 목회자와 사역자를 소개합니다.",
+  description: "대광교회를 섬기는 목회자와 사역자를 소개합니다.",
   alternates: { canonical: "/about/people" },
 };
 

@@ -7,9 +7,10 @@
     "./*": "./src/*.ts"
   },
   "dependencies": {
+    "@daegwang/config": "*",
     "@daegwang/contracts": "*",
     "@daegwang/database": "*",
-    "@daegwang/config": "*",
+    "@supabase/supabase-js": "^2.110.3",
     "server-only": "^0.0.1",
     "zod": "^4.4.3"
   },

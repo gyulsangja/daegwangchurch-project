@@ -42,7 +42,7 @@ export function NoticeForm({ initialValues = {} }: { initialValues?: NoticeFormV
       <Paper variant="outlined" className="flex flex-col gap-6 p-5 md:p-7">
         {state.message ? <Alert severity="error">{state.message}</Alert> : null}
         <TextField fullWidth required label="제목" name="title" defaultValue={initialValues.title ?? ""} error={Boolean(error("title"))} helperText={error("title")} />
-        <TextField fullWidth required label="분류" name="category" defaultValue={initialValues.category ?? "교회소식"} error={Boolean(error("category"))} helperText={error("category") ?? "예: 교회소식, 예배안내, 새가족"} />
+        <TextField fullWidth required label="분류" name="category" defaultValue={initialValues.category ?? "교회소식"} error={Boolean(error("category"))} helperText={error("category") ?? "예: 교회소식, 예배안내, 새가족, 공동기도. 공동기도도 공개 공지이며 홈페이지에 노출됩니다."} />
         <TextField fullWidth required multiline minRows={14} label="본문" name="body" defaultValue={initialValues.body ?? ""} error={Boolean(error("body"))} helperText={error("body") ?? "줄바꿈을 포함한 일반 텍스트로 저장됩니다."} />
         {initialValues.attachments?.length ? (
           <section>
@@ -77,6 +77,7 @@ export function NoticeForm({ initialValues = {} }: { initialValues?: NoticeFormV
         <div className="grid gap-1">
           <FormControlLabel control={<Checkbox name="isImportant" defaultChecked={initialValues.isImportant} />} label="중요 공지" />
           <FormControlLabel control={<Checkbox name="isPinned" defaultChecked={initialValues.isPinned} />} label="목록 상단 고정" />
+          <p className="text-sm leading-6 text-text-secondary">푸시 연결 후에는 새로 공개한 중요 공지만 수신에 동의한 교인에게 한 번 안내합니다. 밤 10시~오전 8시는 보류하며, 본문 수정은 다시 발송하지 않습니다. 목록 상단 고정은 푸시와 관계없습니다.</p>
         </div>
         <TextField fullWidth size="small" type="datetime-local" label="게시 시작" name="publishStartsAt" defaultValue={initialValues.publishStartsAt ?? ""} error={Boolean(error("publishStartsAt"))} helperText={error("publishStartsAt")} slotProps={{ inputLabel: { shrink: true } }} />
         <TextField fullWidth size="small" type="datetime-local" label="게시 종료" name="publishEndsAt" defaultValue={initialValues.publishEndsAt ?? ""} error={Boolean(error("publishEndsAt"))} helperText={error("publishEndsAt")} slotProps={{ inputLabel: { shrink: true } }} />

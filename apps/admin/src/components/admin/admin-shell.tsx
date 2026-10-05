@@ -29,6 +29,9 @@ import { AdminFeedback } from "./admin-feedback";
 
 const adminNavigation = [
   { label: "대시보드", href: "/admin/dashboard", icon: LayoutDashboard },
+  { label: "앱 운영 현황", href: "/admin/app-operations", icon: ClipboardList },
+  { label: "모임·소속 소식", href: "/admin/groups", icon: UsersRound },
+  { label: "상담·심방 접수", href: "/admin/care", icon: Inbox },
   { label: "예배 콘텐츠", href: "/admin/worship", icon: Video },
   { label: "공지사항", href: "/admin/notices", icon: Megaphone },
   { label: "주보", href: "/admin/bulletins", icon: FileText },

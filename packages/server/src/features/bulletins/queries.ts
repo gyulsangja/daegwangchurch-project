@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { Prisma } from "@daegwang/database/generated/client";
+import { bulletinVisibility } from './app-query-core';
 import { getPrisma } from "@daegwang/database/prisma";
 import { hasDatabaseConfig } from "@daegwang/config/env";
 
@@ -26,13 +26,7 @@ export async function getAdminBulletin(id: string) {
   });
 }
 
-function publishedWhere(): Prisma.BulletinWhereInput {
-  return {
-    status: "PUBLISHED",
-    deletedAt: null,
-    OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }],
-  };
-}
+const publishedWhere = () => bulletinVisibility(new Date());
 
 export async function getPublishedBulletins(query = "", take = 30) {
   if (!hasDatabaseConfig()) return [];
@@ -44,7 +38,7 @@ export async function getPublishedBulletins(query = "", take = 30) {
         ...(keyword ? { title: { contains: keyword, mode: "insensitive" as const } } : {}),
       },
       include: { pdfMedia: true },
-      orderBy: [{ worshipDate: "desc" }, { publishedAt: "desc" }],
+      orderBy: [{ worshipDate: "desc" }, { id: "desc" }],
       take,
     });
   } catch (error) {

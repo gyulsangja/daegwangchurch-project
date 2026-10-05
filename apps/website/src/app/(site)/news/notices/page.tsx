@@ -5,7 +5,7 @@ import { getNoticeBody, getPublishedNotices } from "@daegwang/server/features/no
 
 export const metadata: Metadata = {
   title: "공지사항",
-  description: "독산대광교회의 중요한 소식과 안내를 확인하세요.",
+  description: "대광교회의 중요한 소식과 안내를 확인하세요.",
   alternates: { canonical: "/news/notices" },
 };
 

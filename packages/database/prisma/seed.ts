@@ -18,7 +18,7 @@ async function main() {
       update: {},
       create: {
         singletonKey: "SITE",
-        siteName: "독산대광교회",
+        siteName: "대광교회",
         description: "모든 길은 예배로 통합니다.",
         canonicalUrl: "https://daegwangchurch.kr",
         youtubeUrl: "https://www.youtube.com/@서울독산동대광교회",

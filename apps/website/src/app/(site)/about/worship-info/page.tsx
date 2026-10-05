@@ -9,7 +9,7 @@ import { getPublicSchedules } from "@daegwang/server/features/schedules/queries"
 
 export const metadata: Metadata = {
   title: "예배안내",
-  description: "독산대광교회의 주일예배와 주중 예배를 안내합니다.",
+  description: "대광교회의 주일예배와 주중 예배를 안내합니다.",
   alternates: { canonical: "/about/worship-info" },
 };
 

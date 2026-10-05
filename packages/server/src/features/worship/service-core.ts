@@ -1,6 +1,7 @@
 import type { Prisma, PrismaClient } from "@daegwang/database/generated/client";
 import { worshipFormSchema } from "@daegwang/contracts/features/worship/schema";
 import { parseYouTubeUrl } from "@daegwang/contracts/lib/youtube/parser";
+import { syncWorshipPublication } from './sync-publication';
 
 // The caller must obtain this ID from verified server-side authentication.
 export type WorshipActor = { adminId: string };
@@ -42,6 +43,7 @@ export function createWorshipService(
         const content = await tx.worshipContent.create({
           data: { ...data, publishedAt: data.status === "PUBLISHED" ? now() : null },
         });
+        await syncWorshipPublication(tx, content);
         await tx.activityLog.create({ data: {
           actorId: admin.id, action: "CREATE", entityType: "WorshipContent",
           entityId: content.id, summary: `예배 콘텐츠 '${content.title}' 등록`,
@@ -53,6 +55,7 @@ export function createWorshipService(
       const data = contentData(input);
       return database.$transaction(async (tx) => {
         const admin = await requireActiveAdmin(tx, actor);
+        await tx.$queryRaw`SELECT id FROM worship_contents WHERE id = ${id} FOR UPDATE`;
         const current = await tx.worshipContent.findFirst({ where: { id, deletedAt: null } });
         if (!current) throw new Error("NOT_FOUND");
         const content = await tx.worshipContent.update({
@@ -62,6 +65,7 @@ export function createWorshipService(
             publishedAt: data.status === "PUBLISHED" ? current.publishedAt ?? now() : null,
           },
         });
+        await syncWorshipPublication(tx, content);
         await tx.activityLog.create({ data: {
           actorId: admin.id, action: "UPDATE", entityType: "WorshipContent",
           entityId: content.id, summary: `예배 콘텐츠 '${content.title}' 수정`,
@@ -76,6 +80,7 @@ export function createWorshipService(
         const content = await tx.worshipContent.update({
           where: { id }, data: { deletedAt: now() },
         });
+        await syncWorshipPublication(tx, content);
         await tx.activityLog.create({ data: {
           actorId: admin.id, action: "DELETE", entityType: "WorshipContent",
           entityId: content.id, summary: `예배 콘텐츠 '${content.title}' 삭제`,

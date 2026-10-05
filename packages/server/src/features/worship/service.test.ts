@@ -12,19 +12,32 @@ const input = {
   scripture: "요한복음 1:1", description: "", summary: "", status: "PUBLISHED", isPinned: false,
 };
 
-function fixture(options: { inactive?: boolean; missing?: boolean; failAudit?: boolean } = {}) {
+function fixture(options: { inactive?: boolean; missing?: boolean; failAudit?: boolean; failPublication?: boolean } = {}) {
   let saved: Record<string, unknown> = { id: "content-1", title: "기존 제목", status: "DRAFT", publishedAt: null };
   let logs: Record<string, unknown>[] = [];
+  let publication: Record<string, unknown> | null = null;
+  let revisions: Record<string, unknown>[] = [];
   const database = {
     async $transaction(run: (tx: Prisma.TransactionClient) => Promise<unknown>) {
       let pending = { ...saved };
       const pendingLogs = [...logs];
+      let pendingPublication = publication;
+      const pendingRevisions = [...revisions];
       const tx = {
+        $queryRaw: async () => [],
+        worshipRevision: {
+          findFirst: async () => pendingRevisions.at(-1) ?? null,
+          create: async ({ data }: { data: Record<string, unknown> }) => { const row = { id: `r${pendingRevisions.length + 1}`, ...data }; pendingRevisions.push(row); return row; },
+        },
+        worshipPublication: {
+          upsert: async ({ create }: { create: Record<string, unknown> }) => { if (options.failPublication) throw new Error('PUBLICATION_FAILED'); pendingPublication = create; return create; },
+          deleteMany: async () => { pendingPublication = null; return { count: 1 }; },
+        },
         adminProfile: { findUnique: async () => ({ id: actor.adminId, isActive: !options.inactive }) },
         worshipContent: {
           findFirst: async () => options.missing ? null : pending,
-          create: async ({ data }: { data: Record<string, unknown> }) => (pending = { id: "content-1", ...data }),
-          update: async ({ data }: { data: Record<string, unknown> }) => (pending = { ...pending, ...data }),
+          create: async ({ data }: { data: Record<string, unknown> }) => (pending = { id: "content-1", createdAt: date, updatedAt: date, ...data }),
+          update: async ({ data }: { data: Record<string, unknown> }) => (pending = { ...pending, createdAt: date, updatedAt: date, ...data }),
         },
         activityLog: { create: async ({ data }: { data: Record<string, unknown> }) => {
           if (options.failAudit) throw new Error("AUDIT_FAILED");
@@ -35,11 +48,37 @@ function fixture(options: { inactive?: boolean; missing?: boolean; failAudit?: b
       const result = await run(tx as unknown as Prisma.TransactionClient);
       saved = pending;
       logs = pendingLogs;
+      publication = pendingPublication;
+      revisions = pendingRevisions;
       return result;
     },
   } as unknown as Pick<PrismaClient, "$transaction">;
-  return { service: createWorshipService(database, () => date), saved: () => saved, logs: () => logs };
+  return { service: createWorshipService(database, () => date), saved: () => saved, logs: () => logs, publication: () => publication, revisions: () => revisions };
 }
+
+test('one save publishes identical source fields and edits to both channels, hide/delete remove APP publication', async () => {
+  const f = fixture();
+  await f.service.create(actor, input);
+  assert.equal(f.publication()?.worshipContentId, f.saved().id);
+  assert.equal((f.revisions()[0].payload as { title: string }).title, f.saved().title);
+  await f.service.update(actor, 'content-1', { ...input, title: '수정된 말씀' });
+  assert.equal((f.revisions()[1].payload as { title: string }).title, f.saved().title);
+  assert.equal(f.revisions()[1].revisionNo, 2);
+  await f.service.update(actor, 'content-1', { ...input, status: 'PRIVATE' });
+  assert.equal(f.publication(), null);
+  await f.service.update(actor, 'content-1', input);
+  assert.ok(f.publication());
+  await f.service.delete(actor, 'content-1');
+  assert.equal(f.publication(), null);
+});
+test('failed APP synchronization rolls back the website content and revision as well', async () => {
+  const f = fixture({ failPublication: true });
+  await assert.rejects(f.service.create(actor, input), /PUBLICATION_FAILED/);
+  assert.equal(f.saved().title, '기존 제목');
+  assert.equal(f.revisions().length, 0);
+  assert.equal(f.publication(), null);
+  assert.equal(f.logs().length, 0);
+});
 
 test("create normalizes YouTube metadata and stores publication plus audit", async () => {
   const f = fixture();

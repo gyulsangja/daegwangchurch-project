@@ -7,10 +7,59 @@ datasource db {
   provider = "postgresql"
 }
 
+enum MemberRecordKind {
+  REFLECTION
+  PRAYER
+  SPECIAL_PRAYER
+}
+
+model MemberRecord {
+  id          String           @id @default(cuid())
+  ownerId     String           @db.Uuid
+  kind        MemberRecordKind
+  content     Json
+  version     Int              @default(1)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([ownerId, updatedAt, id])
+  @@index([ownerId, kind, updatedAt, id])
+  @@map("member_records")
+}
+
 enum ContentStatus {
   DRAFT
   PUBLISHED
   PRIVATE
+}
+
+model MemberBookmark {
+  id        String             @id @default(cuid())
+  ownerId   String             @db.Uuid
+  worshipId String
+  type      WorshipContentType
+  createdAt DateTime           @default(now())
+
+  @@unique([ownerId, worshipId])
+  @@index([ownerId, createdAt, id])
+  @@map("member_bookmarks")
+}
+
+model MemberSchedule {
+  id        String   @id @default(cuid())
+  ownerId   String   @db.Uuid
+  eventId   String?
+  event     Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  content   Json?
+  startsAt  DateTime?
+  endsAt    DateTime?
+  version   Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([ownerId, eventId])
+  @@index([ownerId, startsAt, id])
+  @@map("member_schedules")
 }
 
 enum AdminRole {
@@ -303,6 +352,7 @@ model Bulletin {
 }
 
 model Event {
+  memberSchedules MemberSchedule[]
   id           String        @id @default(cuid())
   title        String
   slug         String        @unique
@@ -454,6 +504,192 @@ model ActivityLog {
 enum PublicationChannel {
   WEB
   APP
+}
+
+model MemberProfile {
+  ownerId String @id @db.Uuid
+  displayName String @default("")
+  consentVersion String?
+  consentedAt DateTime?
+  consentSnapshot Json?
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("member_profiles")
+}
+
+model MemberDeletion {
+  ownerId String @id @db.Uuid
+  policyVersion String
+  policySnapshot Json
+  receiptRetentionDays Int
+  status String @default("PENDING")
+  attempts Int @default(0)
+  nextAttemptAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  completedAt DateTime?
+  @@index([status, nextAttemptAt])
+  @@map("member_deletions")
+}
+
+model PendingRegistration {
+  ownerId String @id @db.Uuid
+  emailHash String
+  displayName String
+  policyVersion String
+  termsHash String
+  privacyHash String
+  policySnapshot Json
+  consentedAt DateTime @default(now())
+  expiresAt DateTime
+  @@index([expiresAt])
+  @@map("pending_registrations")
+}
+
+model MemberCareRequest {
+  id String @id @default(cuid())
+  ownerId String @db.Uuid
+  requestKey String @db.Uuid
+  content Json
+  status String @default("RECEIVED")
+  policyVersion String
+  consentedAt DateTime @default(now())
+  expiresAt DateTime
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([ownerId, requestKey])
+  @@index([ownerId, createdAt, id])
+  @@index([expiresAt])
+  @@map("member_care_requests")
+}
+
+model ChurchGroup {
+  id String @id
+  name String
+  description String @default("")
+  isActive Boolean @default(true)
+  version Int @default(1)
+  memberships GroupMembership[]
+  managers GroupManager[]
+  notices GroupNotice[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("church_groups")
+}
+
+model GroupMembership {
+  groupId String
+  ownerId String @db.Uuid
+  group ChurchGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  approvedBy String
+  createdAt DateTime @default(now())
+  @@id([groupId, ownerId])
+  @@index([ownerId])
+  @@map("group_memberships")
+}
+
+model GroupManager {
+  groupId String
+  adminId String
+  group ChurchGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  @@id([groupId, adminId])
+  @@map("group_managers")
+}
+
+model GroupPreference {
+  ownerId String @id @db.Uuid
+  interests String[] @default([])
+  notifications Boolean @default(false)
+  version Int @default(1)
+  updatedAt DateTime @updatedAt
+  @@map("group_preferences")
+}
+
+model GroupNotice {
+  id String @id @default(cuid())
+  groupId String
+  group ChurchGroup @relation(fields: [groupId], references: [id], onDelete: Restrict)
+  title String
+  body String
+  audience String
+  status ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  deletedAt DateTime?
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([groupId, status, publishedAt])
+  @@map("group_notices")
+}
+
+model MemberNotification {
+  pushDeliveries MemberPushDelivery[]
+  id        String   @id @default(cuid())
+  ownerId   String   @db.Uuid
+  category  String
+  title     String
+  body      String
+  target    Json?
+  dedupeKey String
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@unique([ownerId, dedupeKey])
+  @@index([ownerId, createdAt, id])
+  @@map("member_notifications")
+}
+
+model MemberPushDevice {
+  id          String   @id @db.Uuid
+  ownerId     String   @db.Uuid
+  token       String   @unique
+  secretHash  String
+  platform    String
+  projectId   String   @db.Uuid
+  enabledAt   DateTime @default(now())
+  expiresAt   DateTime
+  checkedAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deliveries  MemberPushDelivery[]
+
+  @@unique([id, ownerId])
+  @@index([expiresAt, checkedAt])
+  @@index([ownerId])
+  @@map("member_push_devices")
+}
+
+model MemberPushDelivery {
+  id             String @id @default(cuid())
+  ownerId        String @db.Uuid
+  deviceId       String @db.Uuid
+  device         MemberPushDevice @relation(fields: [deviceId, ownerId], references: [id, ownerId], onDelete: Cascade)
+  notificationId String
+  notification   MemberNotification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  slotKey        String
+  status         String @default("PENDING")
+  attempts       Int @default(0)
+  nextAttemptAt  DateTime @default(now())
+  receiptId      String?
+  resultCode     String?
+  sentAt         DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([deviceId, notificationId])
+  @@unique([deviceId, slotKey])
+  @@index([status, nextAttemptAt])
+  @@map("member_push_deliveries")
+}
+
+model MemberNotificationPreference {
+  ownerId   String   @id @db.Uuid
+  content   Json
+  activationTimes Json @default("{}")
+  version   Int      @default(1)
+  updatedAt DateTime @updatedAt
+
+  @@map("member_notification_preferences")
 }
 
 model WorshipRevision {

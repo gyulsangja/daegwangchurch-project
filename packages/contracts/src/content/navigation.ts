@@ -15,7 +15,7 @@ export const newcomerNavigation = [
 
 export const worshipNavigation = [
   { label: "주일 오전예배", href: "/worship/sunday-morning" },
-  { label: "첫 시간 주님께", href: "/worship/first-hour" },
+  { label: "첫시간 주님께", href: "/worship/first-hour" },
   { label: "주일 오후예배", href: "/worship/sunday-afternoon" },
   { label: "수요기도회", href: "/worship/wednesday" },
   { label: "특별예배", href: "/worship/special" },

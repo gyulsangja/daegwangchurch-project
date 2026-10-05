@@ -3,9 +3,10 @@ import { SiteHeader } from "../../components/site/site-header";
 
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen">
+    <div className="church-site min-h-screen">
+      <a href="#main-content" className="church-skip">본문으로 바로가기</a>
       <SiteHeader />
-      <main>{children}</main>
+      <main id="main-content" tabIndex={-1}>{children}</main>
       <SiteFooter />
     </div>
   );

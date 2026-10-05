@@ -3,6 +3,7 @@ import "server-only";
 import type { Prisma } from "@daegwang/database/generated/client";
 import { getPrisma } from "@daegwang/database/prisma";
 import { hasDatabaseConfig } from "@daegwang/config/env";
+import { publishedEventWhere as publishedWhere } from './public-policy';
 
 type EventDescription = { body?: unknown };
 
@@ -35,10 +36,6 @@ export async function getAdminEvents(query = "") {
 export async function getAdminEvent(id: string) {
   if (!hasDatabaseConfig()) return null;
   return getPrisma().event.findFirst({ where: { id, deletedAt: null } });
-}
-
-function publishedWhere(): Prisma.EventWhereInput {
-  return { status: "PUBLISHED", deletedAt: null, OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }] };
 }
 
 export async function getPublishedEvents(query = "", take = 50) {

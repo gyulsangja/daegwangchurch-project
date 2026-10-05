@@ -1,4 +1,6 @@
+'use client';
 import Link from "next/link";
+import { usePathname } from 'next/navigation';
 
 type NavigationItem = {
   label: string;
@@ -12,6 +14,7 @@ export function SectionNavigation({
   label: string;
   items: NavigationItem[];
 }) {
+  const pathname = usePathname();
   return (
     <nav aria-label={label} className="border-b border-border bg-white">
       <div className="container-site overflow-x-auto">
@@ -20,7 +23,8 @@ export function SectionNavigation({
             <li key={item.href}>
               <Link
                 href={item.href}
-                className="focus-ring inline-flex min-h-11 items-center rounded-full px-4 text-sm font-bold text-text-secondary hover:bg-primary-50 hover:text-primary-700"
+                aria-current={pathname === item.href ? 'page' : undefined}
+                className={`focus-ring inline-flex min-h-11 items-center rounded-md px-4 text-sm font-semibold hover:bg-primary-50 hover:text-primary-700 ${pathname === item.href ? 'bg-primary-50 text-primary-700' : 'text-text-secondary'}`}
               >
                 {item.label}
               </Link>

@@ -1,4 +1,5 @@
 import { cn } from "@daegwang/web-ui/lib/utils";
+import { sectionLabel } from './section-label';
 
 export function ContentShell({
   children,
@@ -12,7 +13,7 @@ export function ContentShell({
   return (
     <div
       className={cn(
-        "container-site py-16 md:py-24",
+        "church-content container-site py-12 md:py-20",
         narrow && "max-w-[54rem]",
         className,
       )}
@@ -34,9 +35,9 @@ export function SectionTitle({
   return (
     <div className="max-w-3xl">
       {eyebrow ? (
-        <p className="text-sm font-bold tracking-[0.12em] text-primary-700">{eyebrow}</p>
+        <p className="church-eyebrow">{sectionLabel(eyebrow)}</p>
       ) : null}
-      <h2 className="text-balance mt-2 text-3xl font-extrabold tracking-[-0.045em] md:text-5xl">
+      <h2 className="church-section-title text-balance mt-3 text-3xl leading-[1.5] tracking-[-0.035em] md:text-4xl">
         {title}
       </h2>
       {description ? (

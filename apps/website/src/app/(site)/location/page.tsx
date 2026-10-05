@@ -10,7 +10,7 @@ import { publicEnv } from "@daegwang/config/env";
 
 export const metadata: Metadata = {
   title: "찾아오시는 길",
-  description: "독산대광교회로 오시는 길을 안내합니다.",
+  description: "대광교회로 오시는 길을 안내합니다.",
   alternates: { canonical: "/location" },
 };
 
@@ -48,9 +48,7 @@ export default async function LocationPage() {
                 <MapPin className="mx-auto size-12 text-primary-600" />
                 <p className="mt-4 font-extrabold">지도 연결 준비 중</p>
                 <p className="mt-2 text-sm text-text-secondary">
-                  {!hasMap
-                    ? "관리자 사이트 설정에서 주소와 좌표를 입력해 주세요."
-                    : ".env에 NEXT_PUBLIC_KAKAO_MAP_KEY를 입력해 주세요."}
+                  {address ? '아래 주소와 외부 지도에서 오시는 길을 확인해 주세요.' : '정확한 위치와 방문 안내를 확인하여 게시하겠습니다.'}
                 </p>
               </div>
             </div>
@@ -62,11 +60,11 @@ export default async function LocationPage() {
               {address || "주소 확인 후 게시"}
             </p>
             {settings.phone ? <p className="mt-3 font-bold">대표전화 {settings.phone}</p> : null}
-            <Button asChild className="mt-7 w-full">
+            {hasMap || address ? <Button asChild className="mt-7 w-full">
               <a href={navigationUrl} target="_blank" rel="noreferrer">
                 <Navigation className="size-4" /> 카카오맵에서 길찾기
               </a>
-            </Button>
+            </Button> : <Button asChild className="mt-7 w-full"><Link href="/newcomer/contact">방문 문의하기</Link></Button>}
           </aside>
         </div>
         <section className="mt-20">

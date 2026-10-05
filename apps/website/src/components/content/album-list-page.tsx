@@ -16,7 +16,7 @@ type AlbumListItem = { slug: string; title: string; category: string; date: stri
 export function AlbumListPage({ items, query }: { items: AlbumListItem[]; query: string }) {
   return (
     <>
-      <PageHero eyebrow="ALBUM" title="행사앨범" description="독산대광교회 공동체의 소중한 순간을 나눕니다." />
+      <PageHero eyebrow="ALBUM" title="행사앨범" description="대광교회 공동체의 소중한 순간을 나눕니다." />
       <ContentShell>
         <Paper variant="outlined" className="mb-8 flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm font-semibold text-text-secondary">총 {items.length}개 앨범</p>
