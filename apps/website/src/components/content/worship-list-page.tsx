@@ -34,7 +34,7 @@ export async function WorshipListPage({ eyebrow, title, description, category, t
       <PageHero eyebrow={eyebrow} title={title} description={description} />
       <ContentShell>
         {primary ? <><article className="grid overflow-hidden rounded-[2rem] border border-border lg:grid-cols-[1.2fr_0.8fr]">
-          {primary.thumbnailUrl ? <div className="relative aspect-video overflow-hidden bg-background-muted lg:aspect-auto lg:min-h-[28rem]"><Image src={primary.thumbnailUrl} alt="" fill sizes="(min-width: 1024px) 60vw, 100vw" className="object-cover" /></div> : <MediaPlaceholder type="video" label="YouTube 영상" className="lg:aspect-auto lg:min-h-[28rem]" />}
+          {primary.thumbnailUrl ? <div className="relative aspect-video w-full self-center overflow-hidden bg-black"><Image src={primary.thumbnailUrl} alt="" fill sizes="(min-width: 1280px) 720px, (min-width: 1024px) 60vw, 100vw" className="object-contain" /></div> : <MediaPlaceholder type="video" label="YouTube 영상" className="w-full self-center" />}
           <div className="flex flex-col justify-center p-7 md:p-10">
             <p className="text-sm font-bold text-primary-700">최신 {category}</p>
             <h2 className="mt-3 text-3xl font-extrabold tracking-[-0.04em]">{primary.title}</h2>
@@ -52,7 +52,7 @@ export async function WorshipListPage({ eyebrow, title, description, category, t
           <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((item) => (
               <article key={item.slug} className="overflow-hidden rounded-2xl border border-border">
-                {item.thumbnailUrl ? <div className="relative aspect-video bg-background-muted"><Image src={item.thumbnailUrl} alt="" fill sizes="(min-width: 1024px) 33vw, 100vw" className="object-cover" /></div> : <MediaPlaceholder type="video" label={item.category} />}
+                {item.thumbnailUrl ? <div className="relative aspect-video w-full overflow-hidden bg-black"><Image src={item.thumbnailUrl} alt="" fill sizes="(min-width: 1280px) 400px, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" className="object-contain" /></div> : <MediaPlaceholder type="video" label={item.category} />}
                 <div className="p-5">
                   <p className="text-xs font-bold text-primary-700">{item.category} · {item.date}</p>
                   <h3 className="mt-2 text-lg font-extrabold">{item.title}</h3>
