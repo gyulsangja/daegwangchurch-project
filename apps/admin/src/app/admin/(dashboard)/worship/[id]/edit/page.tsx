@@ -27,6 +27,7 @@ export default async function EditWorshipPage({ params }: Props) {
         </form>
       </div>
       <Alert severity="info" className="mt-6!">삭제하면 목록과 공개 페이지에서 즉시 숨겨지며 DB에는 복구 가능한 상태로 보존됩니다.</Alert>
+      <AppPublicationSection id={content.id} updatedAt={content.updatedAt} status={content.status} />
       <WorshipForm initialValues={{
         id: content.id,
         type: content.type,
@@ -41,7 +42,6 @@ export default async function EditWorshipPage({ params }: Props) {
         status: content.status,
         isPinned: content.isPinned,
       }} />
-      <AppPublicationSection id={content.id} updatedAt={content.updatedAt} />
     </div>
   );
 }

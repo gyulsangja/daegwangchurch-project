@@ -70,7 +70,7 @@ export function NoticeForm({ initialValues = {} }: { initialValues?: NoticeFormV
         </div>
       </Paper>
       <Paper component="aside" variant="outlined" className="flex h-fit flex-col gap-5 p-5 lg:sticky lg:top-24">
-        <h2 className="font-extrabold">공개 설정</h2>
+        <h2 className="font-extrabold">홈페이지·앱 공통 공개 설정</h2><p className="text-sm leading-6 text-text-secondary">공지와 첨부파일은 한 번만 올립니다. 공개 기간과 수정·비공개가 홈페이지와 앱에 함께 반영됩니다.</p>
         <TextField select fullWidth size="small" label="상태" name="status" defaultValue={initialValues.status ?? "DRAFT"} error={Boolean(error("status"))} helperText={error("status")}>
           {Object.entries(noticeStatusLabels).map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}
         </TextField>

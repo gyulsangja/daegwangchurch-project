@@ -20,7 +20,7 @@ export default async function AdminNoticesPage({ searchParams }: Props) {
         <div>
           <p className="text-sm font-bold text-primary-700">CONTENT MANAGEMENT</p>
           <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.04em]">공지사항</h1>
-          <p className="mt-2 text-text-secondary">교회의 중요 소식과 게시 기간을 관리합니다.</p>
+          <p className="mt-2 text-text-secondary">홈페이지와 앱에 함께 보이는 공지와 첨부파일을 관리합니다.</p>
         </div>
         <Button asChild><Link href="/admin/notices/new"><Plus aria-hidden="true" className="size-4" /> 공지 등록</Link></Button>
       </div>

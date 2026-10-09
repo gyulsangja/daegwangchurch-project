@@ -5,10 +5,13 @@ import { createPublicWorshipQueries } from "@daegwang/server/features/worship/pu
 import { getPrisma } from "@daegwang/database/prisma";
 import { hasDatabaseConfig } from "@daegwang/config/env";
 
-export async function getAdminWorshipContents() {
+export async function getAdminWorshipContents(query = '') {
   if (!hasDatabaseConfig()) return [];
   return getPrisma().worshipContent.findMany({
-    where: { deletedAt: null },
+    where: { deletedAt: null, ...(query.trim() ? { OR: [
+      { title: { contains: query.trim(), mode: 'insensitive' as const } },
+      { preacher: { contains: query.trim(), mode: 'insensitive' as const } },
+    ] } : {}) },
     orderBy: [{ isPinned: "desc" }, { contentDate: "desc" }, { createdAt: "desc" }],
     take: 100,
   });

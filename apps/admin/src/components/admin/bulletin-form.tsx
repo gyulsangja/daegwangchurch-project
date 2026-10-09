@@ -58,11 +58,11 @@ export function BulletinForm({ initialValues = {} }: { initialValues?: BulletinF
         </div>
       </Paper>
       <Paper component="aside" variant="outlined" className="flex h-fit flex-col gap-5 p-5 lg:sticky lg:top-24">
-        <h2 className="font-extrabold">공개 설정</h2>
+        <h2 className="font-extrabold">홈페이지·앱 공통 공개 설정</h2>
         <TextField select fullWidth size="small" label="상태" name="status" defaultValue={initialValues.status ?? "DRAFT"} error={Boolean(error("status"))} helperText={error("status")}>
           {Object.entries(bulletinStatusLabels).map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}
         </TextField>
-        <Alert severity="info">주보 PDF는 한 번만 올립니다. 홈페이지와 앱이 같은 주보를 사용하며 수정·비공개도 함께 반영됩니다. 앱에서는 서비스 연결 후 확인할 수 있습니다.</Alert>
+        <Alert severity="info">주보 PDF는 한 번만 올립니다. 홈페이지와 앱이 같은 주보를 사용하며 수정·비공개도 함께 반영됩니다.</Alert>
         <div className="grid gap-2 pt-2">
           <Button type="submit" disabled={pending}>
             {pending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Save aria-hidden="true" className="size-4" />}

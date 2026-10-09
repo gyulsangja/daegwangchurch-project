@@ -51,11 +51,11 @@ export function EventForm({ initialValues = {} }: { initialValues?: EventFormVal
         <TextField fullWidth multiline minRows={8} label="일정 설명" name="description" defaultValue={initialValues.description ?? ""} error={Boolean(error("description"))} helperText={error("description") ?? "준비물, 대상, 신청 방법 등 상세 안내를 입력하세요."} />
       </Paper>
       <Paper component="aside" variant="outlined" className="flex h-fit flex-col gap-5 p-5 lg:sticky lg:top-24">
-        <h2 className="font-extrabold">공개 설정</h2>
+        <h2 className="font-extrabold">홈페이지·앱 공통 공개 설정</h2>
         <TextField select fullWidth size="small" label="상태" name="status" defaultValue={initialValues.status ?? "DRAFT"} error={Boolean(error("status"))} helperText={error("status")}>
           {Object.entries(eventStatusLabels).map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}
         </TextField>
-        <Alert severity="info">공개 상태로 저장하면 교회 일정 페이지에 즉시 표시됩니다.</Alert>
+        <Alert severity="info">한 번 등록한 일정을 홈페이지와 앱에서 함께 사용합니다. 날짜·장소 수정과 비공개도 함께 반영됩니다.</Alert>
         <div className="grid gap-2 pt-2">
           <Button type="submit" disabled={pending}>{pending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Save aria-hidden="true" className="size-4" />}{pending ? "저장 중" : "저장"}</Button>
           <Button asChild variant="secondary"><Link href="/admin/events">취소</Link></Button>

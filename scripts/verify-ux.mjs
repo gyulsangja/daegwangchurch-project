@@ -2,7 +2,7 @@ import { chromium } from '@playwright/test';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 const dir = 'apps/mobile/test-results'; await mkdir(dir, { recursive: true });
-assert.equal((await (await fetch('http://127.0.0.1:3210/api/v1/account/options')).json()).mode, 'preview');
+if (process.env.UX_ADMIN_ONLY !== '1') assert.equal((await (await fetch('http://127.0.0.1:3210/api/v1/account/options')).json()).mode, 'preview');
 const browser = await chromium.launch({ channel: 'msedge', headless: true });
 let page;
 try {
@@ -34,12 +34,19 @@ try {
   await page.close();
   if (process.env.UX_MOBILE_ONLY === '1') { console.log('Mobile UX checks passed'); await browser.close(); process.exit(0); }
   page = await browser.newPage({ viewport: { width: 1440, height: 1000 } }); page.on('pageerror', error => errors.push(error.message));
-  await page.goto('http://127.0.0.1:3001/preview/app-operations'); await page.getByRole('heading', { name: '앱 운영 현황', exact: true }).waitFor(); await shot('admin-operations');
+  await page.goto('http://127.0.0.1:3001/preview/app-operations'); await page.getByRole('heading', { name: '관리 홈', exact: true }).waitFor(); await shot('admin-operations');
+  assert.equal(await page.getByRole('navigation', { name: '관리자 메뉴', exact: true }).getByRole('link').count(), 8);
+  assert.equal(await page.getByRole('link', { name: '앱 운영 현황', exact: true }).count(), 0);
+  assert.equal(await page.getByRole('checkbox', { name: '교회 앱', exact: true }).count(), 0);
   await page.getByRole('textbox', { name: '콘텐츠 제목', exact: true }).fill(''); await press('발행 전 미리보기'); await page.getByRole('alert').filter({ hasText: '제목·날짜' }).waitFor();
   await page.getByRole('textbox', { name: '콘텐츠 제목', exact: true }).fill('[가상] 발행 체험'); await press('발행 전 미리보기'); await page.getByRole('dialog').waitFor(); await shot('admin-confirm'); await press('돌아가서 수정');
   await press('발행 전 미리보기'); await press('체험 확인'); await page.getByText('발행 절차 체험 완료 · 실제 발행 0건', { exact: true }).waitFor();
   await page.setViewportSize({ width: 390, height: 844 }); assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)); await shot('admin-mobile');
+  await page.locator('summary').filter({ hasText: '관리자 메뉴 열기' }).click();
+  assert.equal(await page.getByRole('navigation', { name: '모바일 관리자 메뉴', exact: true }).getByRole('link').count(), 8);
+  await shot('admin-mobile-menu');
+  await page.setViewportSize({ width: 320, height: 740 }); assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   await page.goto('http://127.0.0.1:3001/admin/app-operations'); await page.waitForURL(url => url.pathname === '/admin/login');
-  assert.deepEqual(errors, []); console.log('UX checks passed: home care link, calendar markers, same-account reauthentication preserves draft, home reflection/prayer continuation, schedule 320px, help, admin preview/validation/confirmation/responsive/auth gate.');
+  assert.deepEqual(errors, []); console.log(process.env.UX_ADMIN_ONLY === '1' ? 'Admin UX checks passed: 8 navigation items, unified publication, validation, confirmation, 390/320px layout and auth gate.' : 'Mobile and admin UX checks passed.');
 } catch (error) { if (page) { console.error(page.url(), (await page.locator('body').innerText()).slice(-2200)); await page.screenshot({ path: `${dir}/ux-failure.png` }); } throw error; }
 finally { await browser.close(); }
