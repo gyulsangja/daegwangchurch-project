@@ -37,6 +37,8 @@ npm run dev:mobile
 
 휴대폰 푸시는 Expo/FCM 기반으로 구현되어 있으며 현재 계정 연결·배포·실기기 검증 전이다. 무료 범위, 안드로이드 계정 생성부터 APK 설치까지는 [푸시 연결 안내](docs/notifications.md), 기능별 전송 기준은 [푸시 기능 분석](docs/push-design.md)을 따른다. `npm run maintain:push`는 읽기 전용 상태 확인이며 `--apply`는 실제 발송 명령이다.
 
+`npm run check:push`는 외부 접속 없이 로컬 푸시 설정의 누락·프로젝트/패키지 불일치·Firebase 비밀 파일 혼동을 점검한다. 비밀값을 출력하거나 발송하지 않는다. 미완료 항목은 WAIT와 종료 코드 1로 표시하며, 계정 연결 전에는 정상이다.
+
 ## 검증
 
 ~~~sh

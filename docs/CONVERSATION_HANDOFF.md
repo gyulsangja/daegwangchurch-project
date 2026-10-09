@@ -30,8 +30,10 @@
 | 관리자 로그인 | 사용자가 직접 로그인했다고 답했고 관리 화면을 확인함. 회사 PC 세션은 새로 확인 |
 | DB 비밀번호 | 회사 PC 확인을 기다리지 않고 재설정 완료. 회사 PC의 이전 비밀번호는 갱신 필요 |
 | 푸시 검증 기기 | 안드로이드 |
-| Expo·Firebase 계정 | 없음 |
-| 도메인 소유·배포 호스팅·공개 가입/탈퇴/개인정보 운영 정책 | 확정되지 않음 |
+| Firebase 계정 | 2026-10-09 프로젝트·Android 앱 생성 후 google-services.json 로컬 연결 완료. 서비스 계정 프로젝트 일치 확인 및 Expo Android FCM V1 전송 자격 할당 완료. 실기기 전송은 미검증. 계정 이메일은 기록하지 않음 |
+| Expo 계정 | 2026-10-09 CLI 인증·@gyulsangjabox/daegwang-church 생성·앱/서버 로컬 EAS UUID 연결·FCM V1 자격 할당 완료. 원격 빌드 환경 설정은 남음 |
+| 배포 호스팅 | 기존 Vercel Git 연결 및 이전 버전 배포 있음(사용자 확인). https://daegwangchurch.vercel.app/ . 로컬 CLI 인증 후 기존 프로젝트 설정 확인 필요 |
+| 별도 도메인 소유·공개 가입/탈퇴/개인정보 운영 정책 | 확정되지 않음 |
 
 위의 미정 항목을 예시 값으로 운영 DB에 채우지 않는다. 비밀번호나 서버 키는 채팅에 보내도록 요구하지 않는다.
 
@@ -54,7 +56,7 @@
 
 1. 회사 PC의 현재 Git 변경을 보존하고 원격 main을 가져온다. [회사 PC 점검표](company-pc-checklist.md)를 따라 의존성과 비밀 환경변수를 확인한다. 기존 환경 파일을 덮어쓰지 않는다.
 2. 세 프로젝트를 실행하고 현재 화면/관리자 로그인/공개 API를 확인한다. DB는 이미 12개 migration 적용 상태다. **reset/seed/과거 migration 재실행을 하지 않는다.** 회사 PC가 동일 DB를 가리키는지 먼저 확인한다.
-3. 사용자의 무료 Expo/Firebase 계정 생성·로그인 단계부터 Android 푸시 연결을 이어간다. 상세 순서는 notifications.md에 있다. 이미 구현한 큐·토큰·화면을 처음부터 다시 만들지 않는다.
+3. Firebase와 Expo 모두 사용자의 같은 Google 계정을 사용한다(2026-10-09 확인). Firebase 교회용 프로젝트/Android 등록과 Expo EAS 프로젝트 연결 여부를 확인해 Android 푸시 연결을 이어간다. 상세 순서는 notifications.md에 있다. 이미 구현한 큐·토큰·화면을 처음부터 다시 만들지 않는다.
 4. HTTPS 호스팅/도메인, Supabase Cron/Vault, FCM 자격, Android APK와 본인 동의 기기를 연결한다. 교인 대상 일괄 시험 발송은 하지 않는다. 실제 기기에서 닫힘/배경/권한 거부/탭/로그아웃/계정 전환/일정 변경을 검증한다.
 5. 미정 운영 정보, SMTP/약관/가입/탈퇴, 모임/돌봄 설정을 확정되는 대로 연결한다. 탈퇴·가입·돌봄·모임 플래그가 기본 비활성인 이유를 보존한다.
 6. 두 실제 테스트 회원의 소유자 격리, 관리자 저장 → 홈페이지/앱 반영, 실제 교인 사용성을 확인하고 배포 검증을 마친다.
@@ -63,4 +65,4 @@
 
 ## 회사 PC에서 Codex에게 붙여 넣을 요청
 
-> 이 저장소에서 대광교회 홈페이지·관리자·앱 작업을 이어서 진행해줘. 먼저 AGENTS.md, docs/CONVERSATION_HANDOFF.md, docs/HANDOFF.md 최상단, docs/PROJECT_CONTEXT.md, docs/company-pc-checklist.md, docs/notifications.md를 읽고 현재 Git 상태와 회사 PC 환경을 확인해줘. 회사 PC의 기존 변경·환경 파일을 보존하고 비밀값은 출력하지 마. DB migration은 집 PC에서 12개까지 적용했고 실제 푸시는 아직 꺼져 있어. 내 기기는 안드로이드이고 Expo/Firebase 계정은 아직 없다고 답했으니 현재 준비 여부를 확인해서 무료 계정·프로젝트 연결, HTTPS 서버·주기 작업, APK 실기기 푸시 검증부터 이어가자. 이미 만든 기능과 디자인을 처음부터 다시 만들지 말고 가능한 작업은 계속 진행해줘.
+> 이 저장소에서 대광교회 홈페이지·관리자·앱 작업을 이어서 진행해줘. 먼저 AGENTS.md, docs/CONVERSATION_HANDOFF.md, docs/HANDOFF.md 최상단, docs/PROJECT_CONTEXT.md, docs/company-pc-checklist.md, docs/notifications.md를 읽고 현재 Git 상태와 회사 PC 환경을 확인해줘. 회사 PC의 기존 변경·환경 파일을 보존하고 비밀값은 출력하지 마. DB migration은 집 PC에서 12개까지 적용했고 실제 푸시는 아직 꺼져 있어. 내 기기는 안드로이드이고 Firebase는 기존 Google 계정을 사용해. 교회용 Firebase 프로젝트와 Expo 계정 준비 여부를 확인해서 프로젝트 연결, HTTPS 서버·주기 작업, APK 실기기 푸시 검증부터 이어가자. 이미 만든 기능과 디자인을 처음부터 다시 만들지 말고 가능한 작업은 계속 진행해줘.

@@ -34,7 +34,20 @@
         }
       ],
       "expo-secure-store",
-      ["expo-notifications", { "defaultChannel": "church-updates", "color": "#547460" }]
-    ]
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "church-updates",
+          "color": "#547460"
+        }
+      ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0ad541dc-af4a-4896-bfa5-ea6fe66795b4"
+      }
+    },
+    "owner": "gyulsangjabox"
   }
 }

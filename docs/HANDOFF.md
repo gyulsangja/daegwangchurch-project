@@ -1,5 +1,73 @@
 # 작업 인수인계
 
+## 진행 중: 운영 DB 연결 한도 후속 수정 (2026-10-09)
+
+- 후속 검증: 변경한 풀로 실제 DB 읽기 12개 병렬 실행 모두 통과. 수정본 Vercel 미리보기 관리자 10개·홈페이지 4개 경로 통과, 다른 경로 조회 후 말씀 재조회도 200. 미리보기 검증 후 두 production DATABASE_URL을 transaction pool로 갱신했다. 수정 코드를 Git main에 반영해 자동 배포 및 실제 운영 URL을 최종 검증한다.
+
+- 홈페이지/관리자 승격 후 실제 도메인 검증에서 말씀 API만 503으로 바뀌는 현상을 확인했다. 실제 DB 읽기 재현에서 DriverAdapterError SQLSTATE XX000·연결 수 한도 오류를 확인했다. 서버 DATABASE_URL이 Supabase session pooler 5432였다.
+- 공식 문서에 따라 서버 런타임만 transaction pooler 6543으로 바꿔 말씀 조회 3회와 읽기 전용 interactive transaction 성공을 확인했다. packages/database의 PrismaPg 풀은 max 2·connectionTimeoutMillis 10초·idleTimeoutMillis 10초로 제한했다. DB CLI .env/DIRECT_URL·스키마·회원 자료는 변경하지 않았다.
+- 서버 로컬 환경과 Vercel preview 연결을 수정했으며 두 프로젝트의 수정본 미리보기 빌드를 실행했다. check:release에 Supabase transaction pool 검사를 추가했다. 공유 타입·변경 파일 lint 통과. 다음 최상단 기록에서 최종 운영 재배포/외부 확인 결과를 확인한다.
+
+## 진행 중: Vercel 모노레포 배포 전환 (2026-10-09)
+
+- 후속: 홈페이지 미리보기 4개 경로 및 관리자 미리보기 10개 경로 검증 완료. 공개 말씀/공지/주보/행사 200, 관리자 비로그인 이동 307, 개인 기록/기기 API 401, 비밀 없는 푸시 POST 401/no-store. 초기 Vercel 보호 302는 CLI의 관리자 프로젝트 로컬 연결 후 해소했다. 앱 인증을 우회하거나 미리보기 보호를 해제하지 않았다.
+- 로컬 단위/체험 85개 및 패키지 경계 검사 통과. 서버 제품 소스 변경 없이 기존 기능의 원격 실행을 확인했다. 실제 사용자 로그인·개인 자료 쓰기·푸시 수신은 별도 검증이다.
+- 사용자 승인 순서대로 미리보기 검증 후 두 프로젝트 production 환경 등록 완료. 가입/돌봄/모임/탈퇴/푸시 발송은 계속 false. 운영용 배포는 `--prod --skip-domain`으로 생성해 최종 확인 전 자동 도메인 전환을 막았다.
+- 두 프로젝트 Git 연결을 `gyulsangja/daegwangchurch-project`, production branch `main`으로 연결하고 API 조회로 확인했다. Git push 후 자동 배포 가능 상태다.
+
+- 사용자가 기존 scope `gyulsangjas-projects`의 `daegwangchurch`·`daegwangchurch-admin`에 소스와 앱별 DB/Supabase/서버 환경값을 등록하고 미리보기 검증 후 운영 배포하는 것을 명시 승인했다. Firebase 비밀 서비스 계정은 Vercel 전송 대상이 아니다.
+- 기존 프로젝트 원격 조회에서 Git link는 null, Root Directory는 루트, 운영 배포는 7월 코드였다. `.kr`, `www` 도메인과 기존 vercel.app은 HTTP 200. 기존 설정과 운영 deployment ID를 Git 제외 test-results/deploy/previous-settings.json에 비밀값 없이 기록했다.
+- 홈페이지 Root Directory `apps/website`, 새 관리자 프로젝트 `apps/admin`, 공유 파일 포함, install `cd ../.. && npm ci`, build `npm run build`로 설정했다. 로컬 홈페이지/관리자 production 빌드는 모두 통과했다.
+- `.vercelignore`에 중첩 환경 파일·Firebase JSON/키·테스트/생성/빌드 파일 제외를 보완했다. CLI dry 검사: 584개, unexpectedArtifacts=0, secretContentMatches=0. 자동 검토의 민감 환경 전송/잔여 테스트 폴더 지적은 사용자 명시 승인과 제외 규칙 재검사로 해결했다.
+- 미리보기 환경변수 등록 완료(값 출력 없음). 사이트 origin은 기존 `https://daegwangchurch.kr`, 관리자 origin은 `https://daegwangchurch-admin.vercel.app`을 사용한다. 미확정 가입/탈퇴/돌봄/모임/푸시 발송은 false 유지.
+- 새 관리자 첫 배포는 Vercel이 자동 production으로 분류했다. 설정이 준비된 preview를 명시해 별도 검증 배포를 만들었다. 운영 환경/도메인 전환 완료로 해석하지 않는다. 다음 기록에서 최종 검증/전환 결과를 확인한다.
+
+## 최신: 기존 Vercel 배포 확인 (2026-10-09)
+
+- 후속 인증 성공: Vercel CLI `gyulsangja`, scope `gyulsangjas-projects`에서 기존 `daegwangchurch` 프로젝트를 확인했다. 사용자에게 일회용 코드를 다시 요청할 필요 없다. 프로젝트 조회상 Latest Production URL은 `https://daegwangchurch.kr`이다(별도 실제 도메인 응답 검증 전).
+- 원격 project inspect: Root Directory `.`, Next.js, Node 24.x, 기본 build/install 설정이다. 현재 모노레포 홈페이지 경로 `apps/website`와 다르므로 최신 코드 재배포 전 기존 프로젝트의 루트 설정 전환을 검토해야 한다. 관리자/API는 `apps/admin` 별도 배포가 필요하다. 아직 설정 변경·배포는 실행하지 않았다.
+
+- 사용자 정정: Vercel은 기존 Git 연결과 이전 홈페이지 배포가 있으며 주소는 https://daegwangchurch.vercel.app/ 이다. 새 호스팅 계정 유무를 다시 묻지 않고 기존 프로젝트를 이어서 검토한다.
+- 공개 HTTP 확인: `/` 200(제목 독산대광교회), `/admin/login` 200(관리자 로그인), `/api/v1/worship` 404. 기존 홈페이지/관리자 화면은 존재하나 이 주소에서 새 앱 말씀 API는 제공되지 않는다. 응답만으로 정확한 배포 커밋/Root Directory는 확인할 수 없다.
+- 현재 PC에 프로젝트 `.vercel` 연결 파일은 없고 Vercel CLI whoami는 Logged out이다. 사용자 직접 CLI 인증을 시작했다. 원격 설정·환경변수·Git 연결의 실제 현황을 인증 후 읽어 확인해야 한다. 운영 배포/도메인/DB 변경은 아직 하지 않았다.
+
+## 최신: Android FCM V1 전송 자격 등록 (2026-10-09)
+
+- 사용자가 다운로드한 Firebase 서비스 계정 JSON을 다운로드 폴더에서 읽어 type/service account·앱 google-services.json과 프로젝트 일치·RSA 비밀키 구조를 확인했다. 원문 비밀키는 출력하지 않았고 프로젝트 폴더에 복사하지 않았다.
+- 인증된 EAS Credentials에서 preview → Google Service Account → Push Notifications (FCM V1) → Set up 경로로 등록했다. CLI가 업로드 성공 및 `org.daegwangchurch.app`에 FCM V1 할당 성공을 반환했다. Expo 프로젝트는 `@gyulsangjabox/daegwang-church`다. Play Store 제출 자격이나 Legacy 키로 등록하지 않았다.
+- 실제 FCM 발송 성공은 아직 검증하지 않았다. 서버 발송 플래그는 계속 꺼져 있으며 빌드·운영 DB·배포·교인 발송 변경 없음. 제품 코드 변경이 없어 타입/빌드 검사는 반복하지 않았다.
+- 다음: 휴대폰용 HTTPS 관리자/API 배포 주소 확정 → EAS preview 공개 환경 및 GOOGLE_SERVICES_JSON 파일 변수 등록 → 서버 비밀값/크론 → APK 빌드/본인 기기 수신 검증. 로컬 환경 파일과 다운로드 폴더의 키는 회사 PC/Git으로 자동 전달되지 않는다.
+
+## 최신: Expo 프로젝트 생성·로컬 연결 (2026-10-09)
+
+- 사용자 직접 기기 인증으로 EAS CLI 로그인을 완료했다. 일회용 인증정보는 기록하지 않는다.
+- `eas init --account gyulsangjabox --non-interactive`로 `@gyulsangjabox/daegwang-church` 프로젝트를 생성했다. 프로젝트: https://expo.dev/accounts/gyulsangjabox/projects/daegwang-church . EAS CLI가 앱 아이콘을 등록하고 app.json의 공개 owner/extra.eas.projectId를 연결했다.
+- 공개 EAS UUID `0ad541dc-af4a-4896-bfa5-ea6fe66795b4`를 기존 환경값 보존 후 모바일 EXPO_PUBLIC_EAS_PROJECT_ID와 관리자 EXPO_PUSH_PROJECT_ID에 동일하게 설정했다. EAS 원격 빌드 환경변수나 배포 서버 설정까지 반영한 것은 아니다.
+- 로컬 check:push 10/12 통과. 남은 로컬 설정은 HTTPS API와 작업 비밀값이며, 외부 FCM V1 자격·크론·APK 수신은 별도 검증 대상이다. 발송 플래그는 비활성 유지. 빌드·배포·실제 발송·유료 플랜 신청 없음.
+- 검증: EAS project:info에서 연결 프로젝트/UUID 확인, 모바일 type-check/lint와 Git diff 공백 검사 통과.
+- 다음: Firebase 프로젝트의 전송용 서비스 계정 JSON을 준비해 위 Expo 프로젝트 Android `org.daegwangchurch.app`의 FCM V1 자격으로 등록. 서비스 계정 파일은 모바일 폴더/앱 환경/Git에 넣지 않는다. 기존 google-services.json은 공개 클라이언트 설정이며 이 비밀키와 다르다. 이후 HTTPS 서버·EAS preview 환경·크론·APK 검증으로 진행한다.
+
+## 최신: Firebase Android 앱 파일 연결 (2026-10-09)
+
+- 사용자가 Firebase 프로젝트와 Android 앱을 생성하고 `apps/mobile/google-services.json`을 저장했다. JSON 구조·공개 클라이언트 설정·Android 패키지 `org.daegwangchurch.app` 일치를 확인했다. 비밀 서비스 계정 JSON이 아니다. 실제 식별값/키/이메일은 문서나 출력에 남기지 않았다.
+- 기존 모바일 `.env.local`의 다른 값을 보존하고 `GOOGLE_SERVICES_JSON=./google-services.json`을 설정했다. 기존 app.config.ts를 통해 Expo config를 실제 해석해 해당 Android 파일 경로와 패키지 반영을 확인했다. JSON과 환경 파일은 Git 제외 상태다.
+- 로컬 푸시 점검 8/12 통과. EAS 프로젝트 UUID/서버 일치, 배포 HTTPS API, 주기 작업 비밀값은 미설정이다. FCM V1 서비스 계정의 EAS 등록·원격 환경·크론·APK 수신은 아직 미검증이며 발송은 꺼져 있다.
+- 검증: Expo config 해석, 모바일 type-check/lint, Git diff 공백 검사 통과. 환경 파일과 Firebase 파일 모두 Git ignore 적용을 확인했다. 제품 소스/의존성/운영 DB는 변경하지 않았다.
+- 다음: Expo CLI 로그인 및 EAS 프로젝트 생성/연결 → 공개 프로젝트 UUID를 앱/서버에 설정 → FCM V1 자격 등록 → HTTPS 배포·크론·APK 실기기 검증. Firebase 프로젝트를 다시 생성하지 않는다.
+- EAS CLI whoami는 미로그인으로 확인됐다. CLI가 안내한 기기 로그인 흐름을 시작했으며 사용자 브라우저 승인 대기다. 일회용 인증 코드/재개 ID는 저장소에 기록하지 않는다. 새 세션에서는 실제 로그인 여부부터 재확인한다.
+
+## 최신: Android 푸시 연결 사전 점검 (2026-10-09)
+
+- 사용자 추가 답변: Firebase와 Expo 모두 같은 Google 계정을 사용하며 두 서비스의 프로젝트는 아직 없다. 이메일은 저장소에 기록하지 않는다. 아래의 과거 '둘 다 계정 없음' 기록보다 우선하며 계정/프로젝트 존재 여부를 다시 묻지 않는다. Firebase 프로젝트 생성·Android 등록과 Expo EAS 프로젝트 생성부터 진행한다.
+- 브라우저/컴퓨터 자동화 초기화가 `windows sandbox failed: helper_unknown_error`로 실패하여 콘솔 생성 작업은 실행되지 않았다. 사용자에게 공식 콘솔에서 프로젝트를 생성하는 입력값을 안내했다. 실제 생성·파일 다운로드 완료를 확인하기 전 연결 완료로 기록하지 않는다.
+
+- 사용자 요청으로 `git pull --ff-only origin main` 실행, `4ef540e`가 최신이며 회사 PC의 추가 원격 커밋은 없었다. 앞선 인수인계 커밋의 GitHub 업로드는 성공했다.
+- `npm run check:push` 추가. 로컬 앱·관리자 환경 파일만 읽어 EAS UUID 일치, HTTPS API origin, 인증 프로젝트/공개키, 모바일 서버 비밀값 혼입, Firebase Android 앱 파일·패키지 일치, 서버 알림/작업 비밀값 준비를 검사한다. 값·경로·원문 오류를 출력하지 않으며 네트워크/DB/설정 변경/발송 없음.
+- GOOGLE_SERVICES_JSON에 비밀 서비스 계정 JSON을 잘못 연결하면 거부한다. 실제 EAS 자격/빌드 환경·서버 응답·크론·OS 수신은 별도 MANUAL로 표시한다. 준비 전에 발송 플래그를 켜도록 유도하지 않는다.
+- 현재 점검: 출시 설정 7/15, 푸시 로컬 설정 5/12. EAS ID, Firebase 앱 파일, HTTPS API, 주기 작업 비밀값 미준비. 실제 발송은 비활성. `.env`/운영 DB/배포는 변경하지 않았다.
+- 검증: 기존 푸시 5개 + 새 사전 점검 6개, 변경 스크립트 ESLint·패키지 경계 검사 통과. 비밀 파일 혼동·프로젝트/패키지 불일치·개발용/인증정보 포함 URL·service_role 키·누락 설정 및 결과에 비밀값이 포함되지 않는지 검사했다. 점검 명령의 WAIT/종료 코드 1은 미설정에 따른 예상 결과다. 제품 코드/DB 변경이 없어 앱 빌드·실기기 검사를 새로 실행하지 않았다.
+- 다음: Expo/Firebase 계정 준비 답변 확인 → 프로젝트/FCM 자격 연결 → HTTPS 관리자/API 배포 환경 확정 → 크론 → 본인 Android APK 수신 검증. 연결 절차는 notifications.md를 따른다. 사용자에게 비밀값을 채팅으로 보내도록 요청하지 않는다.
+
 ## 회사 PC Git 인수인계 (2026-10-06)
 
 - 사용자 요청으로 현재까지의 홈페이지·관리자·앱 변경, 자산, migration, 테스트, 운영 문서를 함께 Git으로 전달한다. 원격은 `origin`의 `gyulsangja/daegwangchurch-project`, 브랜치는 `main`이다.

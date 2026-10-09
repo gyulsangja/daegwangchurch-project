@@ -40,7 +40,8 @@
     "check:release": "tsx scripts/check-release.mjs",
     "maintain:members": "node scripts/maintain-member-data.mjs",
     "maintain:deletions": "tsx scripts/process-member-deletions.ts",
-    "test:push": "tsx --test packages/server/src/features/member/push.test.ts",
+    "test:push": "tsx --test packages/server/src/features/member/push.test.ts && node --test tests/push-readiness.test.mjs",
+    "check:push": "node scripts/check-push.mjs",
     "maintain:push": "tsx scripts/process-push.ts"
   },
   "devDependencies": {

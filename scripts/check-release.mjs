@@ -15,6 +15,8 @@ function publicKey(key) {
 }
 check('server-database-config', admin.DATABASE_URL && site.DATABASE_URL, 'Configure DB credentials in both server projects.');
 check('same-server-database', admin.DATABASE_URL === site.DATABASE_URL && admin.DATABASE_URL, 'Verify both server projects use the intended same database.');
+function runtimePool(value) { try { const u = new URL(value); return ['postgres:', 'postgresql:'].includes(u.protocol) && (!u.hostname.endsWith('.pooler.supabase.com') || u.port === '6543'); } catch { return false; } }
+check('serverless-database-pool', runtimePool(admin.DATABASE_URL) && runtimePool(site.DATABASE_URL), 'For Supabase serverless runtime use transaction pooler port 6543; keep migration DIRECT_URL separate.');
 check('same-auth-project', admin.NEXT_PUBLIC_SUPABASE_URL && admin.NEXT_PUBLIC_SUPABASE_URL === app.EXPO_PUBLIC_SUPABASE_URL && admin.NEXT_PUBLIC_SUPABASE_URL === site.NEXT_PUBLIC_SUPABASE_URL, 'Align the three projects with the approved Supabase project.');
 check('public-client-keys', publicKey(admin.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) && publicKey(app.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY), 'Use publishable/anon keys only in client configuration.');
 check('mobile-no-server-secrets', !Object.keys(app).some(key => /DATABASE|DIRECT_URL|SERVICE_ROLE|SECRET_KEY|RATE_LIMIT_SALT|PUSH_WORKER_SECRET|PUSH_ACCESS_TOKEN/.test(key)), 'Remove all server-only secrets from mobile environment files.');

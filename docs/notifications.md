@@ -1,5 +1,11 @@
 # 휴대폰 푸시 알림
 
+2026-10-09 FCM 후속: Firebase 서비스 계정의 프로젝트/키 구조를 확인한 후 EAS Credentials에서 Android `org.daegwangchurch.app`에 FCM V1 키 업로드·할당 성공을 확인했다. 클라우드 빌드 환경변수/HTTPS API/크론/APK 수신은 아직 남았고 실제 발송은 비활성이다. 비밀 서비스 계정 파일은 저장소에 복사하지 않았다.
+
+2026-10-09 후속: Expo `@gyulsangjabox/daegwang-church` 생성과 CLI 인증 완료. 앱·서버 로컬 EAS UUID를 연결해 check:push 10/12 통과. Firebase 앱 파일 연결도 완료했다. 다음은 FCM V1 서비스 계정 등록, HTTPS API/원격 환경/크론/APK 검증이다. 실제 발송은 계속 꺼져 있다. 아래 생성 안내의 완료 단계는 반복하지 않는다.
+
+2026-10-09 갱신: Firebase와 Expo 모두 사용자의 같은 Google 계정을 사용한다. Firebase 프로젝트/Android 앱 등록 및 google-services.json 로컬 연결은 완료했고 Expo config 반영을 확인했다. Expo EAS 프로젝트 생성과 FCM V1 전송 자격 등록은 아직 남았다. 아래 10월 6일의 계정 없음 기록보다 이 상태를 우선한다. 실제 자격 연결·배포·휴대폰 수신은 아직 확인되지 않았다.
+
 2026-10-06 사용자 요청으로 **앱을 열 때만 생성하던 방식에서 서버 주기 발송으로 전환**했다. 정책은 [푸시 기능 분석](push-design.md)을 따른다. 네이티브 Android/iOS 코드와 서버·DB·스케줄 템플릿을 구현했다. **실제 Expo/FCM 계정, 배포 URL, 크론과 기기 연결은 아직 없다. 실제 OS 수신을 검증한 상태가 아니다.** 사용자는 안드로이드이며 Expo/Firebase 계정이 없다고 답했다.
 
 ## 구현 동작
@@ -27,6 +33,10 @@
 안드로이드는 APK로 먼저 직접 설치해 검증할 수 있다. EAS 클라우드 빌드의 무료 한도는 푸시 전송과 별개다. Play Store 출시는 별도 절차다. iOS는 Apple 앱 서명/APNs 자격이 필요하며 Firebase만으로 이를 대체할 수 없다. Apple 비영리기관 개발자 연회비 면제를 신청할 수 있지만 승인 보장은 없다. [Expo APK 빌드](https://docs.expo.dev/build-reference/apk/), [Apple 면제](https://developer.apple.com/help/account/membership/fee-waivers/).
 
 ## 안드로이드 연결 순서 — bash
+
+준비 중에는 저장소 루트에서 `npm run check:push`를 실행한다. `apps/mobile/.env.local`과 `apps/admin/.env.local`만 읽고 EAS ID 일치, HTTPS API origin, 인증 공개키, Android 패키지와 Firebase 앱 설정, 서버 비밀값 유무를 **값 출력 없이** 확인한다. `GOOGLE_SERVICES_JSON` 상대 경로는 `apps/mobile` 기준이다. 서비스 계정 JSON을 앱 설정으로 잘못 지정하면 WAIT로 표시한다. 이 명령은 네트워크·DB·발송·설정 변경을 하지 않는다. 미완료 항목이 있으면 종료 코드 1이며 현재 연결 전 상태에서는 정상이다.
+
+이 점검은 로컬 파일 기준이다. EAS에 등록한 환경변수/FCM 자격이나 배포 서버를 검사하지 않으며, 모두 PASS여도 실제 수신 성공은 아니다. 발송 플래그는 준비 완료까지 꺼두고, 아래 7~10단계로 외부 연결을 확인한다. 공개 앱 설정과 비밀 서비스 계정의 구분은 [Expo 공식 FCM 안내](https://docs.expo.dev/push-notifications/fcm-credentials/)를 따른다.
 
 1. [Expo](https://expo.dev/signup) 무료 계정과 [Firebase 콘솔](https://console.firebase.google.com/) 프로젝트를 만든다. 교회 운영자가 소유한 계정으로 준비한다. FCM만을 위해 Blaze로 업그레이드할 필요는 없다.
 2. `apps/mobile`에서 아래 명령으로 로그인하고 EAS 프로젝트를 연결한다. 생성된 EAS UUID를 앱 환경의 `EXPO_PUBLIC_EAS_PROJECT_ID`, 관리자 서버의 `EXPO_PUSH_PROJECT_ID`에 동일하게 넣는다. 비밀번호/키를 채팅에 붙이지 않는다.

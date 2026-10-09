@@ -1,5 +1,7 @@
 # 모노레포 운영 및 배포 전환
 
+2026-10-09 서버리스 연결 주의: Vercel 실행용 `apps/admin`·`apps/website`의 DATABASE_URL은 Supabase **transaction pooler(6543)** 를 사용한다. 세션 풀(5432)을 여러 함수 인스턴스에서 사용해 연결 한도가 소진되는 실제 오류를 확인했다. 공통 PrismaPg 풀은 인스턴스당 max 2, 연결 대기 10초, idle 10초로 제한했다. DB CLI의 DIRECT_URL/마이그레이션 연결은 별도로 유지하며 일괄 포트 변경하지 않는다. [Supabase Prisma 연결](https://supabase.com/docs/guides/database/prisma), [Prisma 드라이버 풀 설정](https://docs.prisma.io/docs/orm/v7/prisma-client/setup-and-configuration/databases-connections/connection-pool).
+
 2026-10-06 후속: 원격 푸시 모듈/기기 API/발송 작업을 구현하고 푸시 migration까지 실제 DB 총 12개 적용. Expo/FCM 계정·HTTPS 배포·주기 호출·실기기 연결 전으로 발송은 꺼져 있다. 아래 과거 상태보다 [푸시 연결 안내](notifications.md)와 HANDOFF 최상단을 우선한다.
 
 2026-10-05 현재 실제 DB 연결 및 회원·모임·돌봄 저장소, 가입/복구 어댑터, 회원탈퇴 큐가 구현되어 있다. 아래 날짜가 있는 체험/연결 전 기록은 당시 상태이며, 현재 활성 여부와 검증 결과는 [HANDOFF.md](HANDOFF.md) 최상단과 [RELEASE_READINESS.md](RELEASE_READINESS.md)를 따른다. 탈퇴는 [처리 기준](account-deletion.md)에 따라 비활성으로 준비되어 있다.

@@ -13,7 +13,14 @@ export function getPrisma() {
   }
 
   if (!globalForPrisma.prisma) {
-    const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+    // Each serverless instance owns a pool. Keep it small and release idle clients;
+    // Supabase runtime URLs must use transaction pooling (6543), not session mode.
+    const adapter = new PrismaPg({
+      connectionString: process.env.DATABASE_URL,
+      max: 2,
+      connectionTimeoutMillis: 10_000,
+      idleTimeoutMillis: 10_000,
+    });
     globalForPrisma.prisma = new PrismaClient({ adapter });
   }
 
