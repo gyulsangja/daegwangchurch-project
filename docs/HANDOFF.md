@@ -1,5 +1,14 @@
 # 작업 인수인계
 
+## 최신: 운영 배포 및 관리자 로그인 확인 완료 (2026-10-09)
+
+- 코드 커밋 `de056bf`의 홈페이지·관리자 Git 자동 운영 배포가 모두 READY이며 production 대상 커밋 일치를 확인했다.
+- 홈페이지 https://daegwangchurch.kr , https://www.daegwangchurch.kr , https://daegwangchurch.vercel.app 모두 HTTP 200. 관리자 주소는 https://daegwangchurch-admin.vercel.app/admin/login 이다.
+- 로그인 화면 200, 비로그인 대시보드 307, 개인 기록 API 401. 말씀 API는 다른 경로 확인 전후 반복 조회 모두 200이며 공지 API도 200이다.
+- 사용자가 이전 배포에서 “This page couldn’t load / A server error occurred”를 보고했다. transaction pool 수정본 배포 후 사용자가 직접 재접속하여 “화면열려”라고 관리자 화면 열림을 확인했다. 기존 오류와 DB 연결 한도의 연관성은 추정이며 해당 사용자 요청의 오류 로그로 직접 확정하지 않았다.
+- 앞선 미리보기 14개 경로, 로컬 테스트 85개 및 경계 검사 결과는 유지된다. 이번 최종 확인은 운영 도메인 응답과 사용자 로그인 확인이다. 운영 DB 스키마·자료는 변경하지 않았다.
+- 다음: 모바일 HTTPS API 주소 반영 → EAS preview 빌드 환경 및 GOOGLE_SERVICES_JSON 파일 변수 등록 → 푸시 작업 비밀값·크론 설정 → Android APK 빌드·본인 기기 수신 검증. Firebase/Expo 프로젝트 생성과 FCM V1 자격 등록은 이미 완료했다. 푸시 발송 및 미확정 가입/모임/돌봄/탈퇴 기능은 아직 비활성이다.
+
 ## 진행 중: 운영 DB 연결 한도 후속 수정 (2026-10-09)
 
 - 후속 검증: 변경한 풀로 실제 DB 읽기 12개 병렬 실행 모두 통과. 수정본 Vercel 미리보기 관리자 10개·홈페이지 4개 경로 통과, 다른 경로 조회 후 말씀 재조회도 200. 미리보기 검증 후 두 production DATABASE_URL을 transaction pool로 갱신했다. 수정 코드를 Git main에 반영해 자동 배포 및 실제 운영 URL을 최종 검증한다.
