@@ -2,10 +2,11 @@
 ## 최신: 홈페이지 자동 라이브 영역 (2026-10-11)
 
 - 사용자 요청으로 홈페이지 홈 최상단에 방송 중인 교회 라이브를 우선 표시하는 기능을 구현했다. 방송 없음/설정 없음/조회 실패 시 기존 홈을 유지한다. 기존 통합 관리자 교회 설정의 youtubeUrl을 사용하며 별도 등록 게시판을 만들지 않았다.
-- 홈페이지 /api/live는 서버 전용 YOUTUBE_DATA_API_KEY가 있을 때만 공식 API를 호출한다. 현재 로컬 키가 없어 실제 방송 탐지는 미검증이며 사용자에게 키 준비를 질문했다. 키 등록 전에는 disabled 응답이다. 키나 방송 운영 설정을 임의로 추가하지 않았다.
+- 홈페이지 /api/live는 서버 전용 YOUTUBE_DATA_API_KEY가 있을 때만 공식 API를 호출한다. 사용자가 Google Cloud 키를 발급해 apps/website/.env.local에 저장했고 실제 channels/search/videos HTTP 200 확인. 채널 ID UC1tP9iJvaJpr63dIU608WcQ, 이름 ‘서울 독산동 대광교회(고신)’ 일치. 현재 라이브/예정 방송은 0건이었다. 로컬 통합 /api/live도 HTTP 200 offline을 반환했다. Vercel 홈페이지 preview/production에 sensitive 서버 변수로 등록했으며 키 값은 Git/로그/채팅에 출력하지 않았다.
 - 채널 해석 1시간, 최신 업로드 후보 2분, 검색 후보 30분, 영상의 실제 라이브 상태 1분 캐시. 공개·같은 채널·actualStartTime 있음·actualEndTime 없음·liveBroadcastContent=live를 모두 요구한다. 최근 후보에 없는 새 방송은 검색 보완까지 최대 약 30분+캐시 갱신 지연이 있을 수 있다. API 데이터 반영 지연도 있으므로 즉시 탐지를 보장하지 않는다. 조회는 방문 시 동작하며 별도 유료 크론 없음. 검색은 지속 사용 시 약 48회/일이며 실제 무료 한도는 Google Cloud에서 확인한다.
 - 브라우저도 1분 간격/다시 보일 때 상태를 확인한다. 3분 초과 오래된 상태는 숨긴다. 클릭 전 썸네일, 클릭 후 유튜브 플레이어, 임베드 금지 시 외부 링크. 가상 라이브로 1440/390/320px 최상단 배치·넘침 없음·재생 전환·미방송/실패 숨김을 확인했다. 서버 판별 테스트 3개·타입 포함 운영 빌드·경계 검증 통과. 최종 배포 상태는 작업 응답을 확인한다.
-- 다음: 사용자가 Google Cloud에서 YouTube Data API v3를 활성화하고 서버 키를 로컬 환경 파일에 저장 → 키 값을 출력하지 않고 Vercel 홈페이지에 등록 → 실제 API의 채널/방송 상태 확인. 향후 앱은 공통 LiveStatus 계약과 동일 판별기를 활용한다.
+- 코드 4e13e36의 첫 미리보기는 READY 및 홈/공지/주보/관리자 연결 검증 통과 후 main에 반영했다. 키 연결 후 미리보기 dpl_J4u6suTM1faUchaCpvoLaFop6TLu도 READY 및 /api/live HTTP 200 offline 검증 통과. 이 기록을 main에 반영해 새 서버 키를 포함한 운영 재배포를 진행한다. 최종 운영 READY/API 확인은 작업 응답을 따른다. 향후 앱은 공통 LiveStatus 계약과 동일 판별기를 활용한다. 실제 방송 중 홈 노출/종료 전환은 다음 예배 때 실서비스에서 재확인한다(로컬 가상 응답에서는 자동 표시·숨김 검증 완료).
+- 사용자가 화면을 먼저 보고 싶다고 요청해 로컬 Playwright 응답에서만 라이브 상태를 가정하고 실제 공개 유튜브 제목/썸네일을 사용한 PC·모바일 미리보기를 보여줬다. 실제 홈페이지/유튜브 방송 상태를 가짜 라이브로 바꾸지 않았다. 미리보기 스크린샷은 ignored test-results/home-live/preview-1440.png, preview-390.png에 있다.
 - 앞선 수정 APK도 FINISHED: https://expo.dev/artifacts/eas/DEdghQbAcsDPKpx038qRNiZMLWlC83AzSDhrcVO5qUA.apk . 기존 로그인은 사용자 확인 완료, 수정본 유튜브 재생은 휴대폰 재확인 전이다.
 
 ## 최신: Android 실사용 피드백 수정 (2026-10-11)
