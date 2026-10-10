@@ -1,11 +1,11 @@
 # 작업 인수인계
-## 최신: Android 내부 설치 APK 준비 (2026-10-10)
+## 최신: Android 내부 설치 APK 빌드 완료 (2026-10-10)
 
 - 사용자가 다음 단계를 요청해 실제 Android 설치 확인으로 진행했다. 기존 Expo gyulsangjabox 인증·프로젝트를 그대로 사용했다. 계정/프로젝트를 다시 만들지 않았다.
 - EAS preview 환경에 앱 전용 EXPO_PUBLIC_API_BASE_URL(운영 관리자 HTTPS), Supabase 공개 URL/키, EAS 프로젝트 UUID, EXPO_PUBLIC_DEMO_MODE=false를 등록했다. GOOGLE_SERVICES_JSON은 Firebase 클라이언트 파일을 secret/file 변수로 등록했다. Firebase 서비스 계정·서버 DB/비밀키는 업로드하지 않았다.
 - eas.json preview에 environment=preview를 명시했다. 원격 Android versionCode 1 초기화와 Expo 서버의 신규 앱 서명 keystore 생성이 완료됐다. 기존 FCM V1 자격을 유지한다. 스토어 게시·유료 플랜 변경은 하지 않았다.
 - 업로드 전 build:inspect archive로 620개 파일을 확인했다. 실제 환경 파일/키 파일 없음. 내용 검사에 잡힌 2개는 격리 테스트 DB URL을 런타임에 조합하는 테스트 스크립트였으며 실제 접속정보가 아니다. 6.4MB 아카이브 업로드 완료. 로컬 타입/lint 통과.
-- 빌드 ID: 2ec937ae-0a04-4b14-b8af-ec92c4f250f6. https://expo.dev/accounts/gyulsangjabox/projects/daegwang-church/builds/2ec937ae-0a04-4b14-b8af-ec92c4f250f6 . 진행 상태는 EAS에서 확인한다. 의존성 설치·Expo 설정·JS 번들을 거쳐 Gradle 빌드 단계에 진입했다.
+- 빌드 ID: 2ec937ae-0a04-4b14-b8af-ec92c4f250f6. https://expo.dev/accounts/gyulsangjabox/projects/daegwang-church/builds/2ec937ae-0a04-4b14-b8af-ec92c4f250f6 . EAS FINISHED와 APK 다운로드 HEAD HTTP 200(110,527,046바이트)을 확인했다. [APK 설치 파일](https://expo.dev/artifacts/eas/S24zpFfGfo1QDnz24_0ynTmGV9slyEvHAJInDCUtDEY.apk). 실제 휴대폰 설치·로그인·푸시 수신은 아직 사용자 확인 전이다.
 - 푸시 후속 읽기 점검: Supabase Vault 설치됨, pg_cron/pg_net 미설치. 작업 비밀값도 아직 없으며 APP_PUSH_ENABLED/APP_PUSH_WORKER_READY는 비활성 유지. 이번 작업에서는 운영 DB 스키마/크론/실제 알림 발송을 변경하지 않았다.
 - 다음: APK 설치 → 공개 말씀/주보/공지·기존 계정 로그인 확인 → 서버 작업 비밀값·주기 작업 연결 → 본인 기기 등록/수신 동의·종료 상태 푸시 수신 확인. 등록 API는 서버 준비 전 setup을 표시하므로 APK 빌드 완료를 푸시 수신 성공으로 보고하지 않는다.
 

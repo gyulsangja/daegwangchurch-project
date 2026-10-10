@@ -1,5 +1,5 @@
 # 휴대폰 푸시 알림
-2026-10-10 후속: HTTPS 관리자/API 운영 배포와 EAS preview의 공개 앱 설정·Firebase 클라이언트 파일 변수 등록을 완료했다. Android 앱 서명키 생성 후 첫 APK 빌드를 요청했다. EAS 빌드 ID와 최종 확인은 HANDOFF 최상단을 따른다. FCM V1 전송 자격도 이미 등록되어 있다. Supabase Vault는 설치되어 있지만 pg_cron/pg_net·작업 비밀값은 아직 준비 전이며 푸시 발송은 계속 비활성이다. 별도 ‘앱 운영현황’ 관리 화면은 제거했으므로 기술 상태는 CLI와 작업 로그로 확인한다.
+2026-10-10 후속: HTTPS 관리자/API 운영 배포와 EAS preview의 공개 앱 설정·Firebase 클라이언트 파일 변수 등록을 완료했다. Android 앱 서명키 생성 후 첫 APK 빌드가 FINISHED로 완료됐고 설치 파일 다운로드 HTTP 200을 확인했다. 실제 휴대폰 설치·로그인·수신 확인은 남았다. EAS 빌드 ID와 다운로드는 HANDOFF 최상단을 따른다. FCM V1 전송 자격도 이미 등록되어 있다. Supabase Vault는 설치되어 있지만 pg_cron/pg_net·작업 비밀값은 아직 준비 전이며 푸시 발송은 계속 비활성이다. 별도 ‘앱 운영현황’ 관리 화면은 제거했으므로 기술 상태는 CLI와 작업 로그로 확인한다.
 
 
 2026-10-09 FCM 후속: Firebase 서비스 계정의 프로젝트/키 구조를 확인한 후 EAS Credentials에서 Android `org.daegwangchurch.app`에 FCM V1 키 업로드·할당 성공을 확인했다. 클라우드 빌드 환경변수/HTTPS API/크론/APK 수신은 아직 남았고 실제 발송은 비활성이다. 비밀 서비스 계정 파일은 저장소에 복사하지 않았다.
