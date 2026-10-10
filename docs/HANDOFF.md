@@ -1,4 +1,11 @@
 # 작업 인수인계
+## 최신: 관리자 교회 안내 렌더링 오류 수정 (2026-10-10)
+
+- 사용자 보고: 관리자 ‘교회 안내’에서 This page couldn’t load 서버 오류. 정적 안내 페이지를 개발 전용 경로에서 직접 렌더링해 HTTP 500 및 Functions cannot be passed directly / Client Component 오류를 재현했다.
+- 원인: Server Component에서 MUI Paper의 component 속성에 Next Link 함수를 전달했다. Paper를 제거하고 스타일을 적용한 Next Link 자체로 8개 안내 카드를 구성해 직렬화 경계 오류를 해결했다. 앱·홈페이지의 동일 패턴 검색에서 이 페이지만 발견했다. DB·회원·인증 설정 변경 없음.
+- 회귀 검증: 개발 전용 /preview/church-guide에서 실제 AdminPagesPage를 렌더링한다. localhost:3001·development·ADMIN_DEMO_MODE 조건을 모두 요구하며 개인 자료는 조회하지 않는다. 운영에서는 404다. node scripts/verify-admin-guide.mjs로 HTTP 200, 링크 8개, 1440/390/320px 표시·넘침 없음, 교회소개 링크 클릭 후 비로그인 보호까지 확인했다. 수정 전 500→수정 후 200을 검증했다.
+- 수정본 관리자 빌드/타입·lint 및 회귀 브라우저 검사 후 main 운영 배포로 반영한다. 마지막 배포 상태는 해당 main 커밋의 Vercel READY와 최종 작업 응답을 확인한다.
+
 ## 최신: 홈페이지 영상 썸네일 비율 정리 (2026-10-09)
 
 - 사용자 요청에 따라 유튜브 썸네일을 화면 크기에 관계없이 16:9로 유지한다. 예배 목록 대표 카드의 lg:aspect-auto/최소 높이 28rem을 제거하고, 설명이 길어져도 이미지가 늘어나지 않도록 self-center로 분리했다.
