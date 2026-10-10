@@ -5,7 +5,9 @@
 - 앱 홈 인사말보다 앞에 라이브 카드·영상·외부 YouTube 버튼을 배치했다. API 키 없이 공개 EXPO_PUBLIC_WEBSITE_URL=https://daegwangchurch.kr만 로컬과 EAS preview에 등록했다. 홈페이지 /api/live 결과를 공유해 모바일 사용자가 늘어도 별도 Google 조회를 만들지 않는다. 비인증 공개 상태 API에만 CORS *를 추가했다.
 - 앱은 홈이 보이고 앱이 활성일 때 1분 갱신, 화면 복귀 시 즉시 갱신한다. 홈 이탈/백그라운드에서는 요청을 취소하고 플레이어를 내린다. 오류/종료/3분 넘은 상태는 숨긴다. 계약 형식을 Zod로 검증하며 회원 인증정보를 전송하지 않는다.
 - 검증: 서버/클라이언트 테스트 총 6개, 모바일 타입·린트, 홈페이지 운영 빌드, 패키지 경계 통과. 가상 API로 앱 390/320px 라이브·외부 시청·방송 없음 화면 확인. 최초 화면 검증은 새 환경변수 미반영·테스트 CORS 설정 누락으로 실패했으며 Metro 재시작 및 실제 응답 형태를 맞춘 뒤 통과했다. 네이티브 영상 재생은 새 APK 설치 후 실제 휴대폰 확인이 필요하다.
-- 새 APK는 이전 영상/썸네일·가입 안내·투명 아이콘 수정과 이번 라이브 기능을 모두 포함한다. 최종 빌드 ID/다운로드는 다음 후속 기록 또는 작업 응답을 확인한다. 푸시 발송은 계속 별도 미완료·비활성이다.
+- 홈페이지 6cdf2e4 운영 배포 dpl_BWkKkbkkaew4HoR2cMLPQiLZBUei READY 확인. 실제 daegwangchurch.kr 홈과 /api/live 모두 HTTP 200, 라이브 상태 offline, 공개 API CORS * 확인.
+- 새 APK는 이전 영상/썸네일·가입 안내·투명 아이콘 수정과 이번 라이브 기능을 모두 포함한다. 빌드 ID 8e43197a-c2dc-4270-adeb-7c1cba2c87bb, https://expo.dev/accounts/gyulsangjabox/projects/daegwang-church/builds/8e43197a-c2dc-4270-adeb-7c1cba2c87bb . 소스 6cdf2e4, 기존 서명키 사용. EAS FINISHED 및 다운로드 HEAD HTTP 200(110,535,542바이트) 확인. [최신 APK 다운로드](https://expo.dev/artifacts/eas/pojAGeMGC2QyfL5G8-iz79hRs3jZMC4x5fxnrCRRk-g.apk). 푸시 발송은 계속 별도 미완료·비활성이다.
+- 추가 브라우저 검증: 홈에서 말씀 탭으로 이동하면 라이브 플레이어가 제거되고, 홈 복귀 시 다시 조회하며, 가상 시간 60초 뒤 방송 종료 응답이면 카드가 자동으로 숨겨지는 것을 확인했다. 다음 확인은 실제 Android에 최신 APK 업데이트 설치 후 영상 재생과 다음 예배의 실제 라이브 노출·종료 전환이다. 앱용 YouTube API 키를 추가할 필요는 없다.
 
 ## 최신: 홈페이지 자동 라이브 영역 (2026-10-11)
 
