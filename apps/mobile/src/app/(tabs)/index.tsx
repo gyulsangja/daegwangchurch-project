@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppScreen, MenuCard } from '../../components/app-screen';
 import { HomeReflection } from '../../components/home-reflection';
+import { HomeLive } from '../../components/home-live';
 import { colors, styles } from '../../components/ui';
 import { koreaDate, useLatestDevotional } from '../../hooks/use-latest-devotional';
 
@@ -10,6 +11,7 @@ export default function Home() {
   const today = item?.contentDate === koreaDate();
   const dateLabel = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', weekday: 'long' }).format(new Date());
   return <AppScreen title="대광교회" home>
+    <HomeLive />
     <View style={{ gap: 6 }}><Text style={styles.caption}>{dateLabel}</Text><Text style={homeStyles.greeting}>{'잠깐이어도 괜찮아요.\n오늘도 주님과 함께.'}</Text><Text style={styles.caption}>말씀을 듣고, 마음에 남는 하나를 기도로 이어가요.</Text></View>
     <View style={homeStyles.hero}>
       <Text style={homeStyles.eyebrow}>{item && !today ? `최근 묵상 · ${item.contentDate.replaceAll('-', '.')}` : '매일의 묵상'}</Text>
