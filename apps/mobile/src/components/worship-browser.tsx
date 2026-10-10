@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { VideoThumbnail } from './video-thumbnail';
 import { ActivityIndicator, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { appWorshipListSchema, worshipTypeLabels } from '@daegwang/contracts/features/worship/app-contract';
@@ -27,7 +28,7 @@ export function WorshipBrowser({ search = false }: { search?: boolean }) {
       {feed.loading && <ActivityIndicator color={colors.primary} accessibilityLabel="말씀을 불러오는 중" />}
       {!!feed.error && <Failure message={feed.error} retry={feed.data ? feed.more : feed.reload} />}
       {feed.data && !feed.data.data.length && <Card title={search ? '검색 결과가 없습니다' : '등록된 설교가 없습니다'}>검색어와 필터를 바꿔 다시 확인해 주세요.</Card>}
-      {feed.data?.data.map(item => <MenuCard key={item.id} title={item.title} description={[worshipTypeLabels[item.type], item.contentDate, item.scriptureReference, item.preacher].filter(Boolean).join(' · ')} onPress={() => router.push({ pathname: item.type === 'FIRST_HOUR' ? '/devotional/[id]' : '/sermons/[id]', params: { id: item.id } })} />)}
+      {feed.data?.data.map(item => <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={`${item.title} 상세 보기`} style={styles.card} onPress={() => router.push({ pathname: item.type === 'FIRST_HOUR' ? '/devotional/[id]' : '/sermons/[id]', params: { id: item.id } })}><VideoThumbnail videoId={item.youtube.videoId} /><Text style={styles.title}>{item.title}</Text><Text style={styles.caption}>{[worshipTypeLabels[item.type], item.contentDate, item.scriptureReference, item.preacher].filter(Boolean).join(' · ')}</Text></Pressable>)}
       {!feed.loading && !feed.error && feed.data?.nextCursor && <Action title="더 보기" onPress={feed.more} />}
     </>}
     <Modal visible={filterOpen} transparent animationType="slide" onRequestClose={() => setFilterOpen(false)}>

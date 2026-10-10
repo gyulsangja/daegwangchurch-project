@@ -19,6 +19,15 @@ export function SignupScreen() {
     await accountClient.signup(parsed.data); setPassword(''); setConfirm(''); setStep('verify');
   }
   const back = () => { if (step === 'terms') setStep('form'); else if (router.canGoBack()) router.back(); else router.replace('/login'); };
+  if (step === 'form' || step === 'terms') {
+    if (options.loading || options.error || !options.data?.registration || !policy) return <AppScreen title="회원가입" onBack={back}>
+      {options.loading ? <ActivityIndicator accessibilityLabel="가입 안내를 불러오는 중" />
+        : options.error ? <Failure message={options.error} retry={options.reload} />
+          : <IntroCard title="새로운 회원가입을 준비하고 있어요">이용약관과 개인정보 안내를 준비하고 있어 아직 가입할 수 없습니다. 말씀·주보·공지와 잠시 기도하기는 가입 없이 이용할 수 있어요.</IntroCard>}
+      <Action title="가입 없이 앱 둘러보기" onPress={() => router.replace('/')} />
+      <Action title="기존 계정으로 로그인" secondary onPress={() => router.replace('/login')} />
+    </AppScreen>;
+  }
   return <AppScreen title={step === 'terms' ? '약관 및 개인정보 동의' : step === 'verify' ? '가입 인증 및 완료' : step === 'complete' ? '회원가입 완료' : '회원가입'} onBack={back}>
     {options.loading && <ActivityIndicator accessibilityLabel="가입 안내를 불러오는 중" />}{!!options.error && <Failure message={options.error} retry={options.reload} />}
     {options.data?.mode === 'preview' && <IntroCard title="테스트 가입">가상의 @example.invalid 이메일을 사용하세요. 메일은 발송하지 않으며 테스트 인증번호는 123456입니다.</IntroCard>}

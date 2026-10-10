@@ -25,11 +25,11 @@ export default function Home() {
     {item && <HomeReflection worshipId={item.id} />}
     <View style={homeStyles.shortcuts}>
       <Pressable accessibilityRole="button" accessibilityLabel="잠시 기도하기" onPress={() => router.push('/quiet-prayer')} style={[homeStyles.shortcut, { backgroundColor: colors.soft }]}>
-        <Image source={require('../../../assets/figma/worship.png')} accessible={false} style={{ width: 28, height: 28 }} />
+        <Image source={require('../../../assets/tab-icons/worship.png')} accessible={false} style={{ width: 28, height: 28 }} />
         <Text style={homeStyles.cardTitle}>잠시 기도하기</Text><Text style={styles.caption}>로그인 없이도 괜찮아요  →</Text>
       </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel="나의 기록" onPress={() => router.navigate('/my')} style={homeStyles.shortcut}>
-        <Image source={require('../../../assets/figma/church.png')} accessible={false} style={{ width: 28, height: 28 }} />
+        <Image source={require('../../../assets/tab-icons/church.png')} accessible={false} style={{ width: 28, height: 28 }} />
         <Text style={homeStyles.cardTitle}>나의 기록</Text><Text style={styles.caption}>묵상과 기도를 다시 읽어요  →</Text>
       </Pressable>
     </View>
