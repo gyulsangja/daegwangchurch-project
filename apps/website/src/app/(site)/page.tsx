@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, BookOpenText, CalendarDays, MapPin, Play, HeartHandshake } from 'lucide-react';
 import { HomeHero } from '../../components/site/home-hero';
+import { HomeLive } from '../../components/site/home-live';
 import { getPublishedWorshipContents } from '@daegwang/server/features/worship/queries';
 import { getHomePageContent } from '@daegwang/server/features/pages/queries';
 import { getPublicSchedules } from '@daegwang/server/features/schedules/queries';
@@ -21,6 +22,7 @@ export default async function HomePage() {
   const content = homePage.content;
   const sermon = sunday[0]; const devotional = firstHour[0]; const bulletin = bulletins[0];
   return <>
+    <HomeLive />
     <HomeHero content={content} schedules={schedules.slice(0, 3)} />
     {content.showWorship && <section aria-labelledby="home-word" className="home-word-section">
       <div className="container-site">
