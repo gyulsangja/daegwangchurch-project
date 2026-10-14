@@ -1,11 +1,14 @@
 import { z } from 'zod';
+import { churchDetailsSchema } from './church-membership';
 
 export const emailSchema = z.email().trim().max(254);
 // Development validation baseline, not the final church password policy.
 export const passwordSchema = z.string().min(8).max(128);
-export const signupSchema = z.object({ email: emailSchema, password: passwordSchema, confirm: z.string(), displayName: z.string().trim().max(40), policyVersion: z.string().min(1), consent: z.literal(true) }).strict().refine(input => input.password === input.confirm, { path: ['confirm'], message: '비밀번호가 일치하지 않습니다.' });
+export const signupSchema = z.object({ email: emailSchema, password: passwordSchema, confirm: z.string(), displayName: z.string().trim().max(40), policyVersion: z.string().min(1), consent: z.boolean(), churchRequest: churchDetailsSchema.optional() }).strict().refine(input => input.password === input.confirm, { path: ['confirm'], message: '비밀번호가 일치하지 않습니다.' });
 export const resetPasswordSchema = z.object({ email: emailSchema, code: z.string().regex(/^\d{6,8}$/), password: passwordSchema, confirm: z.string() }).strict().refine(input => input.password === input.confirm, { path: ['confirm'], message: '비밀번호가 일치하지 않습니다.' });
-export const memberOptionsSchema = z.object({ mode: z.enum(['unavailable', 'preview', 'configured']), registration: z.boolean(), recovery: z.boolean(), care: z.boolean(), notifications: z.boolean(), deletion: z.boolean(), carePolicyVersion: z.string().nullable().optional(), deletionPolicyVersion: z.string().nullable().optional(), policy: z.object({ version: z.string(), terms: z.string(), privacy: z.string(), care: z.string(), deletion: z.string() }).nullable() });
+export const socialProviderSchema = z.enum(['google', 'kakao']);
+export const socialConsentSchema = z.object({ displayName: z.string().trim().min(1).max(40), consent: z.literal(true), policyVersion: z.string().min(1), churchRequest: churchDetailsSchema.optional() }).strict();
+export const memberOptionsSchema = z.object({ mode: z.enum(['unavailable', 'preview', 'configured']), registration: z.boolean(), recovery: z.boolean(), care: z.boolean(), notifications: z.boolean(), deletion: z.boolean(), churchMembership: z.boolean().default(false), socialProviders: z.array(socialProviderSchema).default([]), carePolicyVersion: z.string().nullable().optional(), deletionPolicyVersion: z.string().nullable().optional(), policy: z.object({ version: z.string(), terms: z.string(), privacy: z.string(), care: z.string(), deletion: z.string() }).nullable() });
 export const unavailableMemberOptions = { mode: 'unavailable' as const, registration: false, recovery: false, care: false, notifications: false, deletion: false, policy: null };
 export type MemberOptions = z.infer<typeof memberOptionsSchema>;
 
@@ -23,7 +26,7 @@ export type CareInput = z.infer<typeof careInputSchema>;
 export type CareRequest = z.infer<typeof careSchema>;
 
 export const notificationCategorySchema = z.enum(['WORD', 'NEWS', 'SCHEDULE']);
-export const notificationTargetSchema = z.object({ kind: z.enum(['devotional', 'sermons', 'notices', 'events', 'schedules']), id: z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/) }).nullable();
+export const notificationTargetSchema = z.object({ kind: z.enum(['devotional', 'sermons', 'notices', 'events', 'schedules', 'groups']), id: z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/) }).nullable();
 export const notificationSchema = z.object({ id: z.string(), category: notificationCategorySchema, title: z.string(), body: z.string(), createdAt: z.iso.datetime(), readAt: z.iso.datetime().nullable(), target: notificationTargetSchema });
 export const notificationPageSchema = z.object({ data: z.array(notificationSchema), nextPage: z.number().int().nonnegative().nullable() });
 export type MemberNotification = z.infer<typeof notificationSchema>;

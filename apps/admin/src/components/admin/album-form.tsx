@@ -1,4 +1,5 @@
 "use client";
+import { EditorActions } from "./editor-actions";
 
 import Alert from "@mui/material/Alert";
 import Checkbox from "@mui/material/Checkbox";
@@ -7,12 +8,10 @@ import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import Radio from "@mui/material/Radio";
 import TextField from "@mui/material/TextField";
-import { Images, LoaderCircle, Save } from "lucide-react";
+import { Images, } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { useActionState, useMemo } from "react";
 
-import { Button } from "@daegwang/web-ui/components/ui/button";
 import { createAlbumAction, updateAlbumAction, type AlbumActionState } from "../../features/albums/actions";
 import { albumStatusLabels } from "@daegwang/contracts/features/albums/schema";
 
@@ -87,11 +86,9 @@ export function AlbumForm({ initialValues = {} }: { initialValues?: AlbumFormVal
         </TextField>
         <FormControlLabel control={<Checkbox name="showOnMain" defaultChecked={initialValues.showOnMain} />} label="메인 화면에 노출" />
         <Alert severity="info">공개 상태로 저장한 앨범만 홈페이지에서 확인할 수 있습니다.</Alert>
-        <div className="grid gap-2 pt-2">
-          <Button type="submit" disabled={pending}>{pending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Save aria-hidden="true" className="size-4" />}{pending ? "업로드 및 저장 중" : "저장"}</Button>
-          <Button asChild variant="secondary"><Link href="/admin/albums">취소</Link></Button>
-        </div>
+
       </Paper>
+      <EditorActions pending={pending} href="/admin/albums" />
     </form>
   );
 }

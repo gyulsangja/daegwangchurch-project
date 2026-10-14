@@ -3,7 +3,7 @@ import { memberRecordInputSchema, memberRecordListSchema, memberRecordPageSchema
 import { ApiError } from './worship';
 export type { MemberRecord, MemberRecordInput } from '@daegwang/contracts/features/member/records';
 
-export function createMemberTransport(baseUrl: string | undefined, accessToken: () => Promise<string | null>, resource: 'records' | 'bookmarks' | 'schedules' | 'requests' | 'notifications' | 'preferences' | 'profile' | 'groups' | 'push-devices', fetcher: typeof fetch = fetch) {
+export function createMemberTransport(baseUrl: string | undefined, accessToken: () => Promise<string | null>, resource: 'records' | 'bookmarks' | 'schedules' | 'requests' | 'notifications' | 'preferences' | 'profile' | 'groups' | 'push-devices' | 'church-membership' | 'social-consent', fetcher: typeof fetch = fetch) {
   async function request(path: string, method = 'GET', body?: unknown, signal?: AbortSignal): Promise<unknown> {
     let base: URL;
     try { base = new URL(baseUrl ?? ''); } catch { throw new ApiError(0, '서비스 연결 주소가 설정되지 않았습니다.'); }

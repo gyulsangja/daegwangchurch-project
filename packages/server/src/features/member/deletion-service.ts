@@ -7,9 +7,9 @@ export const deletionPolicySchema = z.object({
   scope: z.literal('ALL_MEMBER_DATA'), receiptRetentionDays: z.number().int().min(1).max(3650),
 }).strict();
 export type DeletionPolicy = z.infer<typeof deletionPolicySchema>;
-export const deletionInputSchema = z.object({ password: z.string().min(1).max(128), policyVersion: z.string().min(1).max(100), confirm: z.literal('DELETE') }).strict();
+export const deletionInputSchema = z.object({ password: z.string().min(1).max(128).optional(), code: z.string().regex(/^\d{6,8}$/).optional(), policyVersion: z.string().min(1).max(100), confirm: z.literal('DELETE') }).strict().refine(value => Boolean(value.password) !== Boolean(value.code));
 export type DeletionProvider = {
-  reauthenticate: (owner: string, email: string, password: string) => Promise<void>;
+  reauthenticate: (owner: string, email: string, password: string, code?: string) => Promise<void>;
   deleteIdentity: (owner: string) => Promise<void>;
   identityAbsent: (owner: string) => Promise<boolean>;
 };
@@ -25,7 +25,7 @@ export function createDeletionService(db: PrismaClient, provider: DeletionProvid
       const time = now(); const until = new Date(time.getTime() + 600000); const key = `deletion:${ownerId}`;
       const limits = await db.$queryRaw<Array<{ requestCount: number }>>`INSERT INTO inquiry_rate_limits (key,"windowStartedAt","requestCount","expiresAt","updatedAt") VALUES (${key},${time},1,${until},${time}) ON CONFLICT (key) DO UPDATE SET "requestCount"=CASE WHEN inquiry_rate_limits."expiresAt" <= ${time} THEN 1 ELSE inquiry_rate_limits."requestCount"+1 END, "windowStartedAt"=CASE WHEN inquiry_rate_limits."expiresAt" <= ${time} THEN ${time} ELSE inquiry_rate_limits."windowStartedAt" END, "expiresAt"=CASE WHEN inquiry_rate_limits."expiresAt" <= ${time} THEN ${until} ELSE inquiry_rate_limits."expiresAt" END, "updatedAt"=${time} RETURNING "requestCount"`;
       if (limits[0].requestCount > 5) throw new AccountOperationError(429);
-      await provider.reauthenticate(ownerId, identity.email, value.password);
+      await provider.reauthenticate(ownerId, identity.email, value.password ?? '', value.code);
       await db.$transaction(async tx => {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${ownerId}::text, 0))`;
         if (await tx.adminProfile.findUnique({ where: { authUserId: ownerId }, select: { id: true } })) throw new AccountOperationError(403);

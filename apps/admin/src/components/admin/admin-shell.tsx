@@ -6,6 +6,7 @@ import { Button } from '@daegwang/web-ui/components/ui/button';
 import { UnsavedChangesGuard } from './unsaved-changes-guard';
 import { AdminFeedback } from './admin-feedback';
 import { AdminNavigation } from './admin-navigation';
+import { AdminEditorNavigation } from './admin-editor-navigation';
 import { AdminMobileMenu } from './admin-mobile-menu';
 
 type AdminShellProps = {
@@ -14,16 +15,17 @@ type AdminShellProps = {
 };
 
 export function AdminShell({ children, admin }: AdminShellProps) {
+  const access = { superAdmin: admin.role === 'SUPER_ADMIN', groupsEnabled: process.env.APP_GROUPS_ENABLED === 'true', careEnabled: true };
   return <div className="min-h-screen bg-background-muted">
     <UnsavedChangesGuard /><AdminFeedback />
     <aside className="fixed inset-y-0 left-0 hidden w-64 overflow-y-auto border-r border-border bg-white p-5 lg:block">
-      <ChurchLogo href={publicEnv.NEXT_PUBLIC_SITE_URL} className="origin-left scale-90" />
+      <ChurchLogo href="/admin/dashboard" className="origin-left scale-90" />
       <p className="mt-6 px-3 text-xs font-semibold text-text-secondary">홈페이지·앱 통합 관리</p>
-      <nav aria-label="관리자 메뉴" className="mt-3"><AdminNavigation /></nav>
+      <nav aria-label="관리자 메뉴" className="mt-3"><AdminNavigation {...access} /></nav>
     </aside>
     <div className="lg:pl-64">
       <header className="sticky top-0 z-40 flex min-h-18 items-center justify-between gap-3 border-b border-border bg-white px-4 sm:px-7">
-        <AdminMobileMenu />
+        <AdminMobileMenu {...access} />
         <a href={publicEnv.NEXT_PUBLIC_SITE_URL} target="_blank" rel="noreferrer" className="focus-ring inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-primary-700">홈페이지 보기<ExternalLink aria-hidden="true" className="size-4" /></a>
         <div className="flex items-center gap-3">
           <CircleUserRound aria-hidden="true" className="hidden size-8 text-primary-600 sm:block" />
@@ -31,7 +33,7 @@ export function AdminShell({ children, admin }: AdminShellProps) {
           <form action={logout}><Button type="submit" variant="ghost" size="icon" aria-label="로그아웃"><LogOut aria-hidden="true" className="size-5" /></Button></form>
         </div>
       </header>
-      <main className="p-4 sm:p-7 lg:p-10">{children}</main>
+      <main className="p-4 sm:p-7 lg:p-10"><AdminEditorNavigation />{children}</main>
     </div>
   </div>;
 }

@@ -8,10 +8,12 @@ import { Check, FormField } from './form-controls';
 import { ConfirmDialog } from './confirm-dialog';
 import { DraftGuard } from './draft-guard';
 import { useNoticeResource } from '../hooks/use-notices';
-import { useMemberOptions } from '../hooks/use-member-options';
+import { accountClient, useMemberOptions } from '../hooks/use-member-options';
+import { ChurchMembership } from './church-membership';
 
 export function AccountScreen() { return <MemberGate returnTo="/account"><Account /></MemberGate>; }
 function Account() {
+  const options = useMemberOptions();
   const { extras, session, signOut } = useMemberSession(); const notice = useFeatureNotice();
   const [name, setName] = useState(''); const [original, setOriginal] = useState(''); const [version, setVersion] = useState(0); const [error, setError] = useState(''); const [message, setMessage] = useState(''); const [busy, setBusy] = useState(false); const lock = useRef(false);
   const result = useNoticeResource(useCallback(async signal => { const data = await extras.profile(signal); if (!signal.aborted) { setName(data.displayName); setOriginal(data.displayName); setVersion(data.version); } return data; }, [extras]));
@@ -20,6 +22,7 @@ function Account() {
     <Card title="내 계정">{session?.user.email ?? ''}</Card>{result.loading && <ActivityIndicator accessibilityLabel="계정을 불러오는 중" />}{!!result.error && <Failure message={result.error} retry={result.reload} />}
     {result.data && <><FormField label="표시 이름 · 선택" value={name} onChangeText={setName} maxLength={40} editable={!busy} /><Action title="표시 이름 저장" disabled={busy || name === original} onPress={() => void save()} /></>}
     {!!error && <Text accessibilityRole="alert" style={styles.caption}>{error}</Text>}{!!message && <Text accessibilityLiveRegion="polite" style={styles.caption}>{message}</Text>}
+    {options.data?.churchMembership && <ChurchMembership />}
     <MenuCard title="비밀번호 변경" description="이메일 인증 후 재설정" onPress={() => router.push('/recover')} />
     <MenuCard title="개인정보 설정" onPress={() => router.push('/account/privacy')} />
     <MenuCard title="로그아웃" description="기기 내 개인 기록 표시 종료" onPress={() => { void signOut().catch(cause => notice('로그아웃 안내', cause.message)); }} />
@@ -41,14 +44,18 @@ function Privacy() {
 }
 export function DeleteAccountScreen() { return <MemberGate returnTo="/account/delete"><DeleteAccount /></MemberGate>; }
 function DeleteAccount() {
+  const { session } = useMemberSession();
+  const socialOnly = !!session?.user.identities?.length && !session.user.identities.some(identity => identity.provider === 'email');
+  const [code, setCode] = useState(''); const [sent, setSent] = useState(false);
   const { extras, signOut } = useMemberSession(); const options = useMemberOptions(); const [checked, setChecked] = useState(false); const [password, setPassword] = useState(''); const [confirm, setConfirm] = useState(false); const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const lock = useRef(false);
-  async function remove() { if (lock.current || !options.data?.deletion || !options.data.policy || !checked) return; lock.current = true; setBusy(true); setError(''); try { await extras.deleteAccount(password, options.data.deletionPolicyVersion ?? options.data.policy.version); setPassword(''); setConfirm(false); await signOut().catch(() => {}); router.replace('/account/deletion-received'); } catch (cause) { setConfirm(false); setError(cause instanceof Error ? cause.message : '탈퇴하지 못했습니다.'); } finally { setPassword(''); setBusy(false); lock.current = false; } }
+  async function remove() { if (lock.current || !options.data?.deletion || !options.data.policy || !checked) return; lock.current = true; setBusy(true); setError(''); try { await extras.deleteAccount(password, options.data.deletionPolicyVersion ?? options.data.policy.version, socialOnly ? code : undefined); setPassword(''); setConfirm(false); await signOut().catch(() => {}); router.replace('/account/deletion-received'); } catch (cause) { setConfirm(false); setError(cause instanceof Error ? cause.message : '탈퇴하지 못했습니다.'); } finally { setPassword(''); setCode(''); setBusy(false); lock.current = false; } }
+  async function sendCode() { if (lock.current || !session?.user.email) return; lock.current = true; setBusy(true); setError(''); try { await accountClient.recover(session.user.email); setSent(true); } catch { setError('인증 메일을 요청하지 못했습니다. 잠시 후 다시 시도해 주세요.'); } finally { lock.current = false; setBusy(false); } }
   return <AppScreen title="회원탈퇴 안내" onBack={() => router.dismissTo('/account')}>
     {options.loading && <ActivityIndicator accessibilityLabel="탈퇴 안내를 불러오는 중" />}{!!options.error && <Failure message={options.error} retry={options.reload} />}
     <IntroCard title="탈퇴 전 확인해 주세요">{options.data?.policy?.deletion ?? '삭제 대상과 보관 기준은 아직 확정 전입니다. 현재 실제 탈퇴는 진행할 수 없습니다.'}</IntroCard>
     <Check label="내용을 확인했습니다" value={checked} onChange={setChecked} disabled={!options.data?.deletion || busy} />
-    <FormField label="현재 비밀번호" value={password} onChangeText={setPassword} secureTextEntry maxLength={128} editable={!busy && !!options.data?.deletion} />
-    <Action title="탈퇴 계속하기" disabled={!checked || !password || busy || !options.data?.deletion} onPress={() => setConfirm(true)} />
+    {socialOnly ? <><Card title="이메일로 본인 확인">SNS 계정에는 앱 비밀번호가 없습니다. 가입 이메일의 인증번호로 탈퇴 요청을 확인합니다.</Card><Action title={sent ? '인증 메일 다시 요청' : '인증 메일 요청'} disabled={busy || !options.data?.recovery || !options.data?.deletion} onPress={() => void sendCode()} />{sent && <Text style={styles.caption}>메일을 확인해 주세요. 스팸함도 확인할 수 있어요.</Text>}<FormField label="이메일 인증번호" value={code} onChangeText={setCode} keyboardType="number-pad" maxLength={8} editable={!busy} /></> : <FormField label="현재 비밀번호" value={password} onChangeText={setPassword} secureTextEntry maxLength={128} editable={!busy && !!options.data?.deletion} />}
+    <Action title="탈퇴 계속하기" disabled={!checked || (socialOnly ? !/^\d{6,8}$/.test(code) : !password) || busy || !options.data?.deletion} onPress={() => setConfirm(true)} />
     {!!error && <Text accessibilityRole="alert" style={styles.caption}>{error}</Text>}<MenuCard title="취소" onPress={() => router.dismissTo('/account')} />
     <ConfirmDialog busy={busy} visible={confirm} title={options.data?.mode === 'preview' ? '테스트 계정을 삭제할까요?' : '탈퇴를 요청할까요?'} message={options.data?.mode === 'preview' ? '이 서버의 테스트 계정과 개인 기록이 삭제됩니다. 되돌릴 수 없습니다.' : '접수되면 개인 기록을 이용할 수 없으며 안내된 범위의 자료가 삭제됩니다. 계정 삭제는 이어서 처리됩니다. 접수 후 되돌릴 수 없습니다.'} confirmLabel={busy ? '처리 중' : options.data?.mode === 'preview' ? '테스트 계정 삭제' : '탈퇴 요청'} onCancel={() => { if (!busy) setConfirm(false); }} onConfirm={() => void remove()} />
   </AppScreen>;

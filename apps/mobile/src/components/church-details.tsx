@@ -1,7 +1,8 @@
 import { useState, type PropsWithChildren } from 'react';
 import { ActivityIndicator, Image, Linking, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { directionsUrl, emailUrl, telephoneUrl } from '@daegwang/contracts/features/church/links';
+import { directionsUrl, emailUrl, telephoneUrl, mapEmbedUrl } from '@daegwang/contracts/features/church/links';
+import { LocationMap } from './location-map';
 import { AppScreen, MenuCard, useFeatureNotice } from './app-screen';
 import { Action, Card, Failure, colors, styles } from './ui';
 import { useChurchContact, useChurchNewcomer, useChurchPastor } from '../hooks/use-church';
@@ -40,8 +41,9 @@ export function NewcomerScreen() {
 export function LocationScreen() {
   const state = useChurchContact(); const { data } = state; const open = useOpenChurchLink();
   const url = data ? directionsUrl(data) : null;
+  const map = data ? mapEmbedUrl(data.latitude, data.longitude) : null;
   return <ReadScreen title="오시는 길" {...state}>{data && <>
-    <View style={[styles.card, mediaStyle]}><Text style={styles.title}>교회 위치</Text><Text style={[styles.caption, { textAlign: 'center' }]}>{url ? '아래 길찾기 버튼으로\n지도 앱 또는 브라우저에서 확인하세요.' : '등록된 위치 정보가 없습니다.'}</Text></View>
+    {map && <LocationMap url={map} />}
     <View style={styles.card}><Text style={styles.title}>교회 주소</Text><Text selectable style={styles.caption}>{[data.address, data.addressDetail].filter(Boolean).join('\n') || '등록된 주소가 없습니다.'}</Text>{!!data.address && <Text style={styles.caption}>주소를 길게 누르거나 선택해 복사할 수 있어요.</Text>}</View>
     <Action title="지도 앱에서 길찾기" disabled={!url} onPress={() => open(url)} />
     <Card title="교통 / 주차 안내">{[data.transitInfo, data.parkingInfo].filter(Boolean).join('\n\n') || '등록된 교통·주차 안내가 없습니다.'}</Card>

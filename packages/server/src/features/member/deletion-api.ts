@@ -36,7 +36,7 @@ export function createDeletionHandler(deps: {
     } catch (cause) {
       if (cause instanceof z.ZodError) return error(422, '입력을 확인해 주세요.');
       if (cause instanceof AccountOperationError) {
-        const messages: Record<number, string> = { 403: '관리자 계정은 앱에서 탈퇴할 수 없습니다.', 409: '탈퇴 안내가 변경되었습니다. 다시 확인해 주세요.', 422: '현재 비밀번호를 확인해 주세요.', 429: '잠시 기다린 뒤 다시 시도해 주세요.' };
+        const messages: Record<number, string> = { 403: '관리자 계정은 앱에서 탈퇴할 수 없습니다.', 409: '탈퇴 안내가 변경되었습니다. 다시 확인해 주세요.', 422: '현재 비밀번호 또는 이메일 인증번호를 확인해 주세요.', 429: '잠시 기다린 뒤 다시 시도해 주세요.' };
         return error(cause.status, messages[cause.status] ?? '요청 결과를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.');
       }
       return error(503, '요청 결과를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.');

@@ -1,4 +1,5 @@
 "use client";
+import { EditorActions } from "./editor-actions";
 
 import Alert from "@mui/material/Alert";
 import Checkbox from "@mui/material/Checkbox";
@@ -6,9 +7,8 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
-import { LoaderCircle, Save } from "lucide-react";
+import { } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 
 import {
@@ -18,7 +18,6 @@ import {
 } from "../../features/worship/actions";
 import { contentStatusLabels, worshipTypeLabels } from "@daegwang/contracts/features/worship/schema";
 import { parseYouTubeUrl } from "@daegwang/contracts/lib/youtube/parser";
-import { Button } from "@daegwang/web-ui/components/ui/button";
 
 export type WorshipFormValues = {
   id?: string;
@@ -57,7 +56,7 @@ export function WorshipForm({ initialValues = {} }: { initialValues?: WorshipFor
           </TextField>
           <TextField fullWidth label="콘텐츠 날짜" name="contentDate" type="date" defaultValue={initialValues.contentDate ?? new Date().toISOString().slice(0, 10)} error={Boolean(error("contentDate"))} helperText={error("contentDate")} slotProps={{ inputLabel: { shrink: true } }} />
         </div>
-        <TextField fullWidth label="제목" name="title" defaultValue={initialValues.title ?? ""} error={Boolean(error("title"))} helperText={error("title")} required />
+        <TextField fullWidth label="제목" name="title" defaultValue={initialValues.title ?? ""} error={Boolean(error("title"))} helperText={error("title") ?? "설교 제목을 여기에 입력하세요. 홈페이지와 앱에 동일하게 표시됩니다."} required />
         <TextField fullWidth label="YouTube URL" name="youtubeUrl" value={youtubeUrl} onChange={(event) => setYoutubeUrl(event.target.value)} error={Boolean(error("youtubeUrl"))} helperText={error("youtubeUrl") ?? "watch, youtu.be, shorts, live URL을 사용할 수 있습니다."} required />
         {youtube ? (
           <div className="grid overflow-hidden rounded-2xl border border-border sm:grid-cols-[12rem_1fr]">
@@ -67,7 +66,7 @@ export function WorshipForm({ initialValues = {} }: { initialValues?: WorshipFor
         ) : null}
         <div className="grid gap-6 sm:grid-cols-2">
           <TextField fullWidth label="설교자" name="preacher" defaultValue={initialValues.preacher ?? ""} error={Boolean(error("preacher"))} helperText={error("preacher")} />
-          <TextField fullWidth label="설교 제목" name="sermonTitle" defaultValue={initialValues.sermonTitle ?? ""} error={Boolean(error("sermonTitle"))} helperText={error("sermonTitle")} />
+          {initialValues.sermonTitle && initialValues.sermonTitle !== initialValues.title && <Alert severity="info">기존 별도 설교 제목: {initialValues.sermonTitle}. 필요한 내용은 위 제목에 반영해 주세요. 저장하면 위 제목으로 통일됩니다.</Alert>}
         </div>
         <TextField fullWidth label="성경 위치" name="scripture" defaultValue={initialValues.scripture ?? ""} error={Boolean(error("scripture"))} helperText={error("scripture") ?? "예: 요한복음 1:1–5. 성경 본문은 입력하지 않습니다."} />
         <TextField fullWidth multiline minRows={5} label="설명" name="description" defaultValue={initialValues.description ?? ""} error={Boolean(error("description"))} helperText={error("description")} />
@@ -80,11 +79,9 @@ export function WorshipForm({ initialValues = {} }: { initialValues?: WorshipFor
           {Object.entries(contentStatusLabels).map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}
         </TextField>
         <FormControlLabel control={<Checkbox name="isPinned" defaultChecked={initialValues.isPinned} />} label="메인에 우선 노출" />
-        <div className="grid gap-2 pt-2">
-          <Button type="submit" disabled={pending}>{pending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Save aria-hidden="true" className="size-4" />}{pending ? "저장 중…" : "저장"}</Button>
-          <Button asChild variant="secondary"><Link href="/admin/worship">취소</Link></Button>
-        </div>
+
       </Paper>
+      <EditorActions pending={pending} href="/admin/worship" />
     </form>
   );
 }

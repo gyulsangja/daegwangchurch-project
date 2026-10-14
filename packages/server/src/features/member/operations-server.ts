@@ -1,3 +1,4 @@
+import { readCareSettings } from './care-settings';
 import 'server-only';
 import { getPrisma } from '@daegwang/database/prisma';
 import { requireSupabaseConfig } from '@daegwang/config/env';
@@ -5,21 +6,30 @@ import { z } from 'zod';
 import { createMemberRecordHandler } from './record-api';
 import { memberIdentity } from './record-server';
 import { createGroupService } from './group-service';
-import { carePolicySchema, createCareService } from './care-service';
+import { createCareService } from './care-service';
 import { MemberRecordConflict } from './record-service';
 import { profileSchema } from '@daegwang/contracts/features/member/extras';
 import { deletionHandler } from './deletion-server';
 
-export function configuredCarePolicy() {
-  if (process.env.APP_MEMBER_CARE_ENABLED !== 'true') return null;
-  try { return carePolicySchema.parse(JSON.parse(process.env.APP_MEMBER_CARE_POLICY ?? '')); } catch { return null; }
+export async function configuredCarePolicy() {
+  const settings = await readCareSettings(getPrisma());
+  return settings?.enabled ? settings.policy : null;
 }
 const unsupported = async () => { throw new MemberRecordConflict(); };
 export const groupHandler = createMemberRecordHandler({ ...memberIdentity, enabled: () => process.env.APP_GROUPS_ENABLED === 'true', service: owner => {
   const service = createGroupService(getPrisma(), owner);
   return { list: service.snapshot, detail: service.snapshot, update: (_id, input) => service.update(input), create: unsupported, remove: unsupported };
 } });
-export const careHandler = createMemberRecordHandler({ ...memberIdentity, enabled: () => !!configuredCarePolicy(), service: owner => createCareService(getPrisma(), owner, configuredCarePolicy()!) });
+export async function careHandler(request: Request, id?: string) {
+  try {
+    const settings = await readCareSettings(getPrisma());
+    // Closing intake must not remove access to existing requests or cancellation.
+    return createMemberRecordHandler({ ...memberIdentity,
+      enabled: () => !!settings && (request.method !== 'POST' || settings.enabled),
+      service: owner => createCareService(getPrisma(), owner, settings!.policy),
+    })(request, id);
+  } catch { return Response.json({ error: { message: '상담·심방 설정을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.' } }, { status: 503 }); }
+}
 
 // Email comes from verified Supabase identity, never caller-supplied profile JSON.
 export async function profileHandler(request: Request) {

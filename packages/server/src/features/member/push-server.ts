@@ -12,5 +12,5 @@ const config = () => pushConfig(process.env);
 export const pushDeviceHandler = createMemberRecordHandler({ ...memberIdentity, enabled: () => true, service: owner => createPushDeviceService(getPrisma(), owner, { available: () => config().available, projectId: config().projectId }) });
 export const pushRevokeHandler = createPushRevokeHandler(input => revokePushDevice(getPrisma(), input), memberIdentity.allowedOrigins);
 export const pushWorkerHandler = createPushWorkerHandler(config, () => createPushWorker(getPrisma(), createExpoPushProvider(config().accessToken), {
-  worship: process.env.APP_PUBLICATION_ENABLED === 'true', notices: process.env.APP_PUBLIC_NOTICES_ENABLED === 'true', events: process.env.APP_PUBLIC_EVENTS_ENABLED === 'true', schedules: process.env.APP_MEMBER_RECORDS_ENABLED === 'true',
+  worship: process.env.APP_PUBLICATION_ENABLED === 'true', notices: process.env.APP_PUBLIC_NOTICES_ENABLED === 'true', events: process.env.APP_PUBLIC_EVENTS_ENABLED === 'true', groups: process.env.APP_GROUPS_ENABLED === 'true', schedules: process.env.APP_MEMBER_RECORDS_ENABLED === 'true',
 })());

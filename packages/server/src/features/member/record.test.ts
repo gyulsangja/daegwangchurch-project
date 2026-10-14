@@ -73,3 +73,27 @@ test('a prayer remains editable after its linked reflection is deleted, but cann
   await assert.rejects(service.update('prayer-1', { version: 2, content: { ...previous, reflectionId: 'foreign-reflection' } }), MemberRecordNotFound);
   assert.equal(writes, 1);
 });
+
+test('topic links are owner scoped and a deleted topic does not prevent editing its prayers', async () => {
+  let writes = 0;
+  const previous = { ...content, prayerTopicId: 'deleted-topic' };
+  const db = { memberRecord: {
+    findFirst: async ({ where }: { where: { id: string; ownerId: string; kind?: string } }) => {
+      assert.equal(where.ownerId, owner);
+      return where.id === 'prayer-1' ? { id: 'prayer-1', kind: 'PRAYER', content: previous } : null;
+    },
+    updateMany: async () => { writes++; return { count: 1 }; },
+  } } as unknown as Pick<PrismaClient, 'memberRecord'>;
+  const service = createMemberRecordService(db, owner);
+  await assert.rejects(service.create({ ...content, prayerTopicId: 'foreign-topic' }), MemberRecordNotFound);
+  await service.update('prayer-1', { version: 1, content: { ...previous, body: 'continued' } });
+  await assert.rejects(service.update('prayer-1', { version: 2, content: { ...previous, prayerTopicId: 'foreign-topic' } }), MemberRecordNotFound);
+  assert.equal(writes, 1);
+});
+test('creating another reflection or moving one onto an occupied day is rejected', async () => {
+  const previous = { kind: 'REFLECTION', body: 'reflection', date: '2026-10-04', worship: { id: 'w1', version: 1, title: 'word', contentDate: '2026-10-04', scriptureReference: '' } };
+  const db = { memberRecord: { findFirst: async ({ where }: { where: { id?: unknown } }) => typeof where.id === 'string' ? { id: 'r1', kind: 'REFLECTION', content: previous } : { id: 'r2' } } } as unknown as Pick<PrismaClient, 'memberRecord'>;
+  const service = createMemberRecordService(db, owner);
+  await assert.rejects(service.create(previous), MemberRecordConflict);
+  await assert.rejects(service.update('r1', { version: 1, content: { ...previous, date: '2026-10-05' } }), MemberRecordConflict);
+});

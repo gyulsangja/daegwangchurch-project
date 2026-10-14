@@ -7,10 +7,10 @@ export function createDeletionProvider(config: { url: string; publishableKey: st
   const options = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }, global: { fetch: (input: RequestInfo | URL, init?: RequestInit) => fetcher(input, { ...init, signal: AbortSignal.timeout(10000) }) } };
   const admin = createClient(config.url, config.secretKey, options).auth.admin;
   return {
-    async reauthenticate(owner, email, password) {
+    async reauthenticate(owner, email, password, code) {
       const auth = createClient(config.url, config.publishableKey, options).auth;
       try {
-        const { data, error } = await auth.signInWithPassword({ email, password });
+        const { data, error } = code ? await auth.verifyOtp({ email, token: code, type: 'recovery' }) : await auth.signInWithPassword({ email, password });
         if (error) throw new AccountOperationError(error.status === 429 ? 429 : error.status && error.status < 500 ? 422 : 503);
         if (!data.session || data.user?.id !== owner || data.user.is_anonymous || !data.user.email_confirmed_at) throw new AccountOperationError(422);
       } finally { await auth.signOut({ scope: 'local' }); }

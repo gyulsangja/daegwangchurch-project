@@ -3,6 +3,7 @@ import { WorshipListPage } from "../../../../components/content/worship-list-pag
 
 export const metadata: Metadata = { title: "특별예배", alternates: { canonical: "/worship/special" } };
 
-export default function Page() {
-  return <WorshipListPage eyebrow="SPECIAL WORSHIP" title="특별예배" description="절기와 특별한 날에 함께 드린 예배를 모았습니다." category="특별예배" type="SPECIAL" />;
+export default async function Page({ searchParams }: { searchParams: Promise<{ q?: string; month?: string; page?: string }> }) {
+  const query = await searchParams;
+  return <WorshipListPage query={query} eyebrow="SPECIAL WORSHIP" title="특별예배" description="절기와 특별한 날에 함께 드린 예배를 모았습니다." category="특별예배" type="SPECIAL" />;
 }

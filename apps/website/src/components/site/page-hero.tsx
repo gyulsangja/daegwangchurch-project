@@ -10,14 +10,14 @@ type PageHeroProps = {
 
 export function PageHero({ eyebrow, title, description, className }: PageHeroProps) {
   return (
-    <section className={cn("church-page-hero border-b border-border py-12 md:py-16", className)}>
+    <section className={cn("church-page-hero border-b border-border py-7 md:py-9", className)}>
       <div className="container-site relative church-page-intro">
         <p className="church-eyebrow">{sectionLabel(eyebrow)}</p>
-        <h1 className="text-balance mt-4 max-w-4xl text-3xl leading-[1.5] tracking-[-0.035em] md:text-5xl">
+        <h1 className="text-balance mt-4 max-w-4xl text-3xl leading-[1.5] tracking-[-0.035em] md:text-4xl">
           {title}
         </h1>
         {description ? (
-          <p className="church-page-description mt-5 max-w-3xl text-lg leading-8 text-text-secondary">
+          <p className="church-page-description mt-3 max-w-3xl text-base leading-7 text-text-secondary">
             {description}
           </p>
         ) : null}

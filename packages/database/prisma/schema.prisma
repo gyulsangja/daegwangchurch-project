@@ -461,6 +461,15 @@ model InquiryRateLimit {
   @@map("inquiry_rate_limits")
 }
 
+model CareSetting {
+  id        String   @id @default("CARE")
+  enabled   Boolean  @default(false)
+  policy    Json
+  updatedAt DateTime @updatedAt
+
+  @@map("care_settings")
+}
+
 model SiteSetting {
   id             String   @id @default(cuid())
   singletonKey   String   @unique @default("SITE")
@@ -508,6 +517,7 @@ enum PublicationChannel {
 
 model MemberProfile {
   ownerId String @id @db.Uuid
+  churchMembership ChurchMembership?
   displayName String @default("")
   consentVersion String?
   consentedAt DateTime?
@@ -516,6 +526,20 @@ model MemberProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@map("member_profiles")
+}
+
+model ChurchMembership {
+  ownerId String @id @db.Uuid
+  profile MemberProfile @relation(fields: [ownerId], references: [ownerId], onDelete: Cascade)
+  status String @default("UNCONFIRMED")
+  realName String @default("")
+  phone String @default("")
+  position String @default("")
+  requestedAt DateTime?
+  reviewedAt DateTime?
+  reviewedBy String?
+  version Int @default(1)
+  @@map("church_memberships")
 }
 
 model MemberDeletion {

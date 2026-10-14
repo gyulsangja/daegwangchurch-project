@@ -1,0 +1,38 @@
+import Link from 'next/link';
+import { getPrisma } from '@daegwang/database/prisma';
+import { getMemberDirectory } from '@daegwang/server/features/member/admin-directory';
+import { churchStatusLabels, churchStatusSchema } from '@daegwang/contracts/features/member/church-membership';
+import { requireSuperAdmin } from '../../../../lib/auth/permissions';
+import { memberDeletionProvider } from '../../../../lib/member-management';
+import { OperationForm } from '../../../../components/admin/operation-form';
+import { AdminDialog } from '../../../../components/admin/admin-dialog';
+import { ArchivePagination } from '@daegwang/web-ui/components/ui/archive-pagination';
+import { reviewMemberAction, changeMemberRoleAction, deleteMemberAction, saveMemberGroupsAction } from './actions';
+export default async function MembersPage({ searchParams }: { searchParams: Promise<{ status?: string; q?: string; page?: string }> }) {
+  const actor = await requireSuperAdmin(); const directory = await getMemberDirectory(await searchParams); const db = getPrisma();
+  const groups = await db.churchGroup.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { name: 'asc' } });
+  const memberships = await db.groupMembership.findMany({ where: { ownerId: { in: directory.rows.map(row => row.id) } }, select: { ownerId: true, groupId: true } });
+  const deletionReady = !!memberDeletionProvider();
+  const date = (value: Date | null) => value ? value.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' }) : '—';
+  return <div className="mx-auto max-w-6xl space-y-5">
+    <header><h1 className="text-3xl font-extrabold">회원 관리</h1><p className="mt-2 text-text-secondary">가입 회원 전체를 찾고 교인 확인·소속·관리자 권한을 한곳에서 관리합니다. 개인 묵상·기도는 열람하지 않습니다.</p></header>
+    <nav aria-label="회원 분류" className="flex flex-wrap gap-2">{[['ALL','전체 회원'],['PENDING','교인 확인 요청'],['CONFIRMED','승인된 교인'],['ADMIN','관리자'],['DELETING','삭제 처리 중']].map(([key,label]) => <Link key={key} href={`/admin/members?status=${key}`} aria-current={directory.status === key ? 'page' : undefined} className={`focus-ring rounded-xl border px-4 py-3 text-sm font-semibold ${directory.status === key ? 'bg-primary-50 text-primary-700' : 'bg-white'}`}>{label}</Link>)}</nav>
+    <form className="flex gap-2"><input type="hidden" name="status" value={directory.status} /><input name="q" aria-label="회원 이름·이메일·연락처 검색" placeholder="이름·이메일·연락처 검색" defaultValue={directory.q} className="min-h-11 min-w-0 flex-1 rounded-xl border border-border px-3" /><button className="focus-ring rounded-xl border bg-white px-5">검색</button></form>
+    <p className="text-sm text-text-secondary">총 {directory.total.toLocaleString()}명 · 가입일 최신순</p>
+    <div className="overflow-x-auto rounded-xl border border-border bg-white"><table className="w-full text-left text-sm"><thead className="bg-background-muted"><tr>{['회원','교인·권한','소속','가입일','관리'].map(label => <th key={label} className="px-4 py-3">{label}</th>)}</tr></thead><tbody>{directory.rows.map(row => {
+      const status = churchStatusSchema.parse(row.status); const selected = memberships.filter(item => item.ownerId === row.id).map(item => item.groupId); const self = actor.authUserId === row.id;
+      return <tr key={row.id} className="border-t border-border align-top"><td className="px-4 py-4"><p className="font-bold">{row.name}</p><p className="mt-1 break-all text-text-secondary">{row.email}</p></td><td className="px-4 py-4"><p>{churchStatusLabels[status]}</p><p className="mt-1 text-xs text-primary-700">{row.deletionStatus ? '삭제 처리 중' : row.activeAdmin ? row.role === 'SUPER_ADMIN' ? '최고관리자' : '관리자' : '일반 회원'}</p></td><td className="px-4 py-4">{groups.filter(group => selected.includes(group.id)).map(group => group.name).join(', ') || '—'}</td><td className="whitespace-nowrap px-4 py-4">{date(row.createdAt)}</td><td className="px-4 py-3">
+        <AdminDialog title={`${row.name} · 회원 관리`}>
+          <dl className="grid gap-2 text-sm sm:grid-cols-2"><div><dt className="text-text-secondary">이메일</dt><dd className="break-all">{row.email}</dd></div><div><dt className="text-text-secondary">최근 로그인</dt><dd>{date(row.lastSignInAt)}</dd></div><div><dt className="text-text-secondary">연락처</dt><dd>{row.phone || '미입력'}</dd></div><div><dt className="text-text-secondary">직분</dt><dd>{row.position || '미입력'}</dd></div></dl>
+          {!row.deletionStatus && <>
+            {row.version && status !== 'UNCONFIRMED' && <section><h2 className="mb-2 font-bold">교인 확인</h2><OperationForm key={`review-${row.version}`} action={reviewMemberAction} submit="확인 결과 저장"><input type="hidden" name="ownerId" value={row.id} /><input type="hidden" name="version" value={row.version} /><label>확인 결과<select name="status" required defaultValue=""><option disabled value="">선택하세요</option>{status === 'PENDING' && <option value="CONFIRMED">교인 승인</option>}<option value="UNCONFIRMED">교인 확인 및 소속 해제</option></select></label>{status === 'PENDING' && <fieldset><legend>승인하며 지정할 소속</legend>{groups.map(group => <label key={group.id} className="flex items-center gap-2"><input className="!w-5" type="checkbox" name="groupIds" value={group.id} />{group.name}</label>)}</fieldset>}</OperationForm></section>}
+            {status === 'CONFIRMED' && <section><h2 className="mb-2 font-bold">소속 관리</h2><OperationForm key={`groups-${row.version}`} action={saveMemberGroupsAction} submit="소속 저장"><input type="hidden" name="ownerId" value={row.id} /><input type="hidden" name="version" value={row.version!} />{groups.map(group => <label key={group.id} className="flex items-center gap-2"><input className="!w-5" type="checkbox" name="groupIds" value={group.id} defaultChecked={selected.includes(group.id)} />{group.name}</label>)}</OperationForm></section>}
+            <section><h2 className="mb-2 font-bold">관리자 권한</h2>{self ? <p className="text-sm">현재 로그인한 최고관리자 자신의 권한은 변경할 수 없습니다.</p> : <OperationForm key={`role-${row.role}-${row.activeAdmin}`} action={changeMemberRoleAction} submit="권한 변경"><input type="hidden" name="ownerId" value={row.id} /><label>권한<select name="role" defaultValue={row.activeAdmin ? row.role! : 'MEMBER'}><option value="MEMBER">일반 회원 · 관리자 권한 해제</option><option value="ADMIN">관리자</option><option value="SUPER_ADMIN">최고관리자</option></select></label><p className="text-sm">권한 해제 시 일반 회원으로 남고 모임 담당자 권한도 해제됩니다.</p></OperationForm>}</section>
+          </>}
+          <section className="border-t border-border pt-4"><h2 className="font-bold text-red-700">회원 계정 삭제</h2>{self ? <p className="mt-2 text-sm">현재 로그인한 계정은 삭제할 수 없습니다.</p> : row.activeAdmin ? <p className="mt-2 text-sm">관리자 권한을 먼저 해제한 뒤 삭제할 수 있습니다.</p> : !deletionReady ? <p className="mt-2 text-sm">서버 전용 Supabase 키 설정 후 실제 계정 삭제를 사용할 수 있습니다.</p> : <OperationForm action={deleteMemberAction} submit={row.deletionStatus ? '인증 계정 삭제 다시 시도' : '회원 계정 삭제'}><input type="hidden" name="ownerId" value={row.id} /><p className="text-sm">묵상·기도·저장한 말씀·일정·상담 요청·소속·알림과 로그인 계정을 삭제합니다. 공유 게시물과 기존 관리자 업무 이력은 유지됩니다. 삭제 후 복구할 수 없습니다.</p><label className="block">확인을 위해 회원 이메일 입력<input type="email" name="email" required autoComplete="off" /></label><label className="flex items-center gap-2"><input type="checkbox" name="confirm" value="DELETE" required className="!w-5" />이 회원의 계정과 개인 데이터 삭제를 확인합니다.</label></OperationForm>}</section>
+        </AdminDialog>
+      </td></tr>;
+    })}</tbody></table>{!directory.rows.length && <p className="p-6 text-center text-text-secondary">조회 조건에 맞는 회원이 없습니다.</p>}</div>
+    <ArchivePagination page={directory.page} pageCount={directory.pageCount} total={directory.total} filters={{ status: directory.status, q: directory.q }} />
+  </div>;
+}

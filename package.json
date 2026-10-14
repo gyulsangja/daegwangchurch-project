@@ -45,14 +45,16 @@
     "maintain:push": "tsx scripts/process-push.ts"
   },
   "devDependencies": {
-    "tsx": "^4.23.1",
-    "typescript": "^6.0.3",
+    "@playwright/test": "^1.63.0",
     "@types/node": "^26.1.1",
     "@types/pg": "^8.20.0",
-    "pg": "^8.22.0",
+    "@types/qrcode": "^1.5.6",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.2.10",
-    "@playwright/test": "^1.63.0"
+    "pg": "^8.22.0",
+    "qrcode": "^1.5.4",
+    "tsx": "^4.23.1",
+    "typescript": "^6.0.3"
   },
   "overrides": {
     "@hono/node-server": ">=1.19.13",

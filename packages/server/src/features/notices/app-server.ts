@@ -12,5 +12,5 @@ export const appNoticeHandlers = createAppNoticeHandlers(
 // Public CMS notices only; this never reads MemberRecord or private prayers.
 export const appPrayerHandlers = createAppNoticeHandlers(
   () => createAppNoticeQueries(getPrisma(), publicEnv.NEXT_PUBLIC_SUPABASE_URL, () => new Date(), '공동기도'),
-  () => process.env.APP_PUBLIC_PRAYERS_ENABLED === 'true',
+  () => process.env.APP_PUBLIC_NOTICES_ENABLED === 'true',
 );

@@ -1,5 +1,5 @@
 import Chip from "@mui/material/Chip";
-import IconButton from "@mui/material/IconButton";
+import MuiButton from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -54,7 +54,7 @@ export function WorshipTable({ rows }: { rows: WorshipRow[] }) {
               <TableCell>{row.preacher || "—"}</TableCell>
               <TableCell><Chip size="small" label={contentStatusLabels[row.status]} color={row.status === "PUBLISHED" ? "primary" : "default"} /></TableCell>
               <TableCell>{row.isPinned ? "예" : "아니오"}</TableCell>
-              <TableCell align="right"><IconButton component="a" href={`/admin/worship/${row.id}/edit`} aria-label={`${row.title} 수정`}><Pencil aria-hidden="true" className="size-4" /></IconButton></TableCell>
+              <TableCell align="right"><MuiButton size="small" sx={{ minHeight: 44, whiteSpace: "nowrap", gap: 1 }} component="a" href={`/admin/worship/${row.id}/edit`} aria-label={`${row.title} 수정`}><Pencil aria-hidden="true" className="size-4" />수정</MuiButton></TableCell>
             </TableRow>
           ))}
         </TableBody>

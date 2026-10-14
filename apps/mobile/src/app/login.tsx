@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { AppScreen, IntroCard, MenuCard } from '../components/app-screen';
 import { Action, styles } from '../components/ui';
 import { safeMemberReturn, useMemberSession } from '../components/member-session';
+import { SocialLogin } from '../components/social-login';
 
 export default function Login() {
   const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
@@ -21,6 +22,7 @@ export default function Login() {
   }
   return <AppScreen title="로그인" onBack={() => router.canGoBack() ? router.back() : router.replace('/my')}>
     <IntroCard title="신앙생활 기록을 이어가세요">로그인 후 요청하신 화면으로 돌아갑니다.</IntroCard>
+    <SocialLogin returnTo={returnTo} />
     {!configured && <IntroCard title="로그인 연결 준비 중">공개 말씀과 교회 안내는 로그인 없이 이용할 수 있습니다.</IntroCard>}
     <Text style={styles.caption}>이메일</Text><TextInput accessibilityLabel="이메일" autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" value={email} onChangeText={setEmail} style={styles.input} maxLength={254} />
     <Text style={styles.caption}>비밀번호</Text><TextInput accessibilityLabel="비밀번호" autoCapitalize="none" autoCorrect={false} autoComplete="current-password" secureTextEntry={!visible} value={password} onChangeText={setPassword} style={styles.input} maxLength={1024} onSubmitEditing={() => void submit()} />
@@ -30,7 +32,7 @@ export default function Login() {
     {process.env.EXPO_PUBLIC_DEMO_MODE === 'true' && <MenuCard title="테스트 계정 채우기" description="실제 정보 없이 회원 기능을 체험합니다." onPress={() => { setEmail('demo@example.invalid'); setPassword('Demo-only-123!'); }} />}
     <MenuCard title="비밀번호 찾기" onPress={() => router.push('/recover')} />
     <MenuCard title="회원가입" onPress={() => router.push('/signup')} />
-    <Text style={styles.caption}>현재 로그인은 앱을 종료하거나 웹을 새로고침하면 해제됩니다.</Text>
+    <Text style={styles.caption}>로그인 상태는 이 기기에 유지됩니다. 함께 사용하는 기기에서는 이용 후 로그아웃해 주세요.</Text>
     <MenuCard title="로그인하지 않고 계속 보기" onPress={() => router.replace('/')} />
   </AppScreen>;
 }

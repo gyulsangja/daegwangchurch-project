@@ -1,4 +1,171 @@
 # 작업 인수인계
+## 통합 사용성 검토 및 배포 진행 (2026-10-15)
+
+- 사용자 요청: 사이트·관리자·앱의 전체 사용성을 검토하고 Git main 업로드 및 배포. 기존 미커밋 기능(주보 전체화면·헌금·지도·자료 이관·소셜 준비 등)도 보존해 함께 검증.
+- 앱 MY의 말씀·묵상·기도를 하나의 날짜 캘린더로 통합. 해당 날짜의 말씀과 묵상·기도 표시, 기존 묵상 이어 쓰기, 기도제목별 날짜 기록 및 응답/감사 연결. 기도제목 검색 선택은 팝업, 로딩 실패는 재시도 가능. 서버 소유자별 트랜잭션 잠금으로 동시 중복 묵상 방지, 날짜 변경 중복도 거부. 기존 기록 삭제 없음.
+- 관리자 전체 Auth 회원(프로필 미생성 포함)을 검색/분류/20명 페이지로 조회. 교인 승인·소속·권한·삭제를 관리 팝업으로 통합. 자신의 최고관리자 권한/계정 변경 차단, 활성 관리자 삭제는 먼저 권한 해제 필요. 삭제는 명시적 이메일·체크 확인, 개인 내용 미열람, 인증 서버 실패 시 재시도 가능. 기존 관리자 경로는 회원 관리로 이동. 모임 공지 20건 페이지, 모임/담당자/상담 설정 팝업 적용.
+- 저장된 서버 전용 키는 읽기 전용 Auth 관리자 API로 검증 후 Vercel 관리자 production 비밀 설정에 등록. 실제 회원 역할 변경/삭제 테스트는 하지 않음.
+- 검증: 전체 type-check 및 각 앱 lint, 기존 npm test, 신규 세션/소셜/캐시/헌금/관리자 테스트 14개, 기록·세션·관리자 집중 테스트 14개, 격리 PostgreSQL 통합 51개 통과. 동시 묵상 테스트에서 발견한 트랜잭션 중첩 문제 수정 후 통과. 운영 DB에는 테스트 데이터 생성 안 함.
+- 화면: 로컬 홈페이지 메인/주요 탐색, 실제 회원 목록 및 관리 팝업, 가상 계정의 묵상 작성→선택 날짜 복귀→이어 쓰기/기도제목 저장 확인. Android/iPhone 실기기 재부팅 검증은 미실시.
+- 관리자 운영 배포 완료: `dpl_83pS3DwgHbg8vT5VRbTAxeUBn5Qk`, URL `https://daegwangchurch-admin-4p0qtsfyy-gyulsangjas-projects.vercel.app`; HTTP/API 검사 10개 통과 후 기존 운영 주소 승격.
+- 홈페이지 운영 배포 완료: `dpl_53mJgpeDmgZnYYQmHYWAqV1yPBDb`, URL `https://daegwangchurch-3rx75iusw-gyulsangjas-projects.vercel.app`; 공개 경로 검사 4개 통과 후 기존 운영 도메인 승격.
+- Android 새 APK: `5ac10a59-1b88-4d4b-938d-f9f48bd76f4f` Expo 무료 대기열. 이전 APK에는 통합 기록/로그인 유지 보완 미포함. 완료 후 `/app` 다운로드 주소를 교체하고 홈페이지 재배포할 것. 상태 확인: `node test-results/deploy/review-app-status.mjs` (로컬 도구). Google Play/iOS 스토어 제출은 아직 하지 않음; `mobile-security-and-store-release.md`의 남은 요건 유지.
+
+## Android/iOS 로그인 보안·스토어 준비 검토 (2026-10-15)
+
+- 사용자 요청: 로그인 유지 보안을 검토·보완하고 Google Play 및 향후 iOS 배포를 함께 고려. [상세 검토](mobile-security-and-store-release.md)에 채택 방식/검증/출시 필수 후속 항목 기록.
+- SecureStore 세션 손상/누락 시 복원 차단 및 로그아웃 제거 경로 보완. Android allowBackup=false 및 SecureStore 백업/기기 이전 제외 명시, 사용하지 않는 녹음/연락처/위치/외부 저장소/광고 ID 권한 차단. iOS Keychain 기기 한정 유지, 미사용 Face ID 권한 문구 제거. production EAS는 production 환경·Android AAB 명시.
+- 세션 테스트 5개, 모바일 type-check/lint, 경계 검사, 네이티브 설정 introspection 통과. check:release 로컬 10/16이며 아직 출시 가능 판정 아님. 앱용 개인정보 방침/사용자 실제 탈퇴·웹 삭제 경로/iOS Apple 로그인/양 플랫폼 실기기 및 최종 바이너리 확인 미완료. 새 APK/AAB/IPA 빌드·배포 안 함.
+
+## Prisma 이력 테이블 보안 수정 (2026-10-15)
+
+- Supabase 경고 `RLS Disabled in Public: public._prisma_migrations` 대응. 운영 확인 결과 RLS 비활성 및 anon/authenticated SELECT 권한이 존재했음.
+- `20261015090000_protect_prisma_migrations` 운영 적용 완료: RLS 활성화, PUBLIC/anon/authenticated 모든 테이블 권한 제거. 공개 정책을 추가하지 않으며 Prisma 소유자 연결을 유지하기 위해 FORCE RLS는 사용하지 않음. `supabase/rls.sql`에도 동일 보호 추가.
+- 적용 후 RLS=true, anon/authenticated SELECT=false, Prisma 연결 소유자·접근 권한 유지 확인. `npm run db:deploy` 재실행 성공, 미적용 마이그레이션 없음. 데이터 삭제 없음. Supabase 대시보드 경고 표시 자체는 재검사하지 않음.
+- 진행 중 작업: 하루 말씀·묵상·기도 통합 캘린더 및 회원 전체 목록/관리 팝업/권한 해제/회원 삭제는 작업 파일에 있으나 최종 검증·배포 전. 사용자 서버 전용 Secret key 저장 확인했으며 실제 회원 삭제 테스트는 하지 말 것. 기존 설치 APK에는 로그인 유지 및 통합 기록 수정이 아직 포함되지 않음.
+
+## 로그인 유지 수정 (2026-10-15)
+
+- 사용자 보고: 앱을 다시 열 때 로그인이 반복 해제됨. 원인은 `createMemberAuth`의 `persistSession:false`, `autoRefreshToken:false`와 메모리 전용 인증 저장이었다.
+- 앱 기본 인증 클라이언트에 영구 저장·자동 갱신 적용. native는 기존 Expo SecureStore를 사용하며 500자 암호화 청크와 마지막 manifest 갱신으로 큰 세션/저장 실패를 처리. 비밀번호 저장 없음. 웹 미리보기는 localStorage. 임시 OAuth 교환 클라이언트는 기존 메모리 전용 유지.
+- 앱 재실행 초기 인증 이벤트까지 로그인 확인 화면 표시, native AppState 활성/비활성에 맞춰 토큰 갱신 시작/정지, 로그아웃 시 디스크 세션 제거 및 개인 초안 초기화. 로그인 안내 문구도 유지 방식으로 수정.
+- `tests/member-session.test.ts`: 저장소 재생성/큰 Unicode 세션/실패한 쓰기 보존/실제 Supabase SDK의 로그인 복원·만료 토큰 갱신·로그아웃 후 재실행 테스트 3개 통과. 모바일 type-check/lint 확인. 실제 휴대폰 재부팅 검증 및 수정본 APK 빌드/배포는 아직 하지 않음. 아래 기존 APK에는 이 수정 미포함.
+
+## APK 및 다운로드 링크 후속 배포 완료 (2026-10-14)
+
+- Android build: af9026d2-c576-4bf3-b3f4-281909cfb2c5 FINISHED. 다운로드 파일 HTTP/크기 확인 완료. 실제 휴대폰 설치 확인은 미실시.
+- APK: https://expo.dev/artifacts/eas/GVmQrr9RxjPPtmYJpKiZszFeX41aKMxCejmCZjKMRsM.apk
+- 홈페이지 최종 배포: dpl_7E12dxE3miQP67NU2wmYM2BKxFvV / https://daegwangchurch-eihdnf9vv-gyulsangjas-projects.vercel.app. 운영 승격 및 https://daegwangchurch.kr/app 의 새 APK 링크 확인 완료.
+- 상세 결과: test-results/deploy/final-app-download-result.json. 아래 대기 기록보다 이 항목이 우선함.
+
+## 최신 검증: 자료 이관·홈페이지/관리자 배포 완료, APK 대기 (2026-10-14)
+
+- 기존 홈페이지 공개 사진 **248장 전부** 현재 Supabase 미디어에 저장: 인물 사진 4개 연결, 앨범 사진 244개 연결, 누락 0. 아래 기록의 임시 `/admin/import-legacy` 파일 2개는 삭제 완료했으며 최종 관리자 배포에는 포함하지 않음.
+- 유튜브 **신규 1,933개 등록 완료**. 운영 공개 API 전체 커서 순회 결과 1,937개(첫시간 1,349 / 주일오전 249 / 수요 195 / 주일오후 144), 중복 없음. 기존 삭제된 영상 1개는 복구하지 않음. 가져온 영상의 APP 발행 누락 0.
+- 홈페이지·관리자 영상 목록에 검색, 월별 조회, 페이지 이동 추가. 홈페이지 12개/관리자 30개 단위로 과거 영상 전체 접근 가능. 운영 첫시간 113쪽의 2022년 영상, 로컬 관리자 수요기도회 7쪽까지 검증.
+- 홈페이지 운영 배포 `dpl_23RYNZwKJgHwm4JTzpiNYozYiGuC` / `https://daegwangchurch-htjaal9ak-gyulsangjas-projects.vercel.app` 승격 완료. 운영 주소 https://daegwangchurch.kr.
+- 관리자/API 운영 배포 `dpl_HVBRbG84Uphwr9UaPFCe7ctEqsAd` / `https://daegwangchurch-admin-2phsecmib-gyulsangjas-projects.vercel.app` 승격 완료. 헌금 안내·계좌 관리 포함. 운영 contact API 계좌 응답 검증 완료.
+- 전체 type-check/lint, workspace 경계, 헌금 계약/교회 API 테스트 6개 통과. 홈페이지 배포 HTTP 4개, 관리자 배포 HTTP 10개 통과. 앱 헌금 화면의 불필요한 경로 헤더 제거 확인. 실제 휴대폰 설치 확인은 미실시.
+- **새 Android APK 빌드 `af9026d2-c576-4bf3-b3f4-281909cfb2c5` 제출 완료, Expo 무료 대기열.** 주보 전체 화면+헌금 안내 포함. `test-results/deploy/watch-app-build.mjs`로 상태 확인 중. 완료하면 `apps/website/src/lib/app-download.ts`의 APK 주소를 새 artifact로 교체하고 홈페이지 재배포/승격해야 함. 현재 `/app`은 이전 APK 링크 유지 중.
+- 자동 후속 작업 `test-results/deploy/finish-app-download.mjs` 실행 중(세션 53384), 빌드 감시 세션 60524. 빌드 완료 후 APK HEAD/크기 검증 → 주소 교체 → 홈페이지 배포 → HTTP 검증 → 승격 → 운영 링크 검증을 수행하며 `test-results/deploy/final-app-download-result.json`에 결과 기록. 새 턴에서 반드시 이 결과를 먼저 확인할 것. 빌드 대기 중에는 APK 주소 파일을 동시에 수정하지 말 것. PC/프로세스가 종료되면 감시와 후속 스크립트를 다시 실행해야 함.
+- 검증 스크립트 `test-results/content-import/verify-import.mjs`, 원문 수집/백업/사진 목록 및 화면 검증 자료는 Git 제외 test-results에 보관. 스크린샷 `worship-archive-production.png` 및 `people-imported.png`.
+
+## 진행 중: 기존 홈페이지·유튜브 자료 이관 및 헌금 안내 (2026-10-14)
+
+- 사용자 추가 요청: https://daegwangchurch.smartchurch.net/ 의 부서/예배/인물 정보와 사진 이관, 홈페이지·앱 헌금 안내, ‘교역자와 사역자’ 대신 ‘섬기는 사람들’, 유튜브의 수요기도회·첫시간 주님께·주일오전예배·주일오후 성경공부 모임 전체 영상 게시물 등록.
+- `scripts/import-church-legacy.mjs --apply` 실행: 운영 DB에 예배/모임 9개, 부서 3개, 인물 4명, 공개 앨범 12개 추가. 기존 행은 보존. 대표 전화 및 공개 헌금 계좌를 contactOptions에 추가. 원본 공개 계좌는 국민은행 435001-01-444419 / 대한예수교장로회 대광교회. 새가족부의 요일은 원문에 없어 ‘요일 문의’, 버스 번호의 명백히 불확실한 항목은 가져오지 않고 정류장명만 반영. 기존 상세 주소/개인정보 담당자 등 보존.
+- 인물 사진 4장 + 행사사진 244장 총 248개 작업. Supabase CLI/서버 비밀키 없으므로 로그인된 로컬 관리자 세션의 정상 Supabase 업로드 권한 사용. **임시 개발 전용 `/admin/import-legacy` 페이지/액션을 생성해 일괄 이관 중. 완료 후 이 경로의 파일 2개를 반드시 삭제하고 배포/빌드할 것.** CUA 탭 `importTab`(64640361, Chrome 2)이 남은 사진 자동 등록을 진행한다. 진행 상태 UI/DB를 확인할 것. 20장 단위, 재실행 시 이미 등록된 미디어는 건너뛰며 연결은 idempotent.
+- 수집 원문/사진 URL/백업은 Git 제외 `test-results/content-import/`, 사람 사진 연결 `test-results/legacy-people.json`. 임시 HTML parser는 test-results/import-tools. 비밀값 없음.
+- YouTube 채널 UC1tP9iJvaJpr63dIU608WcQ의 지정 4개 재생목록 수집: 목록 1,939항목 / 고유 공개영상 1,938개(주일오전 목록 내 동일 ID 1개 중복). `scripts/collect-youtube-archive.mjs` 및 `scripts/import-youtube-archive.mjs --apply`로 기존 5개 보존, **신규 1,933개 실제 등록 완료**. APP revision/publication까지 같은 트랜잭션으로 생성. 신규 분류: 오후144/수요195/첫시간1346/오전248. 날짜는 제목의 명시 날짜 우선, 35개는 방송 시작/게시일의 KST 날짜 사용. 설명에 명시된 인용 제목·설교자·본문만 추출, 원문 제목/설명 보존(폼 길이 제한 내). 아직 최종 공개 목록 전체 검증 필요.
+- 헌금: `offering.ts` 공통 계약, 관리자 기본정보 ‘헌금 계좌’ 탭, website `/offering`, app `/church-info/offering` 구현. contact API에 공개 offering 객체만 추가. Expo57 Clipboard 설치. 로컬 홈페이지/앱에서 실제 계좌·예금주 표시, 복사한 숫자 일치 검증 통과. 타입·3개 앱 lint·church API 기존 테스트4개·경계 검사 통과. **신규 코드 운영 배포는 아직 안 함.**
+- 기존 대기 APK `9254606d-c800-457b-8edc-ac396d0b194d`는 추가 헌금 화면을 포함하기 위해 **CANCELED** 처리. 전체 변경 확정 후 새 APK 빌드 필요. 모니터 프로세스52206도 취소 상태 확인 후 종료. 홈페이지 QR/다운로드 `/app`은 아래 배포로 이미 운영 중이나 이전 APK 링크를 사용한다.
+
+## 최신: 앱 주보 전체 화면·홈페이지 앱 다운로드 (2026-10-14)
+
+- 앱 주보 PDF에 전체 화면 버튼 추가. 공통 BulletinFrame의 Modal 안에서 PDF 페이지 이동/확대/축소/닫기 및 원본 열기 제공. 모바일 안전 영역 반영, Android 뒤로가기는 onRequestClose 처리. 실제 주보 PDF를 브라우저 앱에서 열어 390px 전체 화면 크기, 확대, 닫기/Escape 검증. 네이티브 휴대폰 설치 검증은 별도 필요.
+- 홈페이지 `/app` 다운로드 안내 페이지, 홈 상단 다운로드 바로가기, 공통 하단 다운로드 카드/QR 추가. Android APK와 iPhone 준비 중 안내를 명확히 구분. QR은 고정 주소 `https://daegwangchurch.kr/app`을 사용하므로 이후 APK/스토어 주소 변경에도 유지 가능. 다운로드 파일 주소는 `apps/website/src/lib/app-download.ts`에서 관리.
+- QR 재생성: `node --import tsx scripts/generate-app-qr.mjs`. SVG 100px/184px에서 실제 해독 결과 일치 확인. `scripts/verify-app-download.mjs`로 앱 전체 화면과 홈페이지 다운로드 링크·320/390/1440px 배치 검사 통과. 모바일·홈페이지 타입/lint 및 경계 검사 통과. 배포 파일 651개 중 환경파일/비밀파일/테스트 산출물 0.
+- Android 새 빌드 `9254606d-c800-457b-8edc-ac396d0b194d` 제출, 무료 빌드 대기 중. 완료 후 새 APK 주소를 위 상수에 반영하고 홈페이지 운영 배포 예정. 기존 운영 APK 링크는 아직 이전 빌드를 가리킴. DB 변경·관리자 변경 없음.
+- 홈페이지 QR/다운로드 안내를 먼저 운영 배포 완료: `dpl_2a41jAt5pTsB2t8JGd1bV3EGgxXh`. READY·홈/주보/공지/관리자 연결/신규 `/app`·SVG 6개 HTTP 검사 후 승격. `https://daegwangchurch.kr/app`에서 실제 QR 이미지·버튼 링크 확인, 기존 APK HEAD 200(108409909 bytes). 새로운 전체 화면 APK가 완료되기 전에는 기존 정상 APK 링크를 유지 중.
+
+## 최신: 사용성 수정본 운영 배포 (2026-10-13)
+
+- 사용자 ‘모두 배포해줘’ 요청으로 이전 로컬 유지 지침을 변경하여 홈페이지·관리자/API 배포 및 새 Android APK 빌드 진행.
+- 관리자/API `dpl_J1zbJiBsJKGciYarA5jzLDxdGtdV` READY → 로그인/공개 API/개인 기능·푸시 내부 API 인증 보호 10개 검사 통과 후 운영 승격 완료. `APP_ACCOUNT_SIMPLE_SIGNUP=true`와 서버 전용 rate salt 등록(값 미출력). 운영 가입 options에서 registration=true, 빈 약관, 교인 확인 활성 확인. Supabase 이메일 인증 해제 설정 유지. 실제 신규 계정 생성·로그인까지는 사용자 확인이 필요.
+- 홈페이지 `dpl_88Jc1Yr38xWdXqyxBGU6BhYvpXVj` READY → 홈/공지/주보/관리자 연결과 라이브 API 검사 후 운영 승격 완료. 기존 daegwangchurch.kr 및 daegwangchurch.vercel.app 사용. 지도 및 주보 전체 화면 등 최근 로컬 변경 포함.
+- 운영 실화면에서 로컬과 달리 기존 Kakao JS 키가 설정돼 있으나 로딩 실패하는 것을 발견. Kakao 오류/8초 타임아웃 시 OpenStreetMap 대체 지도를 표시하도록 보완. 최종 홈페이지 배포는 **`dpl_5y8m9D12dpWeE79A6Bpq5rLqV4KJ`**이며 READY·사전 HTTP 검사 후 운영 승격 완료. 실제 daegwangchurch.kr에서 지도 캔버스, 주보 전체 화면 열기/닫기, 운영 가입 옵션, 개인 API 401 검증 모두 통과(`test-results/deploy/verify-current.mjs`).
+- 업로드 검사 644개 파일, 환경파일/Firebase 비밀파일/테스트 산출물 포함 0. 새 DB 마이그레이션 없음. Git 커밋·푸시는 수행하지 않음.
+- Android 빌드 `8754b1fe-ba12-4881-b127-719429d2d545` 제출. 기존 preview APK/원격 서명 사용, 환경 API=https://daegwangchurch-admin.vercel.app 및 DEMO=false 확인. 빌드 완료 결과는 후속 기록 참조. 앱스토어 제출 없음.
+- 위 Android 빌드 **FINISHED** 확인. [최신 APK 다운로드](https://expo.dev/artifacts/eas/_Qy9r3xKNJY85_ejeCZLQVg6LEY0wemDYZY3WpWF4_o.apk). 무료 Android 대기열 지연 후 정상 빌드 완료. 날짜 선택기·지도·주보 PDF·간단 가입·앱 홈 개선 포함. 실제 휴대폰 설치/가입/푸시 수신은 사용자 확인 전이며 완료로 간주하지 않음.
+
+## 최신: 주보 전체 화면·날짜 선택 UI (2026-10-13)
+
+- 홈페이지 주보 상세에 ‘전체 화면’ 버튼 추가. 화면 전체 크기의 접근 가능한 Dialog에 PDF 표시, 닫기/Escape/포커스 복원 및 원본 열기·다운로드 유지. PC 1440px·모바일 390px에서 화면 크기와 열기/닫기 확인.
+- 앱 주보·묵상·기록 목록의 YYYY-MM 직접 입력을 공통 MonthPicker(연도 이동, 12개월 버튼, 전체 기간, 취소)로 변경. 말씀 필터의 시작/종료일과 기록·일정 작성 날짜는 공통 DatePicker 달력으로 변경. 임시 선택 후 확정하며 취소는 기존 값을 유지, 선택 날짜 해제 가능. 날짜 범위 검증 유지.
+- 사용자가 지도가 안 보인다고 한 대상은 ‘설치한 앱 또는 배포된 홈페이지’였음. 지도 변경은 아직 로컬에만 있으므로 기존 APK/운영에는 없다고 설명. 실제 localhost 앱·홈페이지 모두 지도 캔버스 재확인. 사용자 요청대로 배포/APK 생성하지 않음.
+- 홈페이지 및 모바일 타입/lint, `scripts/verify-date-and-bulletin.mjs`로 월 선택/연도 이동/취소/초기화, 날짜 선택/확정, 320px 배치, 주보 전체 화면, 로컬 지도 검증. 운영 자료 변경 없음. 브라우저 테스트는 2026-10 기준 날짜를 사용하므로 다른 시점에는 테스트 날짜를 갱신할 것.
+
+## 최신: 로컬 사용성 수정 · APK/배포 보류 (2026-10-13 저녁)
+
+- 후속 확인: 사용자가 Supabase 설정을 처리했다고 답한 뒤 실제 settings API에서 `mailer_autoconfirm=true`, `disable_signup=false` 확인. 이메일 인증 없이 가입 가능한 제공자 설정이 반영됐다. 로컬 앱 8081 / 계정 options API 모두 HTTP 200, `registration=true`, 빈 약관으로 필수 동의 없음 확인. 아래 기록의 Supabase 설정 차단은 해소됨. 실제 신규 계정 생성·로그인까지는 아직 미검증이며 사용자가 로컬 앱에서 확인할 차례. 이번 후속에서도 운영 배포/APK 생성 없음.
+
+- 사용자 요청: 새 APK를 만들지 않고 npm 개발 서버에서 피드백하며 수정. 앱 가입 단순화, 첫시간 날짜/제목 강조, 스크롤 축소, 지도/주보 실제 표시, 콘텐츠별 관리자 목록, 홈페이지 정보 밀도 개선. 이번 변경은 **로컬만 반영**, 운영 배포·APK 빌드·Git 푸시는 하지 않았다.
+- 개발 서버: 홈페이지 `http://localhost:3000`, 관리자/API `http://localhost:3001/admin`, 앱 `http://localhost:8081`. 앱은 로컬 API와 실제 Supabase에 연결하며 데모 모드가 아니다. 실행: 루트에서 `npm run dev:website`, `npm run dev:admin`; Bash 앱은 `EXPO_PUBLIC_API_BASE_URL=http://localhost:3001 npm run web --workspace @daegwang/mobile -- --port 8081`.
+- 가입 UI를 이메일/비밀번호 2개로 축소. 교인 확인은 가입 후 MY에서 기존 실제 절차를 이용. 빈 약관은 가입을 막지 않으며 실제 동의로 저장하지 않음(프로필 동의 버전/시간/스냅샷 null). 정책 본문이 있으면 동의 검증 유지. 로컬 `APP_ACCOUNT_SIMPLE_SIGNUP=true` 및 비공개 rate-limit salt 설정. OTP 복구 설정과 분리. 즉시 가입 세션은 서버에서 정리한 후 로그인 화면으로 안내.
+- **실제 무인증 가입은 아직 미완료:** Supabase 공개 settings 조회는 `mailer_autoconfirm=false`, `disable_signup=false`. 사용자가 ‘수정해’라고 승인했지만 Computer Use가 Windows 브라우저 URL을 검증하지 못해 종료됐고 Supabase 관리 토큰/CLI 연결도 없다. Supabase → Authentication → Sign In / Providers → Email → Confirm email OFF 저장이 필요하다. 서버는 이 설정이 켜져 있으면 신규 미인증 계정을 생성하기 전에 503으로 중지한다. 설정 변경 완료/실제 가입 성공으로 보고하지 말 것. 서버 설정 변경 시 코드 수정 없이 다음 가입 요청에 반영됨.
+- 앱 홈: 첫시간 날짜·오늘/최근 묵상 표시, 설교 제목 강조, 16:9 썸네일, 말씀 CTA, 주보/설교/기도/기록 2×2 바로가기, 소식·지도 간결한 행. 390×844에서 주요 메뉴가 첫 화면 안에 표시됨. 320px 가로 넘침 없음.
+- 앱 지도: 기존 안내문만 있던 화면에 OpenStreetMap embed 실제 지도/마커 추가. 홈페이지는 Kakao key 없는 경우 같은 지도 fallback. 기존 CMS 좌표를 이용하고 주소·좌표를 임의 수정하지 않음. 실제 지도 캔버스와 타일 시각 확인 완료. OSM은 현재 MapLibre 사용으로 검증 선택자를 `#map canvas`로 사용.
+- 주보: Android/iOS WebView 및 브라우저 iframe에서 PDF.js 5.4.624 렌더러 사용(공개 CDN). 페이지 전환·확대/축소·실패 안내, 원본 링크 유지. 현재 공개 PDF 실제 2페이지 로딩/확대 검증. 휴대폰에서 새 버전 실행은 아직 미검증. 목록은 포커스 시/열려 있는 동안 30초 갱신, 수동 새로고침 추가. 임시저장은 공개되지 않는다는 설명을 관리자 상태 선택에 명시. 기존 비공개 자료를 임의 공개하지 않음.
+- 관리자 공지/일정/앨범/주보: 공통 공개상태·분류·날짜/제목 정렬, 월 필터(일정/앨범/주보), 초기화/표시건수. 공지 고정 우선, 일정 날짜/시간/장소, 앨범 썸네일 그리드·사진수, 주보 예배일·PDF 링크. 검색은 기존 서버 검색, 필터는 가져온 최대 100건 내이며 화면에 ‘불러온 N개’로 명시. 날짜는 Asia/Seoul. 기존 수정·삭제 확인·권한·미저장 보호 유지.
+- 홈페이지: 상단 이미지와 섹션/제목/본문 여백 축소, 첫시간/주보/교회소식/오시는길 바로가기. 기존 콘텐츠/사진과 의미 있는 구분 유지. 검증 시 홈 전체 높이 1440px 폭 2771px, 390px 폭 3725px. 최종 디자인 평가는 사용자 피드백으로 이어갈 것.
+- 검증: 전체 type-check/lint, import 경계, diff whitespace 검사 통과. 가입/주보 테스트 8개 통과. `scripts/verify-local-review.mjs` 실제 공개 API로 앱 홈/지도/PDF/홈페이지/관리자 로그인 보호 검사; 가입 완료 화면은 테스트 응답 대체로 확인(실제 회원 생성 0건). 관리자 가상 자료 로컬 임시 페이지에서 필터·정렬·초기화 및 1440/390/320px 검사 후 임시 페이지 삭제. 이미지 결과 `apps/mobile/test-results/local-review`(Git 제외). 실제 관리자의 로그인 세션을 가져오거나 운영 게시물을 수정하지 않았다.
+
+## 최신: 전체 운영 반영 및 새 Android APK (2026-10-13)
+
+- 사용자 ‘모두 배포하고 앱도 만들어줘’ 요청. 홈페이지 최신 소스 배포 `dpl_8zPvQdfAj1LsuG42X76Sa8WpAhGf` READY, 홈/공지/주보/관리자 연결 검사 후 운영 승격. daegwangchurch.kr 및 daegwangchurch.vercel.app HTTP 200 확인.
+- 관리자/API는 최신 `dpl_Cr3UANt4PUgGhGMxUJje4bxUsNxh`가 운영 대상임을 재확인. 관리자 로그인과 공동기도 API HTTP 200. 이전 관리자 사용성·상담 설정·공동기도 수정 포함.
+- 모바일 타입/lint 통과 후 기존 preview APK 프로필, Expo 원격 Android 서명으로 신규 빌드 `ca200a3e-1e94-46cb-ac2d-928860185534` FINISHED. [새 APK 다운로드](https://expo.dev/artifacts/eas/6vdtiF7HGgZNREZ7cPPOsdrLWRKehL_wK-dhOKXc1AE.apk). 앱스토어 제출은 하지 않았으며 실제 휴대폰 설치·푸시 수신 확인은 사용자가 나중에 진행한다.
+
+## 최신: 관리자 게시물 동선·상담/심방 직접 설정 (2026-10-13)
+
+- 사용자 추가 요청: 관리자 로고는 관리 홈으로, 목록/등록/수정/삭제를 편리하게, 상담·심방을 관리자에서 확인하고 담당자/보관 기간도 직접 조절. 웹·앱 기능이 애매하게 중단된 곳도 점검.
+- 좌측 대광교회 로고 → `/admin/dashboard`. 편집 화면 공통 ‘목록으로/새로 등록’, 주요 5종(말씀·공지·주보·일정·앨범) 하단 저장/목록 버튼, 6종 목록의 텍스트 ‘수정’ 버튼, 삭제 중 중복 클릭 방지. 기존 삭제 확인과 미저장 이동 방지 유지.
+- 상담·심방 메뉴는 비활성 상태여도 숨기지 않음. 최고관리자는 `/admin/care`에서 접수 여부·활성 담당자·보관 일수·전달 동의 안내를 설정. 최고관리자라도 담당자로 지정되지 않으면 요청 내용 열람 불가. 처리할 요청/상태/이름·연락처 검색 및 상세 펼침, 가능한 다음 상태만 선택. 관리 홈에 담당자의 미처리 건수 표시.
+- `20261013010000_care_settings` 운영 적용 완료(총 15개). 설정은 별도 비공개 `care_settings` 테이블, anon/authenticated 권한 차단. 환경 변수 정책은 DB 설정이 없을 때만 이전 버전 호환용으로 읽는다. 정책 저장마다 버전 갱신, 앱의 오래된 동의 요청은 거절. 접수 중지 후에도 기존 요청 조회/취소/담당 처리 유지.
+- 만료일은 접수 시 확정하며 설정 변경으로 소급 연장하지 않음. `daegwang-care-expiry` cron 5분 주기로 만료 요청만 정리하도록 등록. 등록 당시 운영 요청 전체 0/만료 0건. scripts/supabase-care-expiry.sql에 재현 SQL 기록. maintain-member-data도 접수 중지와 무관하게 만료 요청 정리.
+- 관리 도구 하단 접기 영역에서 기능별 서버 설정 상태/조치 경로 확인. 독립적인 앱 운영 게시판을 다시 만들지 않았다. 운영 조회 결과 말씀·공지·주보·일정·모임 API HTTP 200. 이메일 신규 가입/복구/탈퇴와 구글·카카오 가입은 외부 이메일/인증/탈퇴 운영 연결이 미완료라 여전히 비활성. 설정만 억지로 켜지 않음.
+- 격리 PostgreSQL 통합 테스트 50개 통과: 설정 권한·실제 접수·담당자 접근·중지 후 기존 요청 처리·RLS 포함. 관리자 type/lint, 공유 타입 검사, import 경계 검사 통과. UI는 1440/390/320px에서 로고 링크·상담 메뉴·저장/목록·미저장 확인 검증, 스크린샷 확인. 실제 데이터 제출 없는 localhost 전용 임시 검사 페이지는 삭제.
+- 추가 운영 점검: 공동기도 API가 별도 APP_PUBLIC_PRAYERS_ENABLED 때문에 503이었다. 공지 CMS의 공개 분류이므로 APP_PUBLIC_NOTICES_ENABLED로 통합하고 예제/문서를 수정. 카테고리 우회 방지 포함 공지 테스트 5개 통과, 로컬 실제 DB 공동기도 API 200 확인. 교회 연락처·예배 시간은 200, 교회소개·새가족교육·담임목사 소개는 현재 공개 자료가 없어 404. 임의로 소개 내용이나 개인정보를 생성·공개하지 않았다.
+- 운영 관리자 최종 배포 `dpl_Cr3UANt4PUgGhGMxUJje4bxUsNxh` READY, 로그인/공개 API/인증 보호 10개 및 공동기도 200 확인 후 운영 승격 완료. 직전 `dpl_3crXnRatPTPcyfA9AXV76knxxm4Y` 및 이전 메뉴 개편 `dpl_4sUVEXv3iNKMuTMMN43ZpaxXzH1x`는 단독 승격하지 않고 이번 배포에 함께 포함. 만료 정리 cron 최초 자동 실행 succeeded 확인. 상담 접수는 관리자가 실제 담당자/기간을 선택해 저장하고 활성화하면 열린다.
+- 휴대폰 검증은 사용자 요청으로 나중에 진행. 이번 서버 설정은 기존 APK에도 적용되며 새 APK는 불필요. Git 커밋/푸시는 아직 하지 않음.
+
+## 최신: 관리자 사용성 개편 (2026-10-13)
+
+- 사용자가 관리자 메뉴와 설정 화면이 길게 늘어진다고 지적하여 탐색 구조를 개편했다. 기본 메뉴는 관리 홈 + 말씀·주보 / 교회 소식 / 교인·모임 / 교회·설정 네 업무 묶음. 한 묶음만 열리고 현재 페이지의 묶음이 자동으로 열린다. 모바일과 PC의 접힘 상태는 서로 간섭하지 않도록 고유 details 그룹 ID를 사용한다. 최고관리자 전용 항목과 기능 플래그를 메뉴에도 적용했다.
+- 관리 설정은 ‘관리 도구’로 정리하여 교회 정보·교인과 모임·운영 도구의 짧은 행 목록과 메뉴 검색을 제공한다. 교회 안내도 예배와 첫 방문·교회 소개·사람과 사역·홈페이지 구성으로 묶고 검색을 추가했다. 기존 URL과 기능은 유지한다.
+- 모임 관리는 공지 / 소속 회원 / 모임·담당자 탭과 모임 선택으로 분리. 공지 쓰기·공지 수정·소속 변경·모임 수정·담당자 지정 폼을 필요한 때 펼친다. 회원 목록에는 교인 확인 이름을 우선 표시한다. 회원·교인 확인은 확인 요청 / 승인 교인 / 전체 회원 분류 및 검색, 개인별 접기 폼으로 정리했다.
+- 교회 기본 정보는 기본 / 주소·연락처 / 채널·담당자 전환 및 하단 저장 버튼으로 변경. 모든 필드는 유지한 채 화면만 전환하므로 입력/저장 값 유실 없음. 서버 검증 오류 발생 시 해당 항목을 표시하고, 휴대폰 저장 바는 한 줄 버튼으로 축소했다.
+- 관리자 타입/lint 통과. localhost 한정 임시 검사 페이지에서 실제 컴포넌트의 PC/모바일 메뉴, 단일 섹션 열기, 검색, 탭 입력 유지, 390/320px 넘침 없음 검사·스크린샷 시각 확인 완료. 최초 테스트가 sr-only 텍스트를 클릭해 실패하여 실제 summary 버튼 대상으로 보정 후 통과. 임시 검사 페이지는 삭제했고 일반 로컬 서버 재시작 완료. 실제 자료 저장 없음.
+- 운영 배포 dpl_4sUVEXv3iNKMuTMMN43ZpaxXzH1x 제출, 최종 승격 결과는 후속 기록 참조. 사용자에게 실제 운영 메뉴·제목 입력 정상 확인을 받았던 것은 직전 모임 활성화 배포이며 이번 개편의 실사용 확인과 구분한다.
+- 앞선 Android 빌드 86e755bc-efe3-465f-b76e-fd44f135a7db FINISHED. [APK 다운로드](https://expo.dev/artifacts/eas/qVju5PDSz-We5bcBhVNmNRqfdjsM3uRw8ydwG9EBeb0.apk), HTTP 200 / 110663177 bytes 확인. 교인 확인·모임 푸시·말씀 로딩 개선 포함. 사용자는 휴대폰 확인은 나중에 한다고 답했으며 실제 푸시 수신 성공으로 기록하지 않는다. 서버 cron 5분 자동 HTTP 200 확인은 완료. 이 관리자 UI 변경은 APK 재빌드가 필요 없다.
+
+## 최신: 모임 공지·푸시 활성화와 예배 제목 통합 (2026-10-13)
+
+- 사용자 ‘모두 진행’에 따라 APP_GROUPS_ENABLED=true를 로컬 및 Vercel preview/production에 적용했다. 관리 설정 → 모임·소속 관리 메뉴 노출, 운영 /api/v1/groups HTTP 200 확인. 브라우저 앱은 실제 DB 로컬 API를 계속 사용한다.
+- 소속 공지 푸시는 GroupPreference.notifications를 명시적으로 켜고 저장한 회원만 대상이다. MEMBERS는 현재 승인된 소속, PUBLIC은 관심 모임 또는 승인된 소속에 전달. 소속 승인·수신 설정 저장 이전 공지 제외, 동일 공지 ID 재발송 방지, 24시간 만료, 22~08시 보류, 기존 일반 소식과 기기당 하루 합산 5회 제한. 소속 해제·비공개·비활성·수신 거절을 발송 직전에 재검사한다. 모임 설정 변경 시 기준 시각도 갱신되어 설정 저장 이후의 공지만 대상이 된다.
+- 알림 target에 groups 추가, 인증된 알림 상세에서 현재 접근 권한 재검사, 앱 관련 내용 버튼은 해당 공지를 모임 페이지에 표시한다. 잠금 화면에는 기존 일반 문구·불투명 알림 ID만 보내며 소속명·공지 내용은 보내지 않는다. 관심만으로 소속 전용 공지 열람/푸시 불가.
+- 운영 Supabase에 pg_cron/pg_net 설치, Vault에 daegwang_push_url/daegwang_push_secret 구성. 난수 키는 관리자 로컬 환경/Vercel sensitive/Vault만 저장했고 출력·Git·앱 포함 없음. 운영 push 플래그 true, preview 발송 false. 작업 API 인증 호출 HTTP 200, 기기 0/발송 0 확인 후 daegwang-push job 1을 */5 * * * *로 등록. 2026-10-13 00:35 KST 첫 자동 실행 succeeded 및 HTTP 200/timeout false 확인. 실제 휴대폰 수신은 후속 확인.
+- 관리자 배포 dpl_68YKPc8qT2Sx5dBWmN5miaJNTL2b READY, 기존 로그인/공개 API/보호 경로 10개 검증 후 운영 승격. 신규 가입/카카오 설정 상태는 그대로이며 운영 CORS는 변경하지 않았다.
+- 추가 요청: 예배 콘텐츠의 title은 실제 웹/앱 표시, sermonTitle은 별도 화면 표시가 없어 관리자 입력을 제목 하나로 통일했다. 폼 저장 시 두 필드에 같은 제목을 전달해 이전 계약 호환 유지. 기존 두 제목이 다르면 이전 별도 설교제목을 수정 화면 참고 안내로 보여주며, 관리자가 저장하기 전 기존 DB 값을 일괄 덮어쓰지 않는다.
+- 검증: 관리자·모바일 타입/lint, 경계, npm test, 격리 PostgreSQL 통합 49개(소속 해제/수신 거절/비공개/중복/공개 관심/전역 알림 설정 미존재 포함) 통과. 실제 모임 페이지 390/320px 넘침 없음.
+- Android 빌드 86e755bc-efe3-465f-b76e-fd44f135a7db 제출. 앱 환경은 기존 EAS preview의 HTTPS 운영 API이며 로컬 주소를 빌드에 넣지 않았다. 업로드 사전 검사 657파일, 서버 환경/비밀키 제외. 완료 URL과 수신 검증은 후속 기록 참조. 아직 Git 커밋/푸시하지 않았다.
+
+## 최신: 교인 확인 실제 연결 및 브라우저 앱 (2026-10-13)
+
+- 사용자는 가상 미리보기가 아닌 실제 계정·실제 DB 사용을 요구했다. 운영 DB 변경·배포를 명시 승인했으며 `20261012090000_church_membership`, `20261012100000_church_contact` 적용 완료(총 14 migration). 기존 데이터 삭제/seed 없음.
+- Vercel 관리자 preview/production에 APP_CHURCH_MEMBERSHIP_ENABLED=true 등록. 배포 `dpl_2hjHCvirdcv1LjsXL1QcXJivxxfv` READY, 로그인/공개 API/비인증 차단 10개 검사 통과 후 운영 승격 완료. 운영 options 교인 확인 true, 신규 가입 false; 교인 API 비인증 401 확인.
+- 자동 승인 검토가 운영 API에 localhost CORS 영구 허용을 차단하여 해당 설정은 변경하지 않았다. 대신 기존 localhost 허용을 사용하는 로컬 관리자/API(3001)가 실제 운영 DB·Supabase에 연결되고, 브라우저 앱(8081)은 이 로컬 API를 사용한다. 이는 데모가 아니며 요청은 실제 운영 관리자에서도 보인다.
+- 실행: 루트 Bash 터미널 1 `npm run dev:admin`, 터미널 2 `EXPO_PUBLIC_API_BASE_URL=http://localhost:3001 npm run web --workspace @daegwang/mobile -- --port 8081 --max-workers 2`. 로컬 관리자 .env.local에 교인 플래그 true 저장. 모바일 .env.local의 운영 API 주소는 유지하여 APK에 로컬 주소가 들어가지 않도록 했다.
+- 사용자가 실제 기존 계정으로 요청 후 ‘교인 확인 요청 중’ 표시를 확인했다. 운영 관리자 /admin/members에서 승인·소속 지정 후 앱 화면 재진입까지 수행하고 ‘관리자 승인·앱 표시 모두 정상’이라고 확인했다. 실제 요청 → 운영 관리자 승인 → 앱 승인 상태·소속 표시의 사용자 검증 완료.
+- 브라우저 실로그인 화면/데모 버튼 없음, 로컬 options 200/교인 true, OPTIONS 204 및 허용 origin, 비인증 401 확인. 앱 타입/lint 통과. 신규 가입은 메일·탈퇴 운영 준비 전이라 false 유지, 카카오 설정 보류. 새 APK 생성·Git 커밋/푸시 없음.
+
+## 최신: 가입·마이 교인 요청 및 말씀 로딩 개선 (2026-10-12)
+
+- 사용자 확정: 가입 또는 마이페이지에서 본인이 교인임을 체크하면 관리자가 확인 요청을 받고, 승인하면서 소속을 지정한다. 확인용 이름·연락처·직분을 수집한다. 카카오 콘솔 진행은 사용자가 설정한 뒤 재개하며 현재 중단 상태다(앱 생성은 완료, 이메일 동의 권한 없음 확인).
+- 이메일/SNS 가입에 선택 churchRequest 입력 연결. 체크하지 않으면 연락처·직분을 전송하지 않는다. 가입 체크 시 인증 완료 후 PENDING 저장, 마이 → 교인 확인 및 소속에서는 정보 입력 후 체크 즉시 요청. 부족한 정보는 전송 전 안내. 직분 없는 청소년 등은 ‘없음’ 입력 가능. 입력 연락처는 SMS 인증된 번호가 아니며 관리자가 실제 본인 여부를 확인해야 한다.
+- 관리자 목록에서 이름·연락처·직분 확인, 활성 소속 복수 선택 후 승인과 소속 upsert를 동일 transaction에서 처리한다. 비활성/없는 소속이면 승인도 실패한다. 개인 기록은 미노출, 일반 회원 이용은 유지. 확인 해제는 모든 모임 소속도 해제하며 UI에 명시했다(이전 독립 해제 정책을 대체). 회원 화면에서 승인 상태와 소속 이름 확인 가능. 새 migration 20261012100000_church_contact 추가, 운영 미적용.
+- 말씀 로딩: 앱 시작 시 첫시간/주일설교 선조회, 데이터 준비 대기는 최대 1.8초이며 폰트 준비와 병렬. 느리면 홈·목록에 skeleton으로 콘텐츠 공간 표시. 공개 말씀 목록만 60초·최대 20개 메모리 캐시/동일 요청 합치기. 탭 복귀·재조회에서 기존 목록을 지우지 않으며 필터 변경은 분리, 수동 새로고침은 캐시 우회. 개인 데이터·라이브 상태는 이 캐시에 넣지 않는다. 앱 재시작까지 유지되는 디스크 캐시는 추가하지 않았다.
+- 검증: 타입 검사 통과, 모바일 lint 통과. 가상 API 브라우저 390/320px에서 SNS 동의·이메일 로그인·마이 교인 자동 요청·대기 상태, 느린 응답에서 로딩 자리 표시·탭 왕복 중복조회/초기화 없음 확인. 첫 로딩 테스트는 실제 탭 label의 ‘탭’ 접미사를 빠뜨려 실패 후 수정 통과. 최종 단위 14개·격리 PostgreSQL 통합 47개 모두 통과. 모바일·관리자 타입/lint, 워크스페이스 경계 검사 통과. 운영 DB는 테스트에 사용하지 않았다.
+- 이 수정은 아직 로컬 코드이며 운영 migration·배포·신규 APK 빌드 전이다. 기존 배포 APK에 새 UI가 있는 것으로 안내하지 않는다. 약관에는 선택 교인 확인의 수집 목적/항목/보관·삭제 기준 반영 후 개통한다.
+
+## 최신: 구글·카카오 가입 및 교인 확인 구현 (2026-10-12)
+
+- 사용자 요청: 구글·카카오 가입을 추가하고 앱 가입자와 실제 교인을 구분. 카카오 개발자 계정만 있고 대광교회용 앱은 아직 없다. 기존 코드는 모임 소속 승인만 있고 교인 상태는 없었다.
+- 교인 확인을 UNCONFIRMED/PENDING/CONFIRMED로 분리. 앱 계정관리에서 이름/전달 동의 후 요청, 관리 설정 → 회원·교인 확인에서 최고관리자 승인·해제. 일반 회원의 개인 기록 이용은 그대로이며 교인 상태로 관리자/모임 권한을 자동 부여하지 않는다. 버전 충돌·탈퇴 잠금·감사 기록·RLS·프로필 삭제 cascade를 포함했다.
+- 구글·카카오 버튼/약관 동의/외부 브라우저/PKCE S256/앱 callback/서버 동의 저장 구현. SNS 전용 계정의 탈퇴는 이메일 OTP 재인증 추가. 현재 이메일을 제공하지 않는 SNS 계정은 가입 완료 불가. 로그인 세션은 여전히 메모리 한정이다. 이전 대화에서 자동 갱신으로 유지된다는 설명은 코드와 달라 사용자에게 정정했다.
+- 운영 미반영: migration 파일만 작성, 운영 flag/Google·Kakao 콘솔/Supabase provider 변경·새 APK 빌드·배포 없음. 두 SNS 버튼은 서버 준비 조건이 충족될 때만 표시한다. 준비 중인 기능을 작동하는 것처럼 노출하지 않는다. [설정·권한·실기기 확인 절차](social-login-and-membership.md).
+- 검증: 격리 PostgreSQL migration 및 기존 기능 포함 통합 테스트 46개, OAuth callback·설정 gate·가입/탈퇴 어댑터 테스트 12개, 관리자/모바일 타입 및 lint, 경계 검사 통과. 로컬 가상 API 브라우저에서 SNS 필수 동의 전후 버튼 상태·390/320px 넘침 없음·기존 이메일 로그인·교인 요청 후 대기 상태 확인. 최초 mobile 타입 검사에서 transport 리소스 허용 목록 누락을 보완했고 lint는 Windows 경로 읽기 권한으로 실패한 뒤 권한을 갖춰 재실행 통과했다. 실제 제공자 로그인·메일 수신은 미검증.
+
 ## 최신: 앱 홈에도 공통 라이브 연결 (2026-10-11)
 
 - 사용자가 홈페이지 미리보기를 승인하고 운영 배포·앱 적용을 요청했다. 홈페이지 운영 /api/live HTTP 200 offline 확인(39aff1f 배포). 현재 실제 방송은 없다.

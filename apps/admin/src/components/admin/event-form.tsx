@@ -1,4 +1,5 @@
 "use client";
+import { EditorActions } from "./editor-actions";
 
 import Alert from "@mui/material/Alert";
 import Checkbox from "@mui/material/Checkbox";
@@ -6,11 +7,9 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
-import { LoaderCircle, Save } from "lucide-react";
-import Link from "next/link";
+import { } from "lucide-react";
 import { useActionState, useMemo } from "react";
 
-import { Button } from "@daegwang/web-ui/components/ui/button";
 import { createEventAction, updateEventAction, type EventActionState } from "../../features/events/actions";
 import { eventStatusLabels } from "@daegwang/contracts/features/events/schema";
 
@@ -56,11 +55,9 @@ export function EventForm({ initialValues = {} }: { initialValues?: EventFormVal
           {Object.entries(eventStatusLabels).map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}
         </TextField>
         <Alert severity="info">한 번 등록한 일정을 홈페이지와 앱에서 함께 사용합니다. 날짜·장소 수정과 비공개도 함께 반영됩니다.</Alert>
-        <div className="grid gap-2 pt-2">
-          <Button type="submit" disabled={pending}>{pending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Save aria-hidden="true" className="size-4" />}{pending ? "저장 중" : "저장"}</Button>
-          <Button asChild variant="secondary"><Link href="/admin/events">취소</Link></Button>
-        </div>
+
       </Paper>
+      <EditorActions pending={pending} href="/admin/events" />
     </form>
   );
 }

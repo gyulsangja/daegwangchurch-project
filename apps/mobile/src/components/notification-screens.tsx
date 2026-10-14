@@ -30,7 +30,7 @@ function Detail({ id }: { id: string }) {
   const { data, loading, error, reload } = useNoticeResource(useCallback(async signal => { const item = await extras.notification(id, signal); if (!signal.aborted && !item.readAt) { try { await extras.markRead(id); setReadError(''); } catch { if (!signal.aborted) setReadError('읽음 표시를 저장하지 못했습니다.'); } } return item; }, [extras, id]));
   return <AppScreen title="알림 상세" onBack={() => router.dismissTo('/notifications')}>
     {loading && <ActivityIndicator accessibilityLabel="알림을 불러오는 중" />}{!!error && <Failure message={error} retry={reload} />}{!!readError && <Failure message={readError} retry={reload} />}
-    {data && <><Card title={data.title}>{noticeDate(data.createdAt)}</Card><Card title="알림 내용">{data.body}</Card>{data.target && <Action title="관련 내용 보기" onPress={() => router.push(`/${data.target!.kind}/${data.target!.id}` as Href)} />}</>}
+    {data && <><Card title={data.title}>{noticeDate(data.createdAt)}</Card><Card title="알림 내용">{data.body}</Card>{data.target && <Action title="관련 내용 보기" onPress={() => router.push((data.target!.kind === 'groups' ? `/groups?notice=${data.target!.id}` : `/${data.target!.kind}/${data.target!.id}`) as Href)} />}</>}
   </AppScreen>;
 }
 export function NotificationSettings() { return <MemberGate returnTo="/notifications/settings"><Settings /></MemberGate>; }

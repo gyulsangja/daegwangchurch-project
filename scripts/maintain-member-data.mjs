@@ -8,12 +8,8 @@ const apply = process.argv.includes('--apply');
 const client = new pg.Client({ connectionString: env.DATABASE_URL, connectionTimeoutMillis: 10000, statement_timeout: 15000 });
 try {
   await client.connect(); await client.query(apply ? 'BEGIN' : 'BEGIN READ ONLY');
-  const targets = ['pending_registrations', 'inquiry_rate_limits'];
-  if (env.APP_MEMBER_CARE_ENABLED === 'true') {
-    let policy; try { policy = JSON.parse(env.APP_MEMBER_CARE_POLICY ?? ''); } catch { throw new Error('Invalid care policy'); }
-    if (!Number.isInteger(policy.retentionDays) || policy.retentionDays < 1 || !policy.version || !policy.notice || !Array.isArray(policy.adminIds) || !policy.adminIds.length) throw new Error('Incomplete care policy');
-    targets.push('member_care_requests');
-  }
+  // Each request stores its agreed expiry. Stopping intake must not stop expiry cleanup.
+  const targets = ['pending_registrations', 'inquiry_rate_limits', 'member_care_requests'];
   for (const table of targets) {
     // Table names are exclusively the hard-coded allowlist above.
     const sql = apply ? `DELETE FROM "${table}" WHERE "expiresAt" <= CURRENT_TIMESTAMP` : `SELECT count(*)::int AS count FROM "${table}" WHERE "expiresAt" <= CURRENT_TIMESTAMP`;

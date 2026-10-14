@@ -15,7 +15,7 @@ try {
     console.log(JSON.stringify({ mode: 'dry-run', configured: settings.available, activeDevices: devices, deliveries }));
   } else {
     if (!settings.available) throw new Error('Push configuration required');
-    console.log(JSON.stringify({ mode: 'send-opted-in-push', ...await createPushWorker(db, createExpoPushProvider(settings.accessToken), { worship: env.APP_PUBLICATION_ENABLED === 'true', notices: env.APP_PUBLIC_NOTICES_ENABLED === 'true', events: env.APP_PUBLIC_EVENTS_ENABLED === 'true', schedules: env.APP_MEMBER_RECORDS_ENABLED === 'true' })() }));
+    console.log(JSON.stringify({ mode: 'send-opted-in-push', ...await createPushWorker(db, createExpoPushProvider(settings.accessToken), { worship: env.APP_PUBLICATION_ENABLED === 'true', notices: env.APP_PUBLIC_NOTICES_ENABLED === 'true', events: env.APP_PUBLIC_EVENTS_ENABLED === 'true', groups: env.APP_GROUPS_ENABLED === 'true', schedules: env.APP_MEMBER_RECORDS_ENABLED === 'true' })() }));
   }
 } catch { console.error('Push worker unavailable. Check migration, database and push configuration. No member data or credentials logged.'); process.exitCode = 1; }
 finally { await db.$disconnect(); }

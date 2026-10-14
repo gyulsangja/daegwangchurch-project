@@ -1,9 +1,9 @@
 import Chip from "@mui/material/Chip";
-import { ArrowLeft, CalendarDays, Download, ExternalLink, FileText } from "lucide-react";
+import { ArrowLeft, CalendarDays } from "lucide-react";
 import Link from "next/link";
 
 import { ContentShell } from "../site/content-shell";
-import { Button } from "@daegwang/web-ui/components/ui/button";
+import { BulletinViewer } from './bulletin-viewer';
 
 type BulletinDetail = {
   title: string;
@@ -26,16 +26,7 @@ export function BulletinDetailPage({ bulletin }: { bulletin: BulletinDetail }) {
           <p className="mt-5 flex items-center gap-2 text-sm text-text-secondary"><CalendarDays aria-hidden="true" className="size-4" />{bulletin.date}</p>
           {bulletin.summary ? <p className="mt-6 text-lg leading-8 text-text-secondary">{bulletin.summary}</p> : null}
         </header>
-        <div className="mt-8 flex flex-col gap-3 rounded-2xl border border-border p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-3"><FileText aria-hidden="true" className="size-6 shrink-0 text-primary-600" /><span className="truncate font-bold">{bulletin.pdfName}</span></div>
-          <div className="flex gap-2">
-            <Button asChild variant="secondary"><a href={bulletin.pdfUrl} target="_blank" rel="noreferrer"><ExternalLink aria-hidden="true" className="size-4" /> 새 창</a></Button>
-            <Button asChild><a href={bulletin.pdfUrl} download={bulletin.pdfName}><Download aria-hidden="true" className="size-4" /> 다운로드</a></Button>
-          </div>
-        </div>
-        <div className="mt-8 overflow-hidden rounded-2xl border border-border bg-background-muted">
-          <iframe src={bulletin.pdfUrl} title={`${bulletin.title} PDF 미리보기`} className="h-[70vh] min-h-[36rem] w-full" />
-        </div>
+        <BulletinViewer title={bulletin.title} pdfName={bulletin.pdfName} pdfUrl={bulletin.pdfUrl} />
       </article>
     </ContentShell>
   );

@@ -1,3 +1,4 @@
+import { readOfferingAccount } from '@daegwang/contracts/features/church/offering';
 import type { PrismaClient } from '@daegwang/database/generated/client';
 import { pageKeys } from '@daegwang/contracts/features/pages/content';
 import { churchAboutSchema, churchSchedulesSchema, churchPastorSchema, churchNewcomerSchema, churchContactSchema, publicHttpUrlSchema } from '@daegwang/contracts/features/church/app-contract';
@@ -22,7 +23,7 @@ export function createAppChurchQueries(database: Pick<PrismaClient, 'page' | 'wo
       const text = (key: string) => options && typeof options === 'object' && !Array.isArray(options) && typeof options[key] === 'string' ? options[key] : '';
       const website = publicHttpUrlSchema.safeParse(row.canonicalUrl);
       return churchContactSchema.parse({ siteName: row.siteName, address: row.address ?? '', addressDetail: row.addressDetail ?? '', phone: row.phone ?? '', email: row.email ?? '', websiteUrl: website.success ? website.data : null,
-        latitude: row.mapLatitude === null ? null : Number(row.mapLatitude), longitude: row.mapLongitude === null ? null : Number(row.mapLongitude), transitInfo: text('transitInfo'), parkingInfo: text('parkingInfo') });
+        latitude: row.mapLatitude === null ? null : Number(row.mapLatitude), longitude: row.mapLongitude === null ? null : Number(row.mapLongitude), transitInfo: text('transitInfo'), parkingInfo: text('parkingInfo'), offering: readOfferingAccount(options) });
     },
     async about() {
       const row = await database.page.findFirst({ where: { key: pageKeys.church, status: 'PUBLISHED', deletedAt: null, OR: [{ publishedAt: null }, { publishedAt: { lte: now() } }] }, select: { title: true, content: true } });

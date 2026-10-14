@@ -1,14 +1,13 @@
 "use client";
+import { EditorActions } from "./editor-actions";
 
 import Alert from "@mui/material/Alert";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
-import { ExternalLink, FileText, LoaderCircle, Save } from "lucide-react";
-import Link from "next/link";
+import { ExternalLink, FileText, } from "lucide-react";
 import { useActionState, useMemo } from "react";
 
-import { Button } from "@daegwang/web-ui/components/ui/button";
 import { createBulletinAction, updateBulletinAction, type BulletinActionState } from "../../features/bulletins/actions";
 import { bulletinStatusLabels } from "@daegwang/contracts/features/bulletins/schema";
 
@@ -59,18 +58,13 @@ export function BulletinForm({ initialValues = {} }: { initialValues?: BulletinF
       </Paper>
       <Paper component="aside" variant="outlined" className="flex h-fit flex-col gap-5 p-5 lg:sticky lg:top-24">
         <h2 className="font-extrabold">홈페이지·앱 공통 공개 설정</h2>
-        <TextField select fullWidth size="small" label="상태" name="status" defaultValue={initialValues.status ?? "DRAFT"} error={Boolean(error("status"))} helperText={error("status")}>
+        <TextField select fullWidth size="small" label="상태" name="status" defaultValue={initialValues.status ?? "DRAFT"} error={Boolean(error("status"))} helperText={error("status") ?? '공개를 선택하고 저장해야 홈페이지·앱에 표시됩니다. 임시저장은 관리자만 볼 수 있습니다.'}>
           {Object.entries(bulletinStatusLabels).map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}
         </TextField>
         <Alert severity="info">주보 PDF는 한 번만 올립니다. 홈페이지와 앱이 같은 주보를 사용하며 수정·비공개도 함께 반영됩니다.</Alert>
-        <div className="grid gap-2 pt-2">
-          <Button type="submit" disabled={pending}>
-            {pending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Save aria-hidden="true" className="size-4" />}
-            {pending ? "업로드 및 저장 중" : "저장"}
-          </Button>
-          <Button asChild variant="secondary"><Link href="/admin/bulletins">취소</Link></Button>
-        </div>
+
       </Paper>
+      <EditorActions pending={pending} href="/admin/bulletins" />
     </form>
   );
 }

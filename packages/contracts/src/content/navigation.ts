@@ -2,6 +2,7 @@ export const aboutNavigation = [
   { label: "교회소개", href: "/about/church" },
   { label: "비전과 사명", href: "/about/vision" },
   { label: "섬기는 사람들", href: "/about/people" },
+  { label: "헌금 안내", href: "/offering" },
   { label: "교회연혁", href: "/about/history" },
   { label: "예배안내", href: "/about/worship-info" },
 ];

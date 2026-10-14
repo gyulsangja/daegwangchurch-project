@@ -9,6 +9,7 @@ import { createPushWorker } from '@daegwang/server/features/member/push-worker';
 import { createWorshipService } from '@daegwang/server/features/worship/service-core';
 import { createDeletionService } from '@daegwang/server/features/member/deletion-service';
 import { createScheduleService } from '@daegwang/server/features/member/schedule-service';
+import { createAutomaticNotificationService } from '@daegwang/server/features/member/notification-sync';
 import type { PushMessage, PushProvider, PushResult } from '@daegwang/server/features/member/push-provider';
 
 const url = new URL(process.env.TEST_DATABASE_URL ?? 'http://invalid');
@@ -16,7 +17,7 @@ if (url.hostname !== '127.0.0.1' || url.pathname !== '/daegwang_worship_test') t
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: url.href, max: 8 }) });
 after(() => db.$disconnect());
 beforeEach(() => db.memberPushDevice.deleteMany());
-const sources = { worship: true, notices: true, events: true, schedules: true };
+const sources = { worship: true, notices: true, events: true, schedules: true, groups: true };
 let counter = 10;
 async function setup(startHour = '09:00') {
   const day = `2090-02-${counter++}`; let time = new Date(`${day}T${startHour}:00+09:00`);
@@ -148,4 +149,41 @@ test('a delayed invalid-token receipt cannot revoke a newly rotated token on the
   s.time(new Date(s.clock().getTime() + 900001)); await s.worker();
   assert.equal((await db.memberPushDevice.findUniqueOrThrow({ where: { id: s.value.installationId } })).token, rotated.token);
   await notice(s.clock()); await s.worker(); assert.equal(s.sent.length, 2); assert.equal(s.sent[1].to, rotated.token);
+});
+
+test('group push requires opt-in and current membership, hides withdrawn notices, and never sends private content', async () => {
+  const s = await setup('23:00');
+  const group = await db.churchGroup.create({ data: { id: `group-${randomUUID()}`, name: 'Private fellowship' } });
+  await db.groupMembership.create({ data: { ownerId: s.owner, groupId: group.id, approvedBy: 'fixture', createdAt: s.clock() } });
+  const add = () => db.groupNotice.create({ data: { groupId: group.id, title: 'Private fellowship title', body: 'Private body', audience: 'MEMBERS', status: 'PUBLISHED', publishedAt: s.clock() } });
+  await add(); await s.worker(); assert.equal(s.sent.length, 0);
+  await db.groupPreference.create({ data: { ownerId: s.owner, notifications: true, updatedAt: new Date(s.clock().getTime() + 1) } });
+  s.time(new Date(s.clock().getTime() + 2)); const fresh = await add();
+  await s.worker(); assert.equal(s.sent.length, 0);
+  assert.equal(await db.memberNotification.count({ where: { ownerId: s.owner } }), 1);
+  await db.groupMembership.deleteMany({ where: { ownerId: s.owner } });
+  s.time(new Date(s.clock().getTime() + 9 * 3600000)); await s.worker();
+  assert.equal(s.sent.length, 0);
+  const item = await db.memberNotification.findFirstOrThrow({ where: { ownerId: s.owner } });
+  assert.equal((await createAutomaticNotificationService(db, s.owner, sources, s.clock).detail(item.id)).target, null);
+  await db.groupMembership.create({ data: { ownerId: s.owner, groupId: group.id, approvedBy: 'fixture', createdAt: s.clock() } });
+  const next = await add(); await Promise.all([s.worker(), s.worker()]); assert.equal(s.sent.length, 1);
+  assert.equal(JSON.stringify(s.sent).includes('Private'), false);
+  await db.groupNotice.update({ where: { id: next.id }, data: { status: 'PRIVATE' } });
+  const current = await db.memberNotification.findFirstOrThrow({ where: { ownerId: s.owner, dedupeKey: `auto:group:${next.id}` } });
+  assert.equal((await createAutomaticNotificationService(db, s.owner, sources, s.clock).detail(current.id)).target, null);
+  assert.notEqual(fresh.id, next.id);
+});
+
+test('group interest permits public pushes only, without general notification preferences; opt-out cancels pending sends', async () => {
+  const s = await setup('23:00');
+  await db.memberNotificationPreference.delete({ where: { ownerId: s.owner } });
+  const group = await db.churchGroup.create({ data: { id: `group-${randomUUID()}`, name: 'Public fellowship' } });
+  await db.groupPreference.create({ data: { ownerId: s.owner, interests: [group.id], notifications: true, updatedAt: s.clock() } });
+  for (const audience of ['PUBLIC', 'MEMBERS']) await db.groupNotice.create({ data: { groupId: group.id, title: audience, body: 'Body', audience, status: 'PUBLISHED', publishedAt: s.clock() } });
+  await s.worker(); assert.equal(await db.memberNotification.count({ where: { ownerId: s.owner } }), 1);
+  assert.equal(s.sent.length, 0);
+  await db.groupPreference.update({ where: { ownerId: s.owner }, data: { notifications: false } });
+  s.time(new Date(s.clock().getTime() + 9 * 3600000)); await s.worker(); assert.equal(s.sent.length, 0);
+  assert.equal((await db.memberPushDelivery.findFirstOrThrow({ where: { ownerId: s.owner } })).status, 'CANCELLED');
 });

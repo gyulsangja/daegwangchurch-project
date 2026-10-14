@@ -6,7 +6,7 @@ export function appReadiness(env: Record<string, string | undefined>): AppReadin
     ['APP_PUBLIC_BULLETINS_ENABLED', '주보', '/admin/bulletins', '공개 PDF와 발행 날짜를 확인하세요.'],
     ['APP_PUBLIC_EVENTS_ENABLED', '교회 일정', '/admin/events', '시작·종료 시간과 장소를 확인하세요.'],
     ['APP_PUBLIC_CHURCH_ENABLED', '교회 안내', '/admin/pages', '소개·예배 시간·대표 연락처를 최신으로 유지하세요.'],
-    ['APP_PUBLIC_PRAYERS_ENABLED', '공동기도', '/admin/notices', '공동기도 분류의 공개 공지입니다. 개인 기도는 포함되지 않습니다.'],
+    ['APP_PUBLIC_NOTICES_ENABLED', '공동기도', '/admin/notices', '공동기도 분류의 공개 공지입니다. 개인 기도는 포함되지 않습니다.'],
   ].map(([key, label, href, note]) => ({ key, label, href, note, enabled: env[key] === 'true' }));
 }
 export function allowAdminPreview(mode: string | undefined, enabled: string | undefined, host: string | null) {

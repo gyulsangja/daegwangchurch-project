@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "섬기는 사람들",
-  description: "대광교회를 섬기는 목회자와 사역자를 소개합니다.",
+  description: "대광교회를 섬기는 사람들을 소개합니다.",
   alternates: { canonical: "/about/people" },
 };
 
@@ -30,7 +30,7 @@ export default async function PeoplePage() {
 
   return (
     <>
-      <PageHero eyebrow="PEOPLE" title="함께 예배하고 섬기는 사람들" description="말씀과 사랑으로 교회와 성도를 섬깁니다." />
+      <PageHero eyebrow="PEOPLE" title="섬기는 사람들" description="말씀과 사랑으로 교회와 성도를 섬깁니다." />
       <ContentShell>
         {seniorPastor ? (
           <section className="grid gap-8 lg:grid-cols-[0.75fr_1.25fr] lg:items-center">
@@ -49,7 +49,7 @@ export default async function PeoplePage() {
         )}
 
         <section className="mt-20 md:mt-28">
-          <SectionTitle eyebrow="MINISTRY TEAM" title="교역자와 사역자" description="각자의 자리에서 예배와 공동체를 섬기고 있습니다." />
+          <SectionTitle eyebrow="PEOPLE" title="섬기는 사람들" description="각자의 자리에서 예배와 공동체를 섬기고 있습니다." />
           {ministryTeam.length ? (
             <div className="mt-9 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {ministryTeam.map((person) => (
@@ -64,7 +64,7 @@ export default async function PeoplePage() {
                 </Card>
               ))}
             </div>
-          ) : <div className="mt-9 rounded-2xl border border-dashed border-border bg-background-warm px-6 py-12 text-center text-text-secondary">공개된 교역자 정보가 없습니다.</div>}
+          ) : <div className="mt-9 rounded-2xl border border-dashed border-border bg-background-warm px-6 py-12 text-center text-text-secondary">공개된 소개 정보가 없습니다.</div>}
         </section>
       </ContentShell>
     </>

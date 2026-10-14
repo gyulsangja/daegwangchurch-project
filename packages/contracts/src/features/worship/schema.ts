@@ -43,7 +43,7 @@ export function worshipFormDataToInput(formData: FormData) {
     contentDate: formData.get("contentDate"),
     youtubeUrl: formData.get("youtubeUrl"),
     preacher: formData.get("preacher") ?? "",
-    sermonTitle: formData.get("sermonTitle") ?? "",
+    sermonTitle: formData.get("title") ?? "",
     scripture: formData.get("scripture") ?? "",
     description: formData.get("description") ?? "",
     summary: formData.get("summary") ?? "",

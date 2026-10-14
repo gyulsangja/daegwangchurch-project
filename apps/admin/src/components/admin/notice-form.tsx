@@ -1,4 +1,5 @@
 "use client";
+import { EditorActions } from "./editor-actions";
 
 import Alert from "@mui/material/Alert";
 import Checkbox from "@mui/material/Checkbox";
@@ -6,11 +7,9 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
-import { ExternalLink, LoaderCircle, Paperclip, Save } from "lucide-react";
-import Link from "next/link";
+import { ExternalLink, Paperclip, } from "lucide-react";
 import { useActionState, useMemo } from "react";
 
-import { Button } from "@daegwang/web-ui/components/ui/button";
 import { createNoticeAction, updateNoticeAction, type NoticeActionState } from "../../features/notices/actions";
 import { noticeStatusLabels } from "@daegwang/contracts/features/notices/schema";
 
@@ -77,18 +76,13 @@ export function NoticeForm({ initialValues = {} }: { initialValues?: NoticeFormV
         <div className="grid gap-1">
           <FormControlLabel control={<Checkbox name="isImportant" defaultChecked={initialValues.isImportant} />} label="중요 공지" />
           <FormControlLabel control={<Checkbox name="isPinned" defaultChecked={initialValues.isPinned} />} label="목록 상단 고정" />
-          <p className="text-sm leading-6 text-text-secondary">푸시 연결 후에는 새로 공개한 중요 공지만 수신에 동의한 교인에게 한 번 안내합니다. 밤 10시~오전 8시는 보류하며, 본문 수정은 다시 발송하지 않습니다. 목록 상단 고정은 푸시와 관계없습니다.</p>
+          <p className="text-sm leading-6 text-text-secondary">새로 공개한 중요 공지는 휴대폰 알림을 등록하고 수신에 동의한 회원에게 한 번 안내합니다. 밤 10시~오전 8시는 보류하며, 본문 수정은 다시 발송하지 않습니다. 목록 상단 고정은 푸시와 관계없습니다.</p>
         </div>
         <TextField fullWidth size="small" type="datetime-local" label="게시 시작" name="publishStartsAt" defaultValue={initialValues.publishStartsAt ?? ""} error={Boolean(error("publishStartsAt"))} helperText={error("publishStartsAt")} slotProps={{ inputLabel: { shrink: true } }} />
         <TextField fullWidth size="small" type="datetime-local" label="게시 종료" name="publishEndsAt" defaultValue={initialValues.publishEndsAt ?? ""} error={Boolean(error("publishEndsAt"))} helperText={error("publishEndsAt")} slotProps={{ inputLabel: { shrink: true } }} />
-        <div className="grid gap-2 pt-2">
-          <Button type="submit" disabled={pending}>
-            {pending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Save aria-hidden="true" className="size-4" />}
-            {pending ? "저장 중" : "저장"}
-          </Button>
-          <Button asChild variant="secondary"><Link href="/admin/notices">취소</Link></Button>
-        </div>
+
       </Paper>
+      <EditorActions pending={pending} href="/admin/notices" />
     </form>
   );
 }

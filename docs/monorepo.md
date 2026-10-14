@@ -80,7 +80,7 @@
 - APP_MEMBER_RECORDS_ENABLED=false 기본값. true 전 신규 migration 3개와 서버 역할 권한 검증 필요.
 - APP_MEMBER_ALLOWED_ORIGINS 예: http://localhost:8088 (정확한 origin의 쉼표 목록; * 금지). 서버 Supabase 설정은 기존 NEXT_PUBLIC_SUPABASE_URL/PUBLISHABLE_KEY를 사용.
 - 모바일 EXPO_PUBLIC_API_BASE_URL, EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY. 서비스 비밀키 금지. 세션은 메모리 전용.
-- GET /api/v1/prayers 및 /:id: APP_PUBLIC_PRAYERS_ENABLED=true에서만 공지 CMS 분류 공동기도의 현재 공개 자료 반환. 공지 예약/만료/삭제 조건 유지, 공개 첨부만 제공. 일반 공지 ID 직접 요청으로 분류를 우회할 수 없다. 공지 CMS를 사용하므로 홈페이지에도 공개된다.
+- GET /api/v1/prayers 및 /:id: 공지와 동일한 APP_PUBLIC_NOTICES_ENABLED=true에서 공지 CMS 분류 공동기도의 현재 공개 자료 반환. 공지 예약/만료/삭제 조건 유지, 공개 첨부만 제공. 일반 공지 ID 직접 요청으로 분류를 우회할 수 없다. 별도의 공동기도 활성화 설정은 폐기했다.
 - APP_PUBLICATION_ENABLED는 말씀 조회/검색/저장 시 필요. APP_PUBLIC_EVENTS_ENABLED는 교회 행사 조회/저장에 필요. 공개 API를 끈 상태에서 개인 일정을 사용할 수 있다.
 - migrations/20261004120000_member_records, 20261004130000_member_bookmarks, 20261004140000_member_schedules는 이번 작업에서 적용하지 않았다. 관리자 개인 기록 열람 API는 없다. DB 관리자 시스템 권한과 종단간 암호화는 별도 영역이다.
 

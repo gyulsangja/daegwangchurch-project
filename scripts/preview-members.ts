@@ -7,9 +7,10 @@ import { careCreateSchema, defaultPreferences, emailSchema, preferenceInputSchem
 import { memberRecordInputSchema, memberRecordListSchema, type MemberRecord } from '../packages/contracts/src/features/member/records';
 import { personalScheduleSchema, memberScheduleInputSchema as scheduleCreateSchema } from '../packages/contracts/src/features/member/schedules';
 import { bookmarkListSchema } from '../packages/contracts/src/features/member/bookmarks';
+import { churchRequestSchema, type ChurchDetails } from '../packages/contracts/src/features/member/church-membership';
 
 export const previewPolicy = { version: 'preview-only-v1', terms: '개발용 체험 안내입니다. 실제 교회 이용약관이 아닙니다. 가상의 정보만 입력하세요.', privacy: '입력은 이 PC의 테스트 서버 메모리에서만 사용하며 서버를 종료하면 사라집니다. 실제 이름·연락처·개인적인 이야기를 입력하지 마세요.', care: '테스트 접수입니다. 실제 담당자는 없으며 교회로 전달되지 않습니다. 운영 열람 범위와 보관 기준은 미정입니다.', deletion: '테스트 계정과 이 서버 메모리의 연결된 테스트 기록을 삭제합니다. 실제 회원 탈퇴 정책이 아닙니다.' };
-type Account = { id: string; email: string; displayName: string; passwordHash: Buffer; salt: string; verified: boolean; consentVersion: string | null; version: number };
+type Account = { id: string; email: string; displayName: string; passwordHash: Buffer; salt: string; verified: boolean; consentVersion: string | null; version: number; churchRequest?: ChurchDetails };
 type Fixture = Record<string, unknown> & { id: string };
 type Owned = { records: Map<string, MemberRecord>; bookmarks: Map<string, Fixture>; schedules: Map<string, Fixture>; requests: Map<string, CareRequest>; keys: Map<string, { id: string; fingerprint: string }>; notifications: Map<string, MemberNotification>; preferences: NotificationPreferences };
 export function createPreviewMembers(content: { worship: Fixture[]; events: Fixture[] }, now = () => Date.now()) {
@@ -64,14 +65,14 @@ export function createPreviewMembers(content: { worship: Fixture[]; events: Fixt
       }
       const path = url.pathname; const method = request.method;
       if (path === '/api/v1/groups') { if (method !== 'GET') return reply({}, 405); const value = groupPreview.snapshot('', ''); return reply({ data: { groups: value.groups, notices: value.notices } }); }
-      if (path === '/api/v1/account/options' && method === 'GET') return reply({ mode: 'preview', registration: true, recovery: true, care: true, notifications: true, deletion: true, policy: previewPolicy });
+      if (path === '/api/v1/account/options' && method === 'GET') return reply({ mode: 'preview', registration: true, recovery: true, care: true, notifications: true, deletion: true, churchMembership: true, socialProviders: [], policy: previewPolicy });
       if (path.startsWith('/api/v1/account/')) {
         if (method !== 'POST') return reply({}, 405);
         const email = emailSchema.parse(input.email).toLowerCase();
         // Prevent mistaken use of real addresses in the explicitly local test service.
         if (!email.endsWith('@example.invalid')) return reply({ error: 'Use a fictional @example.invalid address.' }, 422);
         const account = accounts.get(email);
-        if (path.endsWith('/signup')) { const data = signupSchema.parse(input); if (data.policyVersion !== previewPolicy.version) return reply({}, 409); if (!account) newAccount(email, data.password, false, data.displayName, data.policyVersion); challenge(email, 'signup'); return reply({ accepted: true }); }
+        if (path.endsWith('/signup')) { const data = signupSchema.parse(input); if (data.policyVersion !== previewPolicy.version) return reply({}, 409); if (!account) { const created: Account = newAccount(email, data.password, false, data.displayName, data.policyVersion); created.churchRequest = data.churchRequest; } challenge(email, 'signup'); return reply({ accepted: true }); }
         if (path.endsWith('/resend')) { challenge(email, 'signup'); return reply({ accepted: true }); }
         if (path.endsWith('/verify')) { verify(email, 'signup', z.string().parse(input.code)); if (account) account.verified = true; return reply({ verified: true }); }
         if (path.endsWith('/recovery')) { challenge(email, 'recovery'); return reply({ accepted: true }); }
@@ -93,6 +94,17 @@ export function createPreviewMembers(content: { worship: Fixture[]; events: Fixt
       if (path === '/auth/v1/logout' && method === 'POST') { sessions.delete(token); return reply(null, 204); }
       if (path === '/auth/v1/user' && method === 'GET') return reply(authUser(user));
       const data = owns(user.id); const [, resource, id] = path.match(/^\/api\/v1\/me\/([^/]+)(?:\/([^/]+))?$/) ?? [];
+      if (resource === 'church-membership' && !id) {
+        const snapshot = () => ({ status: user.churchRequest ? 'PENDING' : 'UNCONFIRMED', realName: '', phone: '', position: '', ...user.churchRequest, groups: [], version: user.churchRequest ? 1 : 0 });
+        if (method === 'GET') return reply({ data: snapshot() });
+        if (method === 'PATCH') {
+          const { version, ...details } = churchRequestSchema.parse(input);
+          if (version !== 0 || user.churchRequest) return reply({}, 409);
+          user.churchRequest = details;
+          return reply({ data: snapshot() });
+        }
+        return reply({}, 405);
+      }
       if (resource === 'groups' && !id) {
         if (method === 'GET') return reply({ data: groupPreview.snapshot(user.id, user.email) });
         if (method === 'PATCH') { const result = groupPreview.update(user.id, user.email, input); return reply({ data: result.data }, result.status); }

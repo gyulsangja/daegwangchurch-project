@@ -1,0 +1,1 @@
+ALTER TABLE "church_memberships" ADD COLUMN "phone" TEXT NOT NULL DEFAULT '', ADD COLUMN "position" TEXT NOT NULL DEFAULT '';

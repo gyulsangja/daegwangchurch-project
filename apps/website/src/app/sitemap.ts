@@ -4,6 +4,8 @@ import { getPrisma } from "@daegwang/database/prisma";
 import { hasDatabaseConfig, publicEnv } from "@daegwang/config/env";
 
 const staticRoutes = [
+  "/app",
+  "/offering",
   "", "/about/church", "/about/vision", "/about/people", "/about/history", "/about/worship-info",
   "/worship/sunday-morning", "/worship/first-hour", "/worship/sunday-afternoon", "/worship/wednesday", "/worship/special", "/worship/praise",
   "/news/notices", "/news/bulletins", "/news/events", "/news/albums",

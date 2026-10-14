@@ -1,7 +1,8 @@
 "use client";
 
 import Script from "next/script";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { mapEmbedUrl } from '@daegwang/contracts/features/church/links';
 
 type KakaoMaps = {
   load: (callback: () => void) => void;
@@ -29,11 +30,17 @@ type KakaoMapProps = {
 export function KakaoMap({ appKey, latitude, longitude, title }: KakaoMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const fallback = mapEmbedUrl(latitude, longitude);
+  useEffect(() => {
+    if (status !== 'loading') return;
+    const timer = setTimeout(() => setStatus('error'), 8000);
+    return () => clearTimeout(timer);
+  }, [status]);
 
   const initializeMap = useCallback(() => {
     const maps = window.kakao?.maps;
     const container = containerRef.current;
-    if (!maps || !container) return;
+    if (!maps || !container) { setStatus('error'); return; }
 
     maps.load(() => {
       try {
@@ -64,11 +71,11 @@ export function KakaoMap({ appKey, latitude, longitude, title }: KakaoMapProps) 
         </div>
       ) : null}
       {status === "error" ? (
-        <div className="absolute inset-0 flex items-center justify-center bg-background-muted p-6 text-center">
+        fallback ? <iframe src={fallback} title="대광교회 위치 지도" className="absolute inset-0 h-full w-full border-0" /> : <div className="absolute inset-0 flex items-center justify-center bg-background-muted p-6 text-center">
           <div>
             <p className="font-extrabold">지도를 불러오지 못했습니다.</p>
             <p className="mt-2 text-sm leading-6 text-text-secondary">
-              카카오 JavaScript 키와 등록된 웹 도메인을 확인해 주세요.
+              아래 길찾기 버튼으로 지도에서 위치를 확인해 주세요.
             </p>
           </div>
         </div>

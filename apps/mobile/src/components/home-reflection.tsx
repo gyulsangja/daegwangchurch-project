@@ -17,6 +17,6 @@ function PersonalReflection({ worshipId }: { worshipId: string }) {
   if (!row) return null;
   return <><Card title="오늘의 묵상을 기록했습니다">나의 기록을 돌아보거나 기도로 이어가세요.</Card>
     <Action title="이 묵상을 기도로 이어가기" onPress={() => router.push({ pathname: '/records/new', params: { kind: 'PRAYER', reflectionId: row.id } })} />
-    <MenuCard title="묵상 다시 보기" onPress={() => router.push({ pathname: '/records/[id]', params: { id: row.id } })} />
+    <MenuCard title="오늘의 말씀 · 묵상 · 기도 함께 보기" onPress={() => router.push({ pathname: '/records', params: { date } })} />
   </>;
 }

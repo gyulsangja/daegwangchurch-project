@@ -1,6 +1,8 @@
+import { WorshipSkeleton } from './worship-skeleton';
 import { useState } from 'react';
 import { VideoThumbnail } from './video-thumbnail';
-import { ActivityIndicator, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { DatePicker } from './date-picker';
+import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { appWorshipListSchema, worshipTypeLabels } from '@daegwang/contracts/features/worship/app-contract';
 import { AppScreen, IntroCard, MenuCard } from './app-screen';
@@ -25,7 +27,7 @@ export function WorshipBrowser({ search = false }: { search?: boolean }) {
     </View>}
     <MenuCard title={search ? '상세 필터' : '필터'} description={Object.values(active).join(' · ') || '날짜 · 본문 위치 · 설교자'} onPress={openFilter} />
     {(!search || submitted !== null) && <>
-      {feed.loading && <ActivityIndicator color={colors.primary} accessibilityLabel="말씀을 불러오는 중" />}
+      {feed.loading && !feed.data && <WorshipSkeleton card />}
       {!!feed.error && <Failure message={feed.error} retry={feed.data ? feed.more : feed.reload} />}
       {feed.data && !feed.data.data.length && <Card title={search ? '검색 결과가 없습니다' : '등록된 설교가 없습니다'}>검색어와 필터를 바꿔 다시 확인해 주세요.</Card>}
       {feed.data?.data.map(item => <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={`${item.title} 상세 보기`} style={styles.card} onPress={() => router.push({ pathname: item.type === 'FIRST_HOUR' ? '/devotional/[id]' : '/sermons/[id]', params: { id: item.id } })}><VideoThumbnail videoId={item.youtube.videoId} /><Text style={styles.title}>{item.title}</Text><Text style={styles.caption}>{[worshipTypeLabels[item.type], item.contentDate, item.scriptureReference, item.preacher].filter(Boolean).join(' · ')}</Text></Pressable>)}
@@ -36,9 +38,11 @@ export function WorshipBrowser({ search = false }: { search?: boolean }) {
         <View accessibilityViewIsModal style={{ maxHeight: '85%', backgroundColor: colors.background, width: '100%', maxWidth: 640, alignSelf: 'center' }}>
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body}>
             <Text accessibilityRole="header" style={[styles.title, { fontSize: 22 }]}>말씀 필터</Text>
-            {([['from', '시작일', 'YYYY-MM-DD'], ['to', '종료일', 'YYYY-MM-DD'], ['scripture', '본문 위치', '예: 요한복음 15'], ['preacher', '설교자', '설교자 이름']] as const).map(([key, label, placeholder]) => <View key={key} style={{ gap: 6 }}><Text style={styles.caption}>{label}</Text><TextInput accessibilityLabel={label} style={styles.input} value={draft[key]} placeholder={placeholder} maxLength={key === 'from' || key === 'to' ? 10 : 100} onChangeText={value => setDraft(previous => ({ ...previous, [key]: value }))} /></View>)}
+            <DatePicker label="시작일" value={draft.from} optional onChange={from => setDraft(previous => ({ ...previous, from }))} />
+            <DatePicker label="종료일" value={draft.to} optional onChange={to => setDraft(previous => ({ ...previous, to }))} />
+            {([['scripture', '본문 위치', '예: 요한복음 15'], ['preacher', '설교자', '설교자 이름']] as const).map(([key, label, placeholder]) => <View key={key} style={{ gap: 6 }}><Text style={styles.caption}>{label}</Text><TextInput accessibilityLabel={label} style={styles.input} value={draft[key]} placeholder={placeholder} maxLength={100} onChangeText={value => setDraft(previous => ({ ...previous, [key]: value }))} /></View>)}
             {!!filterError && <Text accessibilityRole="alert" style={styles.caption}>{filterError}</Text>}
-            <Action title="결과 보기" onPress={() => { const input = Object.fromEntries(Object.entries(draft).filter(([, value]) => value.trim()).map(([key, value]) => [key, value.trim()])); if (!appWorshipListSchema.safeParse(input).success) { setFilterError('날짜는 YYYY-MM-DD 형식으로, 시작일은 종료일 이전으로 입력해 주세요.'); return; } setFilters(draft); if (search) submit(); setFilterOpen(false); }} />
+            <Action title="결과 보기" onPress={() => { const input = Object.fromEntries(Object.entries(draft).filter(([, value]) => value.trim()).map(([key, value]) => [key, value.trim()])); if (!appWorshipListSchema.safeParse(input).success) { setFilterError('시작일이 종료일보다 늦지 않은지 확인해 주세요.'); return; } setFilters(draft); if (search) submit(); setFilterOpen(false); }} />
             <MenuCard title="필터 초기화" onPress={() => setDraft(empty)} /><MenuCard title="닫기" onPress={() => setFilterOpen(false)} />
           </ScrollView>
         </View>

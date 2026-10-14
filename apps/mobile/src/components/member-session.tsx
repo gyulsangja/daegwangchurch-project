@@ -1,3 +1,4 @@
+import type { ChurchDetails } from '@daegwang/contracts/features/member/church-membership';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 import { router, type Href } from 'expo-router';
 import { createMemberAuth, type Session } from '@daegwang/api-client/member-auth';
@@ -10,11 +11,16 @@ import { disableDevicePush } from '../lib/device-push';
 import { AppScreen, IntroCard } from './app-screen';
 import { draftCache } from '../lib/draft-cache';
 import { Action } from './ui';
+import { authenticateSocial } from '../lib/social-auth';
+import { AppState, Platform, ActivityIndicator } from 'react-native';
+import { sessionStorage } from '../lib/session-storage';
 
-const auth = createMemberAuth(process.env.EXPO_PUBLIC_SUPABASE_URL, process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
-type SessionContext = { session: Session | null; configured: boolean; client: ReturnType<typeof createMemberClient>; bookmarks: ReturnType<typeof createBookmarkClient>; schedules: ReturnType<typeof createScheduleClient>; extras: ReturnType<typeof createMemberExtrasClient>; push: ReturnType<typeof createPushClient>; signIn: (email: string, password: string) => Promise<void>; signOut: () => Promise<void> };
+const sessionKey = 'daegwang-member-session-v1';
+const auth = createMemberAuth(process.env.EXPO_PUBLIC_SUPABASE_URL, process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY, { storage: sessionStorage, storageKey: sessionKey, useProcessLock: Platform.OS !== 'web' });
+type SessionContext = { session: Session | null; configured: boolean; client: ReturnType<typeof createMemberClient>; bookmarks: ReturnType<typeof createBookmarkClient>; schedules: ReturnType<typeof createScheduleClient>; extras: ReturnType<typeof createMemberExtrasClient>; push: ReturnType<typeof createPushClient>; signIn: (email: string, password: string) => Promise<void>; signInSocial: (provider: 'google' | 'kakao', input: { displayName: string; consent: true; policyVersion: string; churchRequest?: ChurchDetails }) => Promise<boolean>; signOut: () => Promise<void> };
 const Context = createContext<SessionContext | null>(null);
 export function MemberSessionProvider({ children }: PropsWithChildren) {
+  const [restoring, setRestoring] = useState(!!auth);
   const [session, setSession] = useState<Session | null>(null);
   const current = useRef<Session | null>(null);
   const signingOut = useRef(false);
@@ -22,9 +28,13 @@ export function MemberSessionProvider({ children }: PropsWithChildren) {
     const listener = auth?.onAuthStateChange((_event, next) => {
       if (current.current && !next && !signingOut.current) void disableDevicePush().catch(() => {});
       current.current = signingOut.current || next?.user.is_anonymous ? null : next;
-      if (current.current) draftCache.activate(current.current.user.id); setSession(current.current);
+      if (current.current) draftCache.activate(current.current.user.id); else draftCache.clear(); setSession(current.current);
+      setRestoring(false);
     });
-    return () => listener?.data.subscription.unsubscribe();
+    const updateRefresh = (state: string) => { if (state === 'active') void auth?.startAutoRefresh(); else void auth?.stopAutoRefresh(); };
+    if (Platform.OS !== 'web') updateRefresh(AppState.currentState);
+    const lifecycle = Platform.OS !== 'web' ? AppState.addEventListener('change', updateRefresh) : undefined;
+    return () => { listener?.data.subscription.unsubscribe(); lifecycle?.remove(); if (Platform.OS !== 'web') void auth?.stopAutoRefresh(); };
   }, []);
   const getToken = useCallback(async () => {
     if (!auth || !current.current) return null;
@@ -49,6 +59,14 @@ export function MemberSessionProvider({ children }: PropsWithChildren) {
   // eslint-disable-next-line react-hooks/refs
   const push = useMemo(() => createPushClient(process.env.EXPO_PUBLIC_API_BASE_URL, getToken), [getToken]);
   const value: SessionContext = { session, client, bookmarks, schedules, extras, push, configured: !!auth,
+    async signInSocial(provider, input) {
+      if (!auth) throw new Error('로그인 연결을 준비하고 있습니다.');
+      const next = await authenticateSocial(provider, input);
+      if (!next) return false;
+      const { data, error } = await auth.setSession({ access_token: next.access_token, refresh_token: next.refresh_token });
+      if (error || !data.session) throw new Error('로그인을 완료하지 못했습니다.');
+      draftCache.activate(data.session.user.id); current.current = data.session; setSession(data.session); return true;
+    },
     async signIn(email, password) {
       if (!auth) throw new Error('로그인 연결 설정이 아직 준비되지 않았습니다.');
       const { data, error } = await auth.signInWithPassword({ email: email.trim(), password });
@@ -62,16 +80,26 @@ export function MemberSessionProvider({ children }: PropsWithChildren) {
         const [, result] = await Promise.all([disableDevicePush(), auth?.signOut({ scope: 'local' })]);
         if (result?.error) throw new Error('Sign out failed');
       } catch { throw new Error('이 기기의 개인 화면은 닫았습니다. 서버 로그아웃 또는 푸시 해제를 완료하지 못했습니다. 연결 후 다시 확인하거나 휴대폰 설정에서 알림을 꺼 주세요.'); }
-      finally { current.current = null; setSession(null); signingOut.current = false; }
+      finally {
+        // An expired session can fail to refresh while offline before signOut
+        // reaches its cleanup. Never restore that session on the next launch.
+        try { await sessionStorage.removeItem(sessionKey); }
+        finally { current.current = null; setSession(null); signingOut.current = false; }
+      }
     },
   };
-  return <Context.Provider value={value}>{children}</Context.Provider>;
+  return <Context.Provider value={value}>{restoring ? <AppScreen title="로그인 확인"><ActivityIndicator accessibilityLabel="저장된 로그인 확인 중" /></AppScreen> : children}</Context.Provider>;
 }
 export function useMemberSession() { const value = useContext(Context); if (!value) throw new Error('MemberSessionProvider required'); return value; }
 export function safeMemberReturn(value?: string): Href {
+  if (value && /^\/records(?:\/new)?\?/.test(value)) {
+    const url = new URL(value, 'https://app.invalid');
+    const valid = [...url.searchParams].every(([key, item]) => url.searchParams.getAll(key).length === 1 && (key === 'kind' ? ['REFLECTION', 'PRAYER', 'SPECIAL_PRAYER'].includes(item) : key === 'date' ? /^\d{4}-\d{2}-\d{2}$/.test(item) : ['worshipId','reflectionId','prayerTopicId'].includes(key) && /^[a-zA-Z0-9_-]{1,100}$/.test(item)));
+    return valid && !url.hash ? value as Href : '/my';
+  }
   if (value === '/groups') return '/groups';
   if (value && /^\/(records|schedules)\/edit\/[a-zA-Z0-9_-]+$/.test(value)) return value as Href;
-  if (value && /^\/(account(?:\/(?:privacy|delete))?|notifications(?:\/(?:settings|[a-zA-Z0-9_-]+))?|care\/(?:requests|new(?:\?kind=(?:COUNSELING|VISIT))?|[a-zA-Z0-9_-]+))$/.test(value)) return value as Href;
+  if (value && /^\/(account(?:\/(?:privacy|delete|church))?|notifications(?:\/(?:settings|[a-zA-Z0-9_-]+))?|care\/(?:requests|new(?:\?kind=(?:COUNSELING|VISIT))?|[a-zA-Z0-9_-]+))$/.test(value)) return value as Href;
   if (value && /^\/schedules\/new\?date=\d{4}-\d{2}-\d{2}$/.test(value)) return value as Href;
   if (value && /^\/(saved-worship|schedules(?:\/[a-zA-Z0-9_-]+)?|(?:devotional|sermons|events)\/[a-zA-Z0-9_-]+)$/.test(value)) return value as Href;
   return value && /^\/(my|records(?:\/[a-zA-Z0-9_-]+)?)(?:\?(?:kind=(?:REFLECTION|PRAYER|SPECIAL_PRAYER)|worshipId=[a-zA-Z0-9_-]+|reflectionId=[a-zA-Z0-9_-]+)(?:&(?:kind=(?:REFLECTION|PRAYER|SPECIAL_PRAYER)|worshipId=[a-zA-Z0-9_-]+|reflectionId=[a-zA-Z0-9_-]+))*)?$/.test(value) ? value as Href : '/my';

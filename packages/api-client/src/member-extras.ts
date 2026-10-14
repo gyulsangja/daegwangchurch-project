@@ -3,6 +3,7 @@ import { careCreateSchema, carePageSchema, careSchema, memberOptionsSchema, noti
 import { createMemberTransport, decodeMemberResponse as decode } from './member';
 import { ApiError } from './worship';
 import { groupSnapshotSchema, groupPreferenceSchema } from '@daegwang/contracts/features/member/groups';
+import { churchMembershipSchema, churchRequestSchema } from '@daegwang/contracts/features/member/church-membership';
 
 export function createAccountClient(base: string | undefined, fetcher: typeof fetch = fetch) {
   async function request(path: string, body?: unknown, signal?: AbortSignal) {
@@ -11,7 +12,7 @@ export function createAccountClient(base: string | undefined, fetcher: typeof fe
     const controller = new AbortController(); const abort = () => controller.abort(); signal?.addEventListener('abort', abort); if (signal?.aborted) abort(); const timer = setTimeout(abort, 15000);
     try {
       const response = await fetcher(`${url.href.replace(/\/$/, '')}/api/v1/account/${path}`, { method: body ? 'POST' : 'GET', cache: 'no-store', credentials: 'omit', redirect: 'error', signal: controller.signal, headers: body ? { 'Content-Type': 'application/json' } : { Accept: 'application/json' }, body: body ? JSON.stringify(body) : undefined });
-      if (!response.ok) throw new ApiError(response.status, response.status === 429 ? '잠시 기다린 뒤 다시 시도해 주세요.' : response.status === 503 ? '계정 서비스의 운영 설정을 준비하고 있습니다.' : '입력 내용이나 인증번호를 확인해 주세요.');
+      if (!response.ok) throw new ApiError(response.status, response.status === 429 ? '잠시 기다린 뒤 다시 시도해 주세요.' : response.status === 503 ? '계정 서비스의 운영 설정을 준비하고 있습니다.' : path === 'signup' ? '가입하지 못했습니다. 이메일과 비밀번호를 확인해 주세요. 이미 가입하셨다면 로그인해 주세요.' : '입력 내용이나 인증번호를 확인해 주세요.');
       return await response.json();
     } catch (cause) { if (cause instanceof ApiError || signal?.aborted) throw cause; throw new ApiError(0, '처리 결과를 확인하지 못했습니다. 연결 상태를 확인해 주세요.'); }
     finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); }
@@ -31,7 +32,10 @@ export function createMemberExtrasClient(base: string | undefined, token: () => 
   const prefs = createMemberTransport(base, token, 'preferences', fetcher);
   const profile = createMemberTransport(base, token, 'profile', fetcher);
   const groups = createMemberTransport(base, token, 'groups', fetcher);
+  const membership = createMemberTransport(base, token, 'church-membership', fetcher);
   return {
+    churchMembership: async (signal?: AbortSignal) => decode(z.object({ data: churchMembershipSchema }), await membership('', 'GET', undefined, signal)).data,
+    requestChurchMembership: async (input: z.infer<typeof churchRequestSchema>) => decode(z.object({ data: churchMembershipSchema }), await membership('', 'PATCH', churchRequestSchema.parse(input))).data,
     groups: async (signal?: AbortSignal) => decode(z.object({ data: groupSnapshotSchema }), await groups('', 'GET', undefined, signal)).data,
     saveGroups: async (input: z.infer<typeof groupPreferenceSchema>) => decode(z.object({ data: groupSnapshotSchema }), await groups('', 'PATCH', groupPreferenceSchema.parse(input))).data,
     careList: async (page = 0, signal?: AbortSignal) => decode(carePageSchema, await care(`?page=${page}`, 'GET', undefined, signal)),
@@ -45,9 +49,9 @@ export function createMemberExtrasClient(base: string | undefined, token: () => 
     savePreferences: async ({ version, ...content }: z.infer<typeof preferenceSchema>) => decode(z.object({ data: preferenceSchema }), await prefs('', 'PATCH', { version, content: preferenceInputSchema.parse(content) })).data,
     profile: async (signal?: AbortSignal) => decode(z.object({ data: profileSchema }), await profile('', 'GET', undefined, signal)).data,
     saveProfile: async (displayName: string, version: number) => decode(z.object({ data: profileSchema }), await profile('', 'PATCH', { displayName, version })).data,
-    deleteAccount: async (password: string, policyVersion: string) => {
+    deleteAccount: async (password: string, policyVersion: string, code?: string) => {
       try {
-        const response = await profile('', 'DELETE', { password, policyVersion, confirm: 'DELETE' });
+        const response = await profile('', 'DELETE', { ...(code ? { code } : { password }), policyVersion, confirm: 'DELETE' });
         // The isolated preview retains its legacy 204 response; production returns explicit acceptance.
         if (response !== null) decode(z.object({ data: z.object({ status: z.literal('accepted') }) }), response);
       }

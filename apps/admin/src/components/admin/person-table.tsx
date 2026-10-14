@@ -1,5 +1,5 @@
 import Chip from "@mui/material/Chip";
-import IconButton from "@mui/material/IconButton";
+import MuiButton from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -36,7 +36,7 @@ export function PersonTable({ rows }: { rows: PersonRow[] }) {
             <TableCell><Link href={`/admin/people/${row.id}/edit`} className="font-bold hover:text-primary-700">{row.name}</Link>{row.isSeniorPastor ? <Chip label="담임" size="small" color="primary" className="ml-2!" /> : null}</TableCell>
             <TableCell>{row.position}</TableCell><TableCell>{row.ministry || "-"}</TableCell><TableCell>{row.sortOrder}</TableCell>
             <TableCell><Chip label={row.isVisible ? "공개" : "비공개"} size="small" color={row.isVisible ? "primary" : "default"} /></TableCell>
-            <TableCell align="right"><IconButton component="a" href={`/admin/people/${row.id}/edit`} aria-label={`${row.name} 수정`}><Pencil aria-hidden="true" className="size-4" /></IconButton></TableCell>
+            <TableCell align="right"><MuiButton size="small" sx={{ minHeight: 44, whiteSpace: "nowrap", gap: 1 }} component="a" href={`/admin/people/${row.id}/edit`} aria-label={`${row.name} 수정`}><Pencil aria-hidden="true" className="size-4" />수정</MuiButton></TableCell>
           </TableRow>
         ))}</TableBody>
       </Table>

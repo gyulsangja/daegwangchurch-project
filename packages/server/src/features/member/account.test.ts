@@ -5,7 +5,7 @@ import { createAccountService, AccountOperationError } from './account-service';
 
 const policy = { version: 'test-policy', terms: 'Test terms', privacy: 'Test privacy', care: '', deletion: '' };
 const user = { id: 'd6972d1b-9428-4a8e-b055-a1cdd520b517', email: 'member@example.invalid', email_confirmed_at: '2026-10-05T00:00:00Z', identities: [{ id: 'identity' }] };
-function fixture(options: { error?: { status: number }; sessionOnSignup?: boolean; duplicate?: boolean; wrongOwner?: boolean } = {}) {
+function fixture(options: { error?: { status: number }; sessionOnSignup?: boolean; duplicate?: boolean; wrongOwner?: boolean; immediateSignup?: boolean; emptyPolicy?: boolean } = {}) {
   const calls: string[] = []; let remembered = 0; let confirmed = 0;
   const auth = {
     async signUp() { calls.push('signup'); return { error: options.error ?? null, data: { user: options.duplicate ? { ...user, identities: [] } : user, session: options.sessionOnSignup ? {} : null } }; },
@@ -15,7 +15,7 @@ function fixture(options: { error?: { status: number }; sessionOnSignup?: boolea
     async resend() { calls.push('resend'); return { error: options.error ?? null }; },
     async resetPasswordForEmail() { calls.push('recovery-mail'); return { error: options.error ?? null }; },
   } as unknown as GoTrueClient;
-  const service = createAccountService({ auth: () => auth, policy, rememberConsent: async () => { remembered++; }, confirmConsent: async () => { confirmed++; } });
+  const service = createAccountService({ auth: () => auth, policy: options.emptyPolicy ? { ...policy, terms: '', privacy: '' } : policy, immediateSignup: options.immediateSignup, rememberConsent: async () => { remembered++; }, confirmConsent: async () => { confirmed++; } });
   return { service, calls, counts: () => ({ remembered, confirmed }) };
 }
 const signup = { email: user.email, password: 'test-password-only', confirm: 'test-password-only', displayName: '', policyVersion: policy.version, consent: true };
@@ -23,6 +23,8 @@ test('real account adapter validates consent before provider and never records d
   const f = fixture();
   await assert.rejects(f.service('signup', { ...signup, consent: false }));
   await assert.rejects(f.service('signup', { ...signup, policyVersion: 'old' }), (e: unknown) => e instanceof AccountOperationError && e.status === 409);
+  assert.deepEqual(f.calls, []);
+  await assert.rejects(f.service('signup', { ...signup, churchRequest: { realName: 'Fixture', phone: 'invalid', position: '성도' } }));
   assert.deepEqual(f.calls, []);
   await f.service('signup', signup); assert.equal(f.counts().remembered, 1);
   const duplicate = fixture({ duplicate: true }); await duplicate.service('signup', signup); assert.equal(duplicate.counts().remembered, 0);
@@ -41,4 +43,18 @@ test('recovery responses do not enumerate users and provider limits remain visib
   await fixture({ error: { status: 400 } }).service('recovery', { email: user.email });
   await assert.rejects(fixture({ error: { status: 429 } }).service('recovery', { email: user.email }), (e: unknown) => e instanceof AccountOperationError && e.status === 429);
   await assert.rejects(fixture({ sessionOnSignup: true }).service('signup', signup), (e: unknown) => e instanceof AccountOperationError && e.status === 503);
+});
+test('simple signup accepts empty policies without consent and finalizes an immediate provider session', async () => {
+  const f = fixture({ immediateSignup: true, sessionOnSignup: true, emptyPolicy: true });
+  assert.deepEqual(await f.service('signup', { ...signup, consent: false }), { verificationRequired: false });
+  assert.deepEqual(f.counts(), { remembered: 1, confirmed: 1 });
+  assert.deepEqual(f.calls, ['signup', 'signout:local']);
+});
+test('simple signup still requires consent when policy text exists and reports provider verification', async () => {
+  const f = fixture({ immediateSignup: true, sessionOnSignup: true });
+  await assert.rejects(f.service('signup', { ...signup, consent: false }));
+  assert.deepEqual(f.calls, []);
+  const confirmation = fixture({ immediateSignup: true, emptyPolicy: true });
+  assert.deepEqual(await confirmation.service('signup', { ...signup, consent: false }), { verificationRequired: true });
+  assert.equal(confirmation.counts().confirmed, 0);
 });

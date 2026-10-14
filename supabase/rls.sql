@@ -2,6 +2,10 @@
 -- Prisma uses a server-only database connection. These policies protect
 -- Supabase Data API and Storage access from browser clients.
 
+-- Internal Prisma history: owner-only access, no Data API policy.
+alter table public._prisma_migrations enable row level security;
+revoke all privileges on table public._prisma_migrations from public, anon, authenticated;
+
 create or replace function public.is_active_admin()
 returns boolean
 language sql

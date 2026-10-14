@@ -1,9 +1,9 @@
 import { useCallback, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { worshipClient, type Worship } from '../lib/api';
+import { worshipClient, cachedWorshipPage, type Worship } from '../lib/api';
 
 export function useLatestDevotional() {
-  const [item, setItem] = useState<Worship | null>(null);
+  const [item, setItem] = useState<Worship | null>(() => cachedWorshipPage()?.data[0] ?? null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const request = useRef<AbortController | null>(null);
@@ -11,7 +11,7 @@ export function useLatestDevotional() {
     request.current?.abort();
     const controller = new AbortController();
     request.current = controller;
-    setLoading(true); setError(''); setItem(null);
+    setLoading(true); setError('');
     try {
       const page = await worshipClient.list({ signal: controller.signal });
       if (!controller.signal.aborted) setItem(page.data[0] ?? null);
@@ -22,7 +22,7 @@ export function useLatestDevotional() {
     }
   }, []);
   useFocusEffect(useCallback(() => { void reload(); return () => request.current?.abort(); }, [reload]));
-  return { item, loading, error, reload };
+  return { item, loading: loading && !item, error, reload };
 }
 
 export function koreaDate() {

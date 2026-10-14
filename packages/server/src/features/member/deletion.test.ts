@@ -59,13 +59,14 @@ test('provider adapter treats only explicit user absence as completed, retaining
   await assert.rejects(adapter.deleteIdentity(owner)); await assert.rejects(adapter.identityAbsent(owner));
 });
 
-test('password reauthentication checks the verified owner and always discards its temporary session', async () => {
+test('password and email OTP reauthentication check the verified owner and discard temporary sessions', async () => {
   const owner = '00000000-0000-4000-8000-000000000001'; let returnedOwner = owner; let logouts = 0;
   const jwt = `${Buffer.from('{}').toString('base64url')}.${Buffer.from(JSON.stringify({ sub: owner, exp: 4102444800 })).toString('base64url')}.fixture`;
   const fetcher = (async (url, init) => {
     if (String(url).includes('/logout')) { logouts++; return new Response(null, { status: 204 }); }
-    assert.ok(String(url).includes('/token?grant_type=password'));
-    const value = JSON.parse(String(init?.body)); assert.equal(value.email, 'test@example.invalid'); assert.equal(value.password, 'fixture-password');
+    const value = JSON.parse(String(init?.body)); assert.equal(value.email, 'test@example.invalid');
+    if (String(url).includes('/verify')) { assert.equal(value.type, 'recovery'); assert.equal(value.token, '123456'); }
+    else { assert.ok(String(url).includes('/token?grant_type=password')); assert.equal(value.password, 'fixture-password'); }
     return Response.json({ access_token: jwt, refresh_token: 'fixture-refresh', expires_in: 3600, token_type: 'bearer', user: { id: returnedOwner, email: value.email, email_confirmed_at: '2026-10-05T00:00:00Z', is_anonymous: false } });
   }) as typeof fetch;
   const adapter = createDeletionProvider({ url: 'https://fixture.supabase.co', publishableKey: 'sb_publishable_fixture', secretKey: 'sb_secret_fixture' }, fetcher);
@@ -73,4 +74,8 @@ test('password reauthentication checks the verified owner and always discards it
   returnedOwner = '00000000-0000-4000-8000-000000000002';
   await assert.rejects(adapter.reauthenticate(owner, 'test@example.invalid', 'fixture-password'), (e: unknown) => e instanceof AccountOperationError && e.status === 422);
   assert.equal(logouts, 2);
+  await assert.rejects(adapter.reauthenticate(owner, 'test@example.invalid', '', '123456'), (e: unknown) => e instanceof AccountOperationError && e.status === 422);
+  returnedOwner = owner;
+  await adapter.reauthenticate(owner, 'test@example.invalid', '', '123456');
+  assert.equal(logouts, 4);
 });

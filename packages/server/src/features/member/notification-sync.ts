@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { Prisma, PrismaClient } from '@daegwang/database/generated/client';
-import { preferenceInputSchema, type MemberNotification } from '@daegwang/contracts/features/member/extras';
+import { defaultPreferences, preferenceInputSchema, type MemberNotification } from '@daegwang/contracts/features/member/extras';
+import { readableGroupNotice } from './group-push';
 import { appWorshipSnapshotSchema } from '@daegwang/contracts/features/worship/app-contract';
 import { personalScheduleSchema } from '@daegwang/contracts/features/member/schedules';
 import { publishedNoticeWhere } from '../notices/public-policy';
@@ -11,7 +12,7 @@ import { createAppWorshipQueries } from '../worship/app-query-core';
 import { createNotificationServices } from './notification-service';
 import { activationTimes, type NotificationKey } from './notification-activation';
 
-export type NotificationSources = { worship: boolean; notices: boolean; events: boolean; schedules: boolean; push?: boolean };
+export type NotificationSources = { worship: boolean; notices: boolean; events: boolean; schedules: boolean; groups?: boolean; push?: boolean };
 const dayMs = 86400000;
 const koreaDate = (time: Date) => new Date(time.getTime() + 9 * 3600000).toISOString().slice(0, 10);
 const later = (...dates: Date[]) => new Date(Math.max(...dates.map(date => date.getTime())));
@@ -25,10 +26,17 @@ export function createAutomaticNotificationService(db: PrismaClient, identity: s
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${ownerId}::text, 0))`;
       if (await tx.memberDeletion.findUnique({ where: { ownerId }, select: { ownerId: true } })) return;
       const row = await tx.memberNotificationPreference.findUnique({ where: { ownerId } });
-      if (!row) return;
-      const prefs = preferenceInputSchema.parse(row.content); const activated = activationTimes(row.activationTimes);
-      const since = (key: NotificationKey) => later(cutoff, new Date(activated[key] ?? row.updatedAt.toISOString()));
+      const prefs = row ? preferenceInputSchema.parse(row.content) : defaultPreferences; const activated = activationTimes(row?.activationTimes);
+      const since = (key: NotificationKey) => later(cutoff, new Date(activated[key] ?? row?.updatedAt.toISOString() ?? time.toISOString()));
       const data: Prisma.MemberNotificationCreateManyInput[] = [];
+      if (sources.groups) {
+        const preference = await tx.groupPreference.findUnique({ where: { ownerId } });
+        if (preference?.notifications) {
+          const memberships = await tx.groupMembership.findMany({ where: { ownerId } });
+          const notices = await tx.groupNotice.findMany({ where: { status: 'PUBLISHED', deletedAt: null, group: { isActive: true }, publishedAt: { gte: later(preference.updatedAt, new Date(time.getTime() - dayMs)), lte: time }, OR: [{ audience: 'PUBLIC', groupId: { in: preference.interests } }, ...memberships.map(m => ({ groupId: m.groupId, audience: { in: ['PUBLIC', 'MEMBERS'] }, publishedAt: { gte: later(preference.updatedAt, m.createdAt, new Date(time.getTime() - dayMs)), lte: time } }))] }, select: { id: true, publishedAt: true }, take: 500, orderBy: { publishedAt: 'desc' } });
+          for (const notice of notices) data.push({ ownerId, dedupeKey: `auto:group:${notice.id}`, category: 'NEWS', target: { kind: 'groups', id: notice.id }, title: '모임 공지가 등록되었습니다', body: '앱에서 확인해 주세요.', createdAt: notice.publishedAt! });
+        }
+      }
       function add(key: NotificationKey, due: Date, sourceKey: string, category: string, target: NonNullable<MemberNotification['target']>, title: string, body: string) {
         if (!prefs[key] || due < since(key) || due > time) return;
         data.push({ ownerId, dedupeKey: `auto:${sourceKey}`, category, target, title, body, createdAt: due });
@@ -68,6 +76,8 @@ export function createAutomaticNotificationService(db: PrismaClient, identity: s
       title = (await db.notice.findFirst({ where: { ...publishedNoticeWhere(time), id: target.id }, select: { title: true } }))?.title ?? null;
     } else if (target.kind === 'events' && sources.events) {
       title = (await db.event.findFirst({ where: { ...publishedEventWhere(time), id: target.id }, select: { title: true } }))?.title ?? null;
+    } else if (target.kind === 'groups' && sources.groups) {
+      title = (await readableGroupNotice(db, ownerId, target.id, time))?.title ?? null;
     } else if (target.kind === 'schedules' && sources.schedules) {
       const row = await db.memberSchedule.findFirst({ where: { ownerId, id: target.id }, select: { content: true, eventId: true, startsAt: true } });
       const notificationDay = koreaDate(new Date(item.createdAt));

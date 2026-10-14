@@ -3,20 +3,25 @@ import { useFocusEffect } from 'expo-router';
 import { createNoticeClient, type Notice, type NoticePage } from '@daegwang/api-client/notices';
 
 const client = createNoticeClient(process.env.EXPO_PUBLIC_API_BASE_URL);
-export function useNoticeResource<T>(read: (signal: AbortSignal) => Promise<T>) {
+export function useNoticeResource<T>(read: (signal: AbortSignal) => Promise<T>, refreshInterval = 0) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const request = useRef<AbortController | null>(null);
-  const reload = useCallback(async () => {
+  const load = useCallback(async (silent = false) => {
     request.current?.abort();
     const controller = new AbortController(); request.current = controller;
-    setData(null); setError(''); setLoading(true);
-    try { const value = await read(controller.signal); if (!controller.signal.aborted) setData(value); }
+    if (!silent) { setData(null); setError(''); setLoading(true); }
+    try { const value = await read(controller.signal); if (!controller.signal.aborted) { setData(value); setError(''); } }
     catch (cause) { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : '공지를 불러오지 못했습니다.'); }
     finally { if (!controller.signal.aborted) setLoading(false); }
   }, [read]);
-  useFocusEffect(useCallback(() => { void reload(); return () => request.current?.abort(); }, [reload]));
+  const reload = useCallback(() => load(), [load]);
+  useFocusEffect(useCallback(() => {
+    void load();
+    const timer = refreshInterval ? setInterval(() => { void load(true); }, refreshInterval) : undefined;
+    return () => { clearInterval(timer); request.current?.abort(); };
+  }, [load, refreshInterval]));
   return { data, loading, error, reload };
 }
 export function useNoticeList(page: number) {

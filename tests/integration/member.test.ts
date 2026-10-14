@@ -16,6 +16,24 @@ if (url.hostname !== '127.0.0.1' || url.pathname !== '/daegwang_worship_test') t
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: url.href }) });
 after(async () => db.$disconnect());
 
+test('concurrent daily reflections create only one record and preserve topic prayers after topic deletion', async () => {
+  const owner = randomUUID();
+  const word = { id: 'daily-word', version: 1, title: 'word', contentDate: '2026-10-15', scriptureReference: '' };
+  const service = createMemberRecordService(db, owner, async () => word);
+  const input = { kind: 'REFLECTION', body: 'daily reflection', date: '2026-10-15', worship: word };
+  const results = await Promise.allSettled([service.create(input), service.create(input)]);
+  assert.equal(results.filter(r => r.status === 'fulfilled').length, 1);
+  const failed = results.find(r => r.status === 'rejected');
+  assert.ok(failed?.status === 'rejected' && failed.reason instanceof MemberRecordConflict);
+  const topic = await service.create({ kind: 'SPECIAL_PRAYER', title: 'ongoing', body: '', date: '2026-10-15' });
+  const prayer = await service.create({ kind: 'PRAYER', body: 'today', date: '2026-10-15', prayerTopicId: topic.id });
+  assert.equal((await service.list({ prayerTopicId: topic.id })).data.length, 1);
+  await service.remove(topic.id, { version: 1 });
+  await service.update(prayer.id, { version: 1, content: { ...prayer.content, body: 'continued' } });
+  assert.equal((await service.detail(prayer.id)).content.body, 'continued');
+  await db.memberRecord.deleteMany({ where: { ownerId: owner } });
+});
+
 test('real PostgreSQL member API isolates two owners and rejects stale edits, forged identity, and expired tokens', async () => {
   const first = randomUUID(); const second = randomUUID();
   const handler = createMemberRecordHandler({ enabled: () => true, allowedOrigins: () => ['http://localhost:8081'], authenticate: async token => token === 'first' ? first : token === 'second' ? second : null, service: owner => createMemberRecordService(db, owner) });

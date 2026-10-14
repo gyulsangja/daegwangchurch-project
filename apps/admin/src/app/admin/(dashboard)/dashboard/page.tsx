@@ -3,9 +3,13 @@ import { ContentHome } from '../../../../components/admin/content-home';
 import { getDashboardSummary } from '@daegwang/server/features/dashboard/queries';
 import { getOpenInquiryCount } from '@daegwang/server/features/inquiries/queries';
 import { requireAdmin } from '../../../../lib/auth/permissions';
+import { getPrisma } from '@daegwang/database/prisma';
+import { readCareSettings } from '@daegwang/server/features/member/care-settings';
 
 export default async function DashboardPage() {
   const admin = await requireAdmin();
+  const care = await readCareSettings(getPrisma());
+  const careCount = care?.policy.adminIds.includes(admin.id) ? await getPrisma().memberCareRequest.count({ where: { status: { in: ['RECEIVED', 'DISCUSSING', 'SCHEDULED'] }, expiresAt: { gt: new Date() } } }) : 0;
   const [summary, inquiries] = await Promise.all([
     getDashboardSummary(),
     admin.role === 'SUPER_ADMIN' ? getOpenInquiryCount() : Promise.resolve(0),
@@ -19,6 +23,7 @@ export default async function DashboardPage() {
   ];
   return <div className="mx-auto max-w-5xl">
     <ContentHome />
+    {careCount > 0 && <Link href="/admin/care" className="focus-ring mt-6 block rounded-xl border border-primary-200 bg-primary-50 p-4 font-semibold text-primary-700">처리할 상담·심방 요청 {careCount}건 →</Link>}
     {inquiries > 0 && <Link href="/admin/inquiries" className="focus-ring mt-6 block rounded-xl border border-primary-200 bg-primary-50 p-4 font-semibold text-primary-700">확인이 필요한 방문 문의 {inquiries}건 →</Link>}
     <section aria-labelledby="recent-title" className="mt-8 rounded-2xl border border-border bg-white p-5 sm:p-7">
       <h2 id="recent-title" className="text-xl font-bold">최근 등록한 내용</h2>

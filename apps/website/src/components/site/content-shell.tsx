@@ -13,7 +13,7 @@ export function ContentShell({
   return (
     <div
       className={cn(
-        "church-content container-site py-12 md:py-20",
+        "church-content container-site py-7 md:py-10",
         narrow && "max-w-[54rem]",
         className,
       )}

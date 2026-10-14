@@ -1,3 +1,4 @@
+import { DatePicker } from './date-picker';
 import { useDraftCache } from '../hooks/use-draft-cache';
 import { ReauthAction } from './reauth-action';
 import { useEffect, useRef, useState } from 'react';
@@ -37,7 +38,7 @@ export function ScheduleEditor({ id, date }: { id?: string; date?: string }) {
     {cache.restored && <Card title="작성하던 내용을 복구했습니다">내용을 확인한 뒤 저장해 주세요.</Card>}
     {!content && !loadError && <ActivityIndicator accessibilityLabel="일정을 불러오는 중" />}{!!loadError && <Failure message={loadError} retry={() => { setLoadError(''); setAttempt(attempt + 1); }} />}
     {content && <>{field('일정 제목', content.title, title => setContent({ ...content, title }), 200)}
-      {field('시작 날짜', content.startDate, startDate => setContent({ ...content, startDate }), 10)}{field('종료 날짜', content.endDate, endDate => setContent({ ...content, endDate }), 10)}
+      <DatePicker label="시작 날짜" value={content.startDate} onChange={startDate => setContent({ ...content, startDate })} disabled={busy} /><DatePicker label="종료 날짜" value={content.endDate} onChange={endDate => setContent({ ...content, endDate })} disabled={busy} />
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48 }}><Text style={styles.title}>종일</Text><Switch accessibilityLabel="종일 일정" value={content.allDay} disabled={busy} onValueChange={allDay => setContent({ ...content, allDay, startTime: allDay ? null : '10:00', endTime: allDay ? null : '11:00' })} /></View>
       {!content.allDay && <>{field('시작 시간 · 한국 시간', content.startTime ?? '', startTime => setContent({ ...content, startTime }), 5)}{field('종료 시간 · 한국 시간', content.endTime ?? '', endTime => setContent({ ...content, endTime }), 5)}</>}
       {field('장소 · 선택', content.location, location => setContent({ ...content, location }), 300)}{field('메모 · 선택', content.note, note => setContent({ ...content, note }), 10000, true)}

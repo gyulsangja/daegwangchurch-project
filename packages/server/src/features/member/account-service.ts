@@ -1,23 +1,32 @@
 import { z } from 'zod';
 import type { GoTrueClient } from '@supabase/supabase-js';
 import { emailSchema, signupSchema, resetPasswordSchema } from '@daegwang/contracts/features/member/extras';
+import type { ChurchDetails } from '@daegwang/contracts/features/member/church-membership';
 
-export const accountPolicySchema = z.object({ version: z.string().min(1).max(100), terms: z.string().min(1).max(30000), privacy: z.string().min(1).max(30000), deletion: z.string().max(10000).default(''), care: z.string().max(10000).default('') }).strict();
+export const accountPolicySchema = z.object({ version: z.string().min(1).max(100), terms: z.string().max(30000), privacy: z.string().max(30000), deletion: z.string().max(10000).default(''), care: z.string().max(10000).default('') }).strict();
 export type AccountPolicy = z.infer<typeof accountPolicySchema>;
 type Auth = Pick<GoTrueClient, 'signUp' | 'verifyOtp' | 'resend' | 'resetPasswordForEmail' | 'updateUser' | 'signOut'>;
 export class AccountOperationError extends Error { constructor(public status: number) { super('Account operation failed'); } }
 function check(error: { status?: number } | null) { if (error) throw new AccountOperationError(error.status === 429 ? 429 : 422); }
-export function createAccountService(deps: { auth: () => Auth; policy: AccountPolicy; rememberConsent: (owner: string, email: string, displayName: string, policy: AccountPolicy) => Promise<void>; confirmConsent: (owner: string, email: string) => Promise<void> }) {
+export function createAccountService(deps: { auth: () => Auth; policy: AccountPolicy; immediateSignup?: boolean; rememberConsent: (owner: string, email: string, displayName: string, policy: AccountPolicy, churchRequest?: ChurchDetails) => Promise<void>; confirmConsent: (owner: string, email: string) => Promise<void> }) {
   return async (operation: string, input: unknown) => {
     const auth = deps.auth();
     if (operation === 'signup') {
       const value = signupSchema.parse(input);
       if (value.policyVersion !== deps.policy.version) throw new AccountOperationError(409);
+      if ((deps.policy.terms || deps.policy.privacy) && !value.consent) throw new AccountOperationError(422);
       const { data, error } = await auth.signUp({ email: value.email, password: value.password }); check(error);
       // With email confirmation disabled, do not pretend that the OTP flow is ready.
-      if (data.session) { await auth.signOut({ scope: 'local' }); throw new AccountOperationError(503); }
-      if (data.user?.identities?.length) await deps.rememberConsent(data.user.id, value.email, value.displayName, deps.policy);
-      return;
+      if (data.session) {
+        try {
+          if (!deps.immediateSignup || !data.user) throw new AccountOperationError(503);
+          await deps.rememberConsent(data.user.id, value.email, value.displayName, deps.policy, value.churchRequest);
+          await deps.confirmConsent(data.user.id, value.email);
+          return { verificationRequired: false };
+        } finally { await auth.signOut({ scope: 'local' }); }
+      }
+      if (data.user?.identities?.length) await deps.rememberConsent(data.user.id, value.email, value.displayName, deps.policy, value.churchRequest);
+      return { verificationRequired: true };
     }
     if (operation === 'verify') {
       const value = z.object({ email: emailSchema, code: z.string().regex(/^\d{6,8}$/) }).strict().parse(input);

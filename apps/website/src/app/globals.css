@@ -47,15 +47,15 @@
 .church-site .church-skip { position: fixed; top: -100px; left: 1rem; z-index: 100; padding: .75rem 1rem; background: white; border: 2px solid var(--primary-700); border-radius: 6px; }
 .church-site .church-skip:focus { top: .75rem; }
 .church-site main { scroll-margin-top: 100px; }
-.home-invitation { background: #f7f5ee; padding-top: 3.5rem; }
+.home-invitation { background: #f7f5ee; padding-top: 1.5rem; }
 .home-invitation-grid { display: grid; grid-template-columns: 1fr 1.05fr; gap: 0 3.5rem; align-items: center; }
-.home-invitation-copy { padding-block: 2rem 4rem; }
-.home-invitation-art { position: relative; align-self: stretch; margin: 0 0 3rem; min-height: 490px; }
+.home-invitation-copy { padding-block: 1rem 2rem; }
+.home-invitation-art { position: relative; align-self: stretch; margin: 0 0 1.5rem; min-height: 310px; }
 .home-invitation-art .church-hero-image { border-radius: 3px; }
 .home-image-caption { position: absolute; bottom: 1.5rem; left: -1.5rem; display: flex; flex-direction: column; gap: .3rem; padding: 1.25rem 1.75rem; background: #fffefa; color: #355a4e; font-size: 1.05rem; font-weight: 600; box-shadow: 0 5px 30px #33483e0a; }
 .home-service-strip { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 2.5rem; padding: 1.5rem 0; border-top: 1px solid #d9dcd1; }
-.home-word-section { padding-block: 6rem; }
-.home-section-heading { display: flex; justify-content: space-between; align-items: end; gap: 1.5rem; margin-bottom: 2.5rem; }
+.home-word-section { padding-block: 3rem; }
+.home-section-heading { display: flex; justify-content: space-between; align-items: end; gap: 1.5rem; margin-bottom: 1.5rem; }
 .home-section-title { margin-top: .75rem; font-size: clamp(1.8rem,3vw,2.7rem); line-height: 1.45; font-weight: 650; letter-spacing: -.045em; }
 .home-word-grid { display: grid; grid-template-columns: 1.55fr 1fr; gap: 1.5rem; align-items: stretch; }
 .home-sermon { display: flex; flex-direction: column; background: #304d43; color: #fffefa; padding: 2rem; border-radius: 6px; }
@@ -67,13 +67,13 @@
 .home-sermon > .home-more { margin-top: auto; padding-top: 1.25rem; border-top: 1px solid #ffffff30; color: white; }
 .home-sermon a:focus-visible { outline-color: #f3dc9d; }
 .home-devotional { display: flex; flex-direction: column; background: #f2f1e7; padding: 2.5rem; border-radius: 6px; }
-.home-community-section { padding-block: 5rem 6rem; border-top: 1px solid var(--border); }
-.home-community-grid { display: grid; grid-template-columns: .85fr 1.15fr; gap: 5rem; }
+.home-community-section { padding-block: 3rem; border-top: 1px solid var(--border); }
+.home-community-grid { display: grid; grid-template-columns: .85fr 1.15fr; gap: 2rem; }
 .home-bulletin { display: grid; gap: 2rem; align-content: start; }
-.home-bulletin-paper { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; margin: .75rem 1.25rem .75rem .5rem; padding: 2rem; color: #50634d; background: #f6f2e7; border: 1px solid #e8e1d3; box-shadow: 10px 10px 0 -1px #fffefa, 10px 10px 0 0 #e6e2d7; }
+.home-bulletin-paper { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 180px; margin: .75rem 1.25rem .75rem .5rem; padding: 2rem; color: #50634d; background: #f6f2e7; border: 1px solid #e8e1d3; box-shadow: 10px 10px 0 -1px #fffefa, 10px 10px 0 0 #e6e2d7; }
 .home-events { display: flex; align-items: start; gap: 1rem; padding: 1.5rem; margin-top: 1.5rem; background: #f3f5ef; }
 .home-events .home-more { margin-top: .5rem; }
-.home-belong-section { background: #eeeee4; padding-block: 5.5rem; }
+.home-belong-section { background: #eeeee4; padding-block: 3rem; }
 .home-belong-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 5rem; align-items: center; }
 .home-welcome-note { background: #fffefa; padding: 2.5rem; border-top: 3px solid #9daa8e; }
 .home-church-values { padding: 2.5rem; border-left: 1px solid #c8cdbb; color: var(--primary-700); }
@@ -90,7 +90,7 @@
 }
 @media (max-width: 1023px) {
   .home-invitation-grid { grid-template-columns: 1fr 1fr; gap: 0 2rem; }
-  .home-invitation-art { min-height: 420px; }
+  .home-invitation-art { min-height: 300px; }
   .home-community-grid, .home-belong-grid { gap: 2.5rem; }
   .home-service-strip { flex-wrap: wrap; gap: 1.5rem; }
 }
@@ -98,18 +98,26 @@
   .home-invitation { padding-top: 1rem; }
   .home-invitation-grid, .home-word-grid, .home-community-grid, .home-belong-grid { grid-template-columns: minmax(0,1fr); }
   .home-invitation-copy { padding-block: 2rem; }
-  .home-invitation-art { min-height: 0; height: 300px; margin-bottom: 1.5rem; }
+  .home-invitation-art { min-height: 0; height: 150px; margin-bottom: 1rem; }
   .home-image-caption { left: .75rem; bottom: .75rem; padding: .75rem 1rem; font-size: .9rem; }
   .home-service-strip { align-items: start; gap: 1rem; }
   .home-service-strip > p { flex-basis: 100%; order: 2; }
   .home-section-heading { align-items: start; flex-direction: column; gap: 1rem; margin-bottom: 1.75rem; }
-  .home-word-section, .home-community-section, .home-belong-section { padding-block: 3.5rem; }
+  .home-word-section, .home-community-section, .home-belong-section { padding-block: 2rem; }
   .home-sermon, .home-devotional, .home-welcome-note { padding: 1.5rem; }
   .home-bulletin { grid-template-columns: minmax(100px,.7fr) minmax(0,1fr); align-items: center; gap: 1.5rem; }
-  .home-bulletin-paper { min-height: 220px; padding: 1rem .5rem; margin: 0 .5rem .5rem 0; }
+  .home-bulletin-paper { min-height: 160px; padding: 1rem .5rem; margin: 0 .5rem .5rem 0; }
   .home-bulletin-paper > span:last-child { display: none; }
 }
 @media (max-width: 639px) {
   .church-site .church-display { word-break: keep-all; overflow-wrap: anywhere; }
   .church-hero-figure { max-width: 30rem; width: 100%; margin-inline: auto; }
 }
+
+.home-invitation-art .church-hero-image { min-height: 100%; }
+.home-quick-links { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:1.25rem; }
+.home-quick-links a { display:inline-flex; align-items:center; min-height:44px; padding:.5rem 1rem; border:1px solid #cbd3c5; border-radius:8px; background:#fffefa; color:#355a4e; font-size:.9rem; font-weight:600; }
+@media (max-width: 767px) { .home-service-strip > .grid { grid-template-columns: repeat(3,minmax(0,1fr)); flex-basis:100%; gap:.5rem; } .home-service-strip { padding-block:1rem; } .home-invitation-copy { padding-block: .5rem 1.25rem; } .home-bulletin-paper span { margin-top:.75rem; } }
+
+.home-sermon-image { max-width: 440px; }
+@media (max-width: 767px) { .home-devotional > svg { display:none; } .home-devotional > .mt-6 { margin-top:0; } .home-devotional > .my-7 { margin-block:1rem; } .home-devotional > .mt-auto { padding-top:1rem; } .home-belong-grid { gap:1.5rem; } .home-welcome-note { padding:1.25rem; } }

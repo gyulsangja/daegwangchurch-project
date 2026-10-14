@@ -47,7 +47,7 @@ export function createPushWorker(db: PrismaClient, provider: PushProvider, sourc
         if (plan.due > clock()) { await tx.memberPushDelivery.update({ where: { id: job.id }, data: { nextAttemptAt: plan.due } }); return null; }
         if (plan.general) {
           const dayStart = new Date(`${koreanDay(clock())}T00:00:00+09:00`);
-          const sentToday = await tx.memberPushDelivery.count({ where: { deviceId: job.deviceId, sentAt: { gte: dayStart }, notification: { OR: [{ target: { path: ['kind'], equals: 'sermons' } }, { target: { path: ['kind'], equals: 'notices' } }, { target: { path: ['kind'], equals: 'events' } }] }, status: { in: ['SENDING','ACCEPTED','DELIVERED','UNKNOWN'] } } });
+          const sentToday = await tx.memberPushDelivery.count({ where: { deviceId: job.deviceId, sentAt: { gte: dayStart }, notification: { OR: [{ target: { path: ['kind'], equals: 'sermons' } }, { target: { path: ['kind'], equals: 'notices' } }, { target: { path: ['kind'], equals: 'events' } }, { target: { path: ['kind'], equals: 'groups' } }] }, status: { in: ['SENDING','ACCEPTED','DELIVERED','UNKNOWN'] } } });
           if (sentToday >= 5) { await tx.memberPushDelivery.update({ where: { id: job.id }, data: { status: 'CANCELLED', resultCode: 'DailyLimit' } }); totals.cancelled++; return null; }
         }
         await tx.memberPushDelivery.update({ where: { id: job.id }, data: { status: 'SENDING', attempts: { increment: 1 }, sentAt: clock(), nextAttemptAt: new Date(clock().getTime() + 120000) } });

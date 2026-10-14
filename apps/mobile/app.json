@@ -10,6 +10,16 @@
       "supportsTablet": true
     },
     "android": {
+      "allowBackup": false,
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_CONTACTS",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "com.google.android.gms.permission.AD_ID"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -24,6 +34,7 @@
     "scheme": "daegwang",
     "plugins": [
       "expo-router",
+      "expo-web-browser",
       [
         "expo-splash-screen",
         {
@@ -33,7 +44,7 @@
           "backgroundColor": "#F7F8F5"
         }
       ],
-      "expo-secure-store",
+      ["expo-secure-store", { "configureAndroidBackup": true, "faceIDPermission": false }],
       [
         "expo-notifications",
         {

@@ -7,6 +7,7 @@ import { PageHero } from "../../../components/site/page-hero";
 import { Button } from "@daegwang/web-ui/components/ui/button";
 import { getSiteSettings } from "@daegwang/server/features/settings/queries";
 import { publicEnv } from "@daegwang/config/env";
+import { mapEmbedUrl } from '@daegwang/contracts/features/church/links';
 
 export const metadata: Metadata = {
   title: "찾아오시는 길",
@@ -22,6 +23,7 @@ export default async function LocationPage() {
     settings.mapLatitude !== undefined && settings.mapLongitude !== undefined;
   const address = [settings.address, settings.addressDetail].filter(Boolean).join(" ");
   const hasKakaoMap = hasMap && Boolean(publicEnv.NEXT_PUBLIC_KAKAO_MAP_KEY);
+  const map = mapEmbedUrl(settings.mapLatitude, settings.mapLongitude);
   const navigationUrl = hasMap
     ? `https://map.kakao.com/link/to/${encodeURIComponent(settings.siteName)},${settings.mapLatitude},${settings.mapLongitude}`
     : `https://map.kakao.com/link/search/${encodeURIComponent(address || settings.siteName)}`;
@@ -42,7 +44,7 @@ export default async function LocationPage() {
               longitude={settings.mapLongitude!}
               title={settings.siteName}
             />
-          ) : (
+          ) : map ? <iframe title="대광교회 위치 지도" src={map} className="h-80 w-full rounded-2xl border-0 lg:h-full lg:min-h-80" /> : (
             <div className="flex min-h-[26rem] items-center justify-center rounded-[2rem] bg-background-muted text-center">
               <div>
                 <MapPin className="mx-auto size-12 text-primary-600" />

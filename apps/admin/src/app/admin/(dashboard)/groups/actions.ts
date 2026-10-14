@@ -12,7 +12,7 @@ export async function saveGroupAction(_state: GroupActionState, form: FormData):
 }
 export async function saveGroupNoticeAction(_state: GroupActionState, form: FormData): Promise<GroupActionState> {
   const admin = await requireAdmin();
-  try { await createGroupAdminService(getPrisma(), admin.id).saveNotice({ groupId: form.get('groupId'), title: form.get('title'), body: form.get('body'), audience: form.get('audience'), status: form.get('status') }, String(form.get('id') ?? '') || undefined, form.get('version') ? Number(form.get('version')) : undefined); revalidatePath('/admin/groups'); return { ok: true, message: '모임 공지를 저장했습니다. 푸시는 아직 발송하지 않습니다.' }; }
+  try { await createGroupAdminService(getPrisma(), admin.id).saveNotice({ groupId: form.get('groupId'), title: form.get('title'), body: form.get('body'), audience: form.get('audience'), status: form.get('status') }, String(form.get('id') ?? '') || undefined, form.get('version') ? Number(form.get('version')) : undefined); revalidatePath('/admin/groups'); return { ok: true, message: '모임 공지를 저장했습니다. 게시된 공지는 알림 수신에 동의한 대상 회원에게 순차 발송됩니다.' }; }
   catch { return { ok: false, message: '권한·입력 내용 또는 변경된 공지를 확인해 주세요. 새로고침 후 다시 시도할 수 있습니다.' }; }
 }
 export async function saveMembershipAction(_state: GroupActionState, form: FormData): Promise<GroupActionState> {

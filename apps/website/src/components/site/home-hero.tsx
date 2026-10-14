@@ -10,9 +10,10 @@ export function HomeHero({ content, schedules }: { content: HomePageContent; sch
     <div className="container-site home-invitation-grid">
       <div className="home-invitation-copy">
         <p className="church-eyebrow flex items-center gap-3"><span className="h-px w-8 bg-primary-700" />{content.heroBadge}</p>
-        <h1 id="home-title" className="mt-7 text-[clamp(2.3rem,4.1vw,4rem)] leading-[1.35] tracking-[-0.055em]">{content.heroTitleBefore}<br /><span className="text-primary-700">{content.heroTitleAccent}</span>{content.heroTitleAfter}</h1>
-        <p className="mt-6 max-w-md text-base leading-8 text-text-secondary">{content.heroDescription}</p>
-        <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3"><Button asChild size="lg"><Link href="/newcomer/guide">처음 오셨나요? <ArrowRight aria-hidden="true" className="size-4" /></Link></Button><Link href="/about/church" className="church-text-link">대광교회 알아보기</Link></div>
+        <h1 id="home-title" className="mt-4 text-[clamp(1.8rem,3.3vw,3rem)] leading-[1.35] tracking-[-0.055em]">{content.heroTitleBefore}<br /><span className="text-primary-700">{content.heroTitleAccent}</span>{content.heroTitleAfter}</h1>
+        <p className="mt-3 max-w-md text-base leading-7 text-text-secondary">{content.heroDescription}</p>
+        <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3"><Button asChild size="lg"><Link href="/newcomer/guide">처음 오셨나요? <ArrowRight aria-hidden="true" className="size-4" /></Link></Button><Link href="/about/church" className="church-text-link">대광교회 알아보기</Link></div>
+        <nav aria-label="자주 찾는 교회생활" className="home-quick-links"><Link href="/worship/first-hour">첫시간 묵상</Link><Link href="/news/bulletins">주보</Link><Link href="/news/notices">교회 소식</Link><Link href="/location">오시는 길</Link><Link href="/app">앱 다운로드</Link></nav>
       </div>
       <figure className="church-hero-figure home-invitation-art">
         <div className="church-hero-image relative h-full min-h-64 overflow-hidden"><Image src="/images/morning-word.jpg" alt="" fill priority sizes="(min-width: 1024px) 52vw, 100vw" className="object-cover" /></div>

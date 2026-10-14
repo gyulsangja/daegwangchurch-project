@@ -35,13 +35,16 @@ try {
   const url = `${base}/daegwang_worship_test`;
   client = new pg.Client({ connectionString: url });
   await client.connect();
+  // Prisma creates this metadata table before SQL migrations; this runner applies
+  // SQL directly, so supply its table for the metadata RLS migration as well.
+  await client.query('CREATE TABLE public._prisma_migrations (id text PRIMARY KEY)');
   for (const entry of readdirSync('packages/database/prisma/migrations', { withFileTypes: true }).filter(entry => entry.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
     await client.query(readFileSync(resolve('packages/database/prisma/migrations', entry.name, 'migration.sql'), 'utf8'));
   }
   await client.end(); client = undefined;
   console.log('Migrations applied to a new, isolated local PostgreSQL database.');
   // Some suites inspect global cleanup counts; serialize files sharing this disposable database.
-  const result = spawnSync(process.execPath, ['--import', 'tsx', '--test', '--test-concurrency=1', 'tests/integration/worship.test.ts', 'tests/integration/member.test.ts', 'tests/integration/deletion.test.ts', 'tests/integration/notification.test.ts', 'tests/integration/push.test.ts'], {
+  const result = spawnSync(process.execPath, ['--import', 'tsx', '--test', '--test-concurrency=1', 'tests/integration/worship.test.ts', 'tests/integration/member.test.ts', 'tests/integration/deletion.test.ts', 'tests/integration/notification.test.ts', 'tests/integration/push.test.ts', 'tests/integration/church-membership.test.ts', 'tests/integration/care-settings.test.ts'], {
     stdio: 'inherit', windowsHide: true,
     env: { ...process.env, TEST_DATABASE_URL: url, DATABASE_URL: '', DIRECT_URL: '' },
   });
