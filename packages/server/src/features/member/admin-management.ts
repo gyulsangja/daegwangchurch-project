@@ -8,6 +8,30 @@ export function createAdminMemberManagement(db: PrismaClient, provider?: Pick<De
     if (!user) throw new AdminMemberError('최고관리자 권한을 확인해 주세요.'); return user;
   }
   return {
+    async churchDetails(actorId: string, input: unknown) {
+      const value = z.object({ ownerId: z.uuid(), version: z.number().int().nonnegative(), position: z.string().trim().min(1).max(40), groupIds: z.array(z.string().min(1).max(80)).max(30) }).parse(input);
+      const groupIds = [...new Set(value.groupIds)];
+      await db.$transaction(async tx => {
+        await actor(tx, actorId);
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${value.ownerId}::text, 0))`;
+        const member = await tx.churchMembership.findUnique({ where: { ownerId: value.ownerId } });
+        if (await tx.memberDeletion.findUnique({ where: { ownerId: value.ownerId } })) throw new AdminMemberError('삭제 처리 중인 회원입니다.');
+        if ((member?.version ?? 0) !== value.version) throw new AdminMemberError('회원 정보가 변경되었습니다. 새로고침 후 다시 저장해 주세요.');
+        if (member?.status !== 'CONFIRMED' && groupIds.length) throw new AdminMemberError('소속은 교인 승인 후 지정할 수 있습니다.');
+        if (!member) {
+          const users = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM auth.users WHERE id=${value.ownerId}::uuid AND deleted_at IS NULL AND COALESCE(is_anonymous,false)=false`;
+          if (!users.length) throw new AdminMemberError('회원 계정을 찾을 수 없습니다.');
+          await tx.memberProfile.upsert({ where: { ownerId: value.ownerId }, create: { ownerId: value.ownerId }, update: {} });
+        }
+        if (await tx.churchGroup.count({ where: { id: { in: groupIds }, isActive: true } }) !== groupIds.length) throw new AdminMemberError('현재 사용할 수 없는 소속이 있습니다. 새로고침해 주세요.');
+        if (member?.status === 'CONFIRMED') {
+          await tx.groupMembership.deleteMany({ where: { ownerId: value.ownerId, groupId: { notIn: groupIds } } });
+          for (const groupId of groupIds) await tx.groupMembership.upsert({ where: { groupId_ownerId: { groupId, ownerId: value.ownerId } }, create: { groupId, ownerId: value.ownerId, approvedBy: actorId }, update: {} });
+        }
+        await tx.churchMembership.upsert({ where: { ownerId: value.ownerId }, create: { ownerId: value.ownerId, position: value.position }, update: { position: value.position, version: { increment: 1 } } });
+        await tx.activityLog.create({ data: { actorId, action: 'UPDATE', entityType: 'ChurchMembership', entityId: value.ownerId, summary: '회원 관리에서 직분·소속 변경' } });
+      });
+    },
     async role(actorId: string, input: unknown) {
       const value = z.object({ ownerId: z.uuid(), role: z.enum(['MEMBER','ADMIN','SUPER_ADMIN']) }).parse(input);
       await db.$transaction(async tx => {

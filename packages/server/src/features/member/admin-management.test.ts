@@ -44,3 +44,50 @@ test('revocation preserves member data, deletion failure is resumable without de
   fail=false; assert.equal((await service.remove('actor',input)).completed,true);
   assert.equal(f.state().completed,true); assert.equal(f.deleted.length,11);
 });
+
+test('church details replace affiliations without revoking membership and guard stale or unauthorized edits', async () => {
+  let authorized = true; let deleting = false; let status = 'CONFIRMED'; let version = 3; let position = '성도'; let hasRecord = true; let accountExists = true;
+  let groups = ['old'];
+  const tx = {
+    $executeRaw: async () => 1,
+    $queryRaw: async () => accountExists ? [{ id: owner }] : [],
+    memberProfile: { upsert: async () => ({}) },
+    adminProfile: { findFirst: async () => authorized ? {} : null },
+    memberDeletion: { findUnique: async () => deleting ? {} : null },
+    churchMembership: {
+      findUnique: async () => hasRecord ? ({ status, version, position }) : null,
+      upsert: async ({ update }: { update: { position: string } }) => { position = update.position; version++; hasRecord = true; },
+    },
+    churchGroup: { count: async ({ where }: { where: { id: { in: string[] } } }) => where.id.in.filter(id => id === 'new').length },
+    groupMembership: {
+      deleteMany: async ({ where }: { where: { groupId: { notIn: string[] } } }) => { groups = groups.filter(id => where.groupId.notIn.includes(id)); },
+      upsert: async ({ create }: { create: { groupId: string } }) => { if (!groups.includes(create.groupId)) groups.push(create.groupId); },
+    },
+    activityLog: { create: async () => ({}) },
+  };
+  const db = { $transaction: async (fn: (value: typeof tx) => Promise<unknown>) => fn(tx) } as unknown as PrismaClient;
+  const service = createAdminMemberManagement(db);
+  const input = { ownerId: owner, version: 3, position: ' 집사 ', groupIds: ['new'] };
+  authorized = false; await assert.rejects(service.churchDetails('actor', input), AdminMemberError);
+  authorized = true; deleting = true; await assert.rejects(service.churchDetails('actor', input), AdminMemberError);
+  deleting = false; await assert.rejects(service.churchDetails('actor', { ...input, groupIds: ['inactive'] }), AdminMemberError);
+  assert.deepEqual(groups, ['old']); assert.equal(position, '성도');
+  await service.churchDetails('actor', input);
+  assert.deepEqual(groups, ['new']); assert.equal(position, '집사'); assert.equal(status, 'CONFIRMED');
+  await assert.rejects(service.churchDetails('actor', input), AdminMemberError);
+  await service.churchDetails('actor', { ...input, version: 4, groupIds: [] });
+  assert.deepEqual(groups, []); assert.equal(status, 'CONFIRMED');
+  status = 'PENDING';
+  await assert.rejects(service.churchDetails('actor', { ...input, version: 5 }), AdminMemberError);
+  await service.churchDetails('actor', { ...input, version: 5, groupIds: [], position: '성도' });
+  assert.equal(status, 'PENDING'); assert.equal(position, '성도');
+  status = 'UNCONFIRMED';
+  await service.churchDetails('actor', { ...input, version: 6, groupIds: [], position: '장로' });
+  assert.equal(status, 'UNCONFIRMED'); assert.equal(position, '장로');
+  hasRecord = false; version = 0; accountExists = false;
+  await assert.rejects(service.churchDetails('actor', { ...input, version: 0, groupIds: [] }), AdminMemberError);
+  assert.equal(hasRecord, false);
+  accountExists = true;
+  await service.churchDetails('actor', { ...input, version: 0, groupIds: [] });
+  assert.equal(hasRecord, true); assert.equal(version, 1); assert.equal(status, 'UNCONFIRMED');
+});
