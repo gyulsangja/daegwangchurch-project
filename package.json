@@ -11,6 +11,7 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "test:release-features": "tsx --test tests/member-session.test.ts tests/social-auth.test.ts tests/public-cache.test.ts packages/server/src/features/member/admin-management.test.ts packages/server/src/features/member/record.test.ts packages/contracts/src/features/church/offering.test.ts",
     "dev": "npm run dev:website",
     "dev:website": "npm run dev --workspace @daegwang/website",
     "dev:admin": "npm run dev --workspace @daegwang/admin",
