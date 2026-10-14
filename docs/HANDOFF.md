@@ -1,12 +1,20 @@
 # 작업 인수인계
+## 새 통합 기록 APK 및 Git 후속 완료 (2026-10-15)
+
+- Android APK 빌드 5ac10a59-1b88-4d4b-938d-f9f48bd76f4f 완료. 파일 다운로드/크기 확인, 홈페이지 링크 운영 검증 완료.
+- APK: https://expo.dev/artifacts/eas/5AuDU0ti3D1F81I39O8QQl8LhtvhxiNuzv7akOQgRQQ.apk
+- 홈페이지 다운로드 최종 배포: dpl_2cLAW2ANq1iaSA8ckZxXr7Pae4YZ / https://daegwangchurch-g2prsn9d7-gyulsangjas-projects.vercel.app
+- 로그인 유지·통합 말씀/묵상/기도·기도제목별 기록 포함. 실제 휴대폰 설치/재부팅 및 Google Play/iOS 스토어 제출은 미실시.
+- Git 후속 결과: 로컬 test-results/deploy/review-final-git.json 확인. 이전 대기 기록보다 이 항목 우선.
+
 ## 회원 직분·소속 수정 보완 (2026-10-15)
 
 - 사용자 추가 요청: 관리자 회원 관리에서 소속·직분을 수정하고 모든 변경을 Git main에 업로드.
 - 회원 관리 팝업에 직분·소속 수정 폼 추가. 교인 미확인 회원도 직분 저장 가능(프로필 없는 기존 Auth 회원 포함), 승인된 교인은 복수 소속 교체/해제 가능. 직분 변경이 교인 승인이나 관리자 권한을 바꾸지 않음. 소속 전체 해제도 교인 승인 유지.
 - 최고관리자 권한·삭제 처리·수정 버전 충돌·비활성 소속 검사 및 트랜잭션 적용. 앱은 기존 교인 확인 화면 재진입 시 같은 저장소의 최신 정보를 조회하므로 이번 관리자 기능 때문에 APK 재빌드 불필요.
 - 관리자 타입 검사·린트, 회원 관리 테스트 3개 통과. 로컬 회원 관리 팝업에서 직분 입력 확인. 실제 회원의 소속/직분/권한은 테스트 목적으로 변경하지 않음.
-- 최종 관리자 배포 빌드: dpl_8xHt5HZwa81tSymGLdGZZfSRfEZd / https://daegwangchurch-admin-hs3rik0mp-gyulsangjas-projects.vercel.app. 운영 승격 결과는 다음 완료 기록 참조.
-- APK 후속 배포 감시 세션 58587 유지. Git 자동 커밋 감시 22622는 동시 stage 충돌을 피하려고 중단했으며 이 턴에서 결과 확인 후 직접 커밋하거나 감시를 재개할 것.
+- 최종 관리자 배포: dpl_8xHt5HZwa81tSymGLdGZZfSRfEZd / https://daegwangchurch-admin-hs3rik0mp-gyulsangjas-projects.vercel.app. HTTP/API 검사 10개 통과 후 기존 운영 주소로 승격 완료. 운영 브라우저에서 회원 관리 팝업의 직분 입력 확인. 코드 Git main 커밋 0f3986d.
+- APK 후속 배포 감시 세션 58587 유지. Git 자동 커밋 감시 22622는 동시 stage 충돌을 피하려고 중단 후 세션 29700으로 재개. 최상단 APK 후속 완료 기록과 로컬 review-final-app.json/review-final-git.json의 FINISHED 결과가 있으면 더 이상 감시 재실행 불필요.
 
 ## 통합 사용성 검토 및 배포 진행 (2026-10-15)
 
