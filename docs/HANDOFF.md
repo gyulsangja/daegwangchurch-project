@@ -10,6 +10,8 @@
 - 관리자 운영 배포 완료: `dpl_83pS3DwgHbg8vT5VRbTAxeUBn5Qk`, URL `https://daegwangchurch-admin-4p0qtsfyy-gyulsangjas-projects.vercel.app`; HTTP/API 검사 10개 통과 후 기존 운영 주소 승격.
 - 홈페이지 운영 배포 완료: `dpl_53mJgpeDmgZnYYQmHYWAqV1yPBDb`, URL `https://daegwangchurch-3rx75iusw-gyulsangjas-projects.vercel.app`; 공개 경로 검사 4개 통과 후 기존 운영 도메인 승격.
 - Android 새 APK: `5ac10a59-1b88-4d4b-938d-f9f48bd76f4f` Expo 무료 대기열. 이전 APK에는 통합 기록/로그인 유지 보완 미포함. 완료 후 `/app` 다운로드 주소를 교체하고 홈페이지 재배포할 것. 상태 확인: `node test-results/deploy/review-app-status.mjs` (로컬 도구). Google Play/iOS 스토어 제출은 아직 하지 않음; `mobile-security-and-store-release.md`의 남은 요건 유지.
+- 자동 후속 실행 중: `test-results/deploy/finish-review-app.mjs`(세션 58587)는 APK 완료→파일 검증→홈페이지 링크 교체/배포/승격/운영 링크 검증을 수행. `commit-review-app.mjs`(세션 22622)는 성공 결과 확인 후 링크와 HANDOFF만 추가 커밋·main push. 결과는 `review-final-app.json`, `review-final-git.json`에 기록. PC/프로세스 종료 시 후속 실행이 중단되므로 다음 턴에 결과를 먼저 확인할 것. 다운로드 파일을 동시에 수정하거나 다른 변경을 stage하지 말 것.
+- 운영 도메인 최종 HTTP 5개 확인, 운영 관리자 회원/상담 화면 직접 확인. 가상 앱에서 제목 연결 기도 저장 및 새로고침 후 로그인 복원 추가 확인. Git `0633b39` 기능 묶음과 `3100029` 가상 기록 규칙 보완 업로드 완료.
 
 ## Android/iOS 로그인 보안·스토어 준비 검토 (2026-10-15)
 
