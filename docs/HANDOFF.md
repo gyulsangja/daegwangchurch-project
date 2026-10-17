@@ -1,4 +1,12 @@
 # 작업 인수인계
+## 알림 개선 APK·홈페이지·Git 후속 완료 (2026-10-18)
+
+- Android APK b52d1270-c149-47e8-8c7f-b279ca851196 완료, 파일 다운로드 및 운영 /app 링크 검증 완료.
+- APK: https://expo.dev/artifacts/eas/B4YQ01wzctmj058EClJ9S_vTgIlrxxfuwu5m3UXtVQI.apk
+- 홈페이지 최종 배포: dpl_CBcp6oNDiEAYSPmhffuETN7pBUzT / https://daegwangchurch-jxe8b34c7-gyulsangjas-projects.vercel.app
+- 앱 알림 본문 표시·기기 미등록 경고·연결 상태 재확인 포함. 서버 알림 내용 개선 운영 배포 완료. 실제 휴대폰 수신은 사용자의 기기 등록/확인 응답을 기다리는 상태이며 FCM 자격 조회 승인도 별도로 필요.
+- 최종 Git 결과는 로컬 test-results/deploy/push-final-git.json. 아래 이전 빌드 대기 기록보다 이 완료 기록 우선.
+
 ## 알림 내용·수신 연결 점검 (2026-10-18)
 
 - 사용자 요청: 푸시 불규칙 수신/Firebase 전체 확인, 알림창에 실제 내용 표시. 기존 Git 업로드·배포 요청 유지.
