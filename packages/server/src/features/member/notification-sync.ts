@@ -11,6 +11,7 @@ import { worshipVisibility } from '../worship/public-query-core';
 import { createAppWorshipQueries } from '../worship/app-query-core';
 import { createNotificationServices } from './notification-service';
 import { activationTimes, type NotificationKey } from './notification-activation';
+import { notificationText } from './notification-copy';
 
 export type NotificationSources = { worship: boolean; notices: boolean; events: boolean; schedules: boolean; groups?: boolean; push?: boolean };
 const dayMs = 86400000;
@@ -68,16 +69,22 @@ export function createAutomaticNotificationService(db: PrismaClient, identity: s
   }
   async function present(item: MemberNotification): Promise<MemberNotification> {
     const target = item.target; if (!target) return item;
-    const time = now(); let title: string | null = null;
+    const time = now(); let title: string | null = null; let body = item.body;
     if (['devotional', 'sermons'].includes(target.kind) && sources.worship) {
       const word = await createAppWorshipQueries(db, now).detail(target.id);
-      if (word && (word.type === 'FIRST_HOUR') === (target.kind === 'devotional')) title = word.title;
+      if (word && (word.type === 'FIRST_HOUR') === (target.kind === 'devotional')) {
+        title = word.sermonTitle || word.title;
+        body = [word.contentDate, word.scriptureReference, notificationText(word.summary || word.description)].filter(Boolean).join(' · ');
+      }
     } else if (target.kind === 'notices' && sources.notices) {
-      title = (await db.notice.findFirst({ where: { ...publishedNoticeWhere(time), id: target.id }, select: { title: true } }))?.title ?? null;
+      const notice = await db.notice.findFirst({ where: { ...publishedNoticeWhere(time), id: target.id }, select: { title: true, content: true } });
+      title = notice?.title ?? null; body = notificationText(notice?.content) || body;
     } else if (target.kind === 'events' && sources.events) {
-      title = (await db.event.findFirst({ where: { ...publishedEventWhere(time), id: target.id }, select: { title: true } }))?.title ?? null;
+      const event = await db.event.findFirst({ where: { ...publishedEventWhere(time), id: target.id }, select: { title: true, description: true, startsAt: true } });
+      title = event?.title ?? null; body = event ? [event.startsAt.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }), notificationText(event.description)].filter(Boolean).join(' · ') : body;
     } else if (target.kind === 'groups' && sources.groups) {
-      title = (await readableGroupNotice(db, ownerId, target.id, time))?.title ?? null;
+      const notice = await readableGroupNotice(db, ownerId, target.id, time);
+      title = notice?.title ?? null; body = notificationText(notice?.body) || body;
     } else if (target.kind === 'schedules' && sources.schedules) {
       const row = await db.memberSchedule.findFirst({ where: { ownerId, id: target.id }, select: { content: true, eventId: true, startsAt: true } });
       const notificationDay = koreaDate(new Date(item.createdAt));
@@ -88,7 +95,7 @@ export function createAutomaticNotificationService(db: PrismaClient, identity: s
       }
     }
     if (!title) return { ...item, title: '현재 확인할 수 없는 알림', body: '연결된 내용이 변경되었거나 더 이상 제공되지 않습니다.', target: null };
-    return { ...item, title };
+    return { ...item, title, body };
   }
   return {
     synchronize,

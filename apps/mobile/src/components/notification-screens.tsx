@@ -11,6 +11,7 @@ import { DraftGuard } from './draft-guard';
 import { noticeDate, useNoticeResource } from '../hooks/use-notices';
 import { usePagedResource } from '../hooks/use-paged-resource';
 import { PushDeviceControls } from './push-notifications';
+import { devicePushState } from '../lib/device-push';
 export function NotificationList() { return <MemberGate returnTo="/notifications"><List /></MemberGate>; }
 function List() {
   const { extras } = useMemberSession(); const [category, setCategory] = useState('ALL');
@@ -20,7 +21,7 @@ function List() {
     <Action secondary title="새 알림 확인" disabled={loading} onPress={reload} />
     {loading && <ActivityIndicator accessibilityLabel="알림을 불러오는 중" />}{!!error && <Failure message={error} retry={data ? more : reload} />}
     {data && !data.data.length && <Card title="아직 받은 알림이 없습니다">알림 설정에서 이 휴대폰의 푸시를 연결하고 원하는 항목을 켜 주세요. 새 알림은 앱을 닫아 두어도 전달되며, 관련 내용을 이곳에서 다시 볼 수 있습니다.</Card>}
-    {data?.data.map(item => <MenuCard key={item.id} title={item.title} description={`${item.readAt ? '읽음' : '읽지 않음'} · ${noticeDate(item.createdAt)}`} onPress={() => router.push({ pathname: '/notifications/[id]', params: { id: item.id } })} />)}
+    {data?.data.map(item => <MenuCard key={item.id} title={item.title} description={`${item.body}\n${item.readAt ? '읽음' : '읽지 않음'} · ${noticeDate(item.createdAt)}`} onPress={() => router.push({ pathname: '/notifications/[id]', params: { id: item.id } })} />)}
     {data?.nextPage != null && <Action title="알림 더 보기" disabled={loading} onPress={more} />}<MenuCard title="알림 설정" onPress={() => router.push('/notifications/settings')} />
   </AppScreen>;
 }
@@ -35,9 +36,14 @@ function Detail({ id }: { id: string }) {
 }
 export function NotificationSettings() { return <MemberGate returnTo="/notifications/settings"><Settings /></MemberGate>; }
 function Settings() {
-  const { extras } = useMemberSession(); const [value, setValue] = useState<NotificationPreferences | null>(null); const [original, setOriginal] = useState(''); const [time, setTime] = useState(''); const [modal, setModal] = useState(false); const [error, setError] = useState(''); const [message, setMessage] = useState(''); const [busy, setBusy] = useState(false); const lock = useRef(false);
+  const { extras, push, session } = useMemberSession(); const [value, setValue] = useState<NotificationPreferences | null>(null); const [original, setOriginal] = useState(''); const [time, setTime] = useState(''); const [modal, setModal] = useState(false); const [error, setError] = useState(''); const [message, setMessage] = useState(''); const [busy, setBusy] = useState(false); const lock = useRef(false);
   const result = useNoticeResource(useCallback(async signal => { const data = await extras.preferences(signal); if (!signal.aborted) { setValue(data); setOriginal(JSON.stringify(data)); } return data; }, [extras]));
-  async function save() { if (!value || lock.current) return; lock.current = true; setBusy(true); setError(''); setMessage(''); try { const saved = await extras.savePreferences(value); setValue(saved); setOriginal(JSON.stringify(saved)); setMessage('알림 설정을 저장했습니다.'); } catch (cause) { setError(cause instanceof Error ? cause.message : '설정을 저장하지 못했습니다.'); } finally { lock.current = false; setBusy(false); } }
+  async function save() { if (!value || lock.current) return; lock.current = true; setBusy(true); setError(''); setMessage(''); try {
+    const saved = await extras.savePreferences(value); setValue(saved); setOriginal(JSON.stringify(saved));
+    const wantsPush = saved.devotional || saved.worship || saved.notices || saved.events || saved.schedules;
+    const connection = wantsPush ? await devicePushState(push, session!.user.id).catch(() => null) : null;
+    setMessage(!wantsPush ? '알림 설정을 저장했습니다.' : connection?.state === 'enabled' ? '알림 설정을 저장했습니다. 이 휴대폰에서 선택한 소식을 받습니다.' : '수신 항목은 저장했지만 이 기기의 푸시 연결은 확인되지 않았습니다. 설치한 앱에서 위의 ‘이 휴대폰에서 알림 받기’를 눌러 주세요.');
+  } catch (cause) { setError(cause instanceof Error ? cause.message : '설정을 저장하지 못했습니다.'); } finally { lock.current = false; setBusy(false); } }
   return <AppScreen title="알림 설정" onBack={() => router.canGoBack() ? router.back() : router.replace('/my')}>
     <PushDeviceControls />
     {result.loading && <ActivityIndicator accessibilityLabel="설정을 불러오는 중" />}{!!result.error && <Failure message={result.error} retry={result.reload} />}

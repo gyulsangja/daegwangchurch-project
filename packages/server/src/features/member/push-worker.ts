@@ -58,7 +58,7 @@ export function createPushWorker(db: PrismaClient, provider: PushProvider, sourc
       // Do not hold a database transaction while waiting on an external service.
       const currentDevice = await db.memberPushDevice.findFirst({ where: { id: job.deviceId, ownerId: job.ownerId, expiresAt: { gt: clock() } } });
       if (!currentDevice) continue;
-      const result = await provider.send({ to: currentDevice.token, notificationId: job.notificationId, ttl: Math.max(1, Math.min(3600, Math.floor((plan.expires.getTime() - clock().getTime()) / 1000))), priority: plan.general ? 'normal' : 'high' });
+      const result = await provider.send({ to: currentDevice.token, notificationId: job.notificationId, ...plan.preview, ttl: Math.max(1, Math.min(3600, Math.floor((plan.expires.getTime() - clock().getTime()) / 1000))), priority: 'high' });
       await saveResult(job.id, job.deviceId, job.attempts + 1, result, false); if (result.status === 'accepted') totals.accepted++;
     }
     const receipts = await db.memberPushDelivery.findMany({ where: { status: 'ACCEPTED', nextAttemptAt: { lte: clock() } }, orderBy: { nextAttemptAt: 'asc' }, take: 100 });

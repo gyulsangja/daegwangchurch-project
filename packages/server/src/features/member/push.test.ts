@@ -5,6 +5,26 @@ import { createExpoPushProvider } from './push-provider';
 import { createPushRevokeHandler, createPushWorkerHandler } from './push-api';
 import { pushConfig } from './push-config';
 import { afterQuietHours } from './push-policy';
+import { notificationPreview, notificationText } from './notification-copy';
+
+test('notification previews show public content but keep private schedules and group notices off the lock screen', () => {
+  assert.deepEqual(notificationPreview('devotional', '오늘의 말씀', '2026-10-18 · 요한복음 1:1'), { title: '첫시간 주님께 · 오늘의 말씀', body: '2026-10-18 · 요한복음 1:1' });
+  assert.equal(notificationPreview('notices', '예배 시간 안내', '<p>오전 11시 예배입니다.</p>').body, '오전 11시 예배입니다.');
+  for (const kind of ['schedules', 'groups']) assert.equal(JSON.stringify(notificationPreview(kind, 'private title', 'private body')).includes('private'), false);
+  assert.equal(notificationPreview('groups', '공개 모임', '누구나 참여', true).body, '누구나 참여');
+  assert.equal(notificationText({ secret: 'never stringify' }), '');
+  assert.equal(notificationText('x'.repeat(500)).length, 180);
+});
+
+test('Expo payload includes the reviewed title and body with high priority', async () => {
+  const provider = createExpoPushProvider(undefined, (async (_url, init) => {
+    const payload = JSON.parse(String(init?.body));
+    assert.equal(payload.title, '교회 공지 · 예배 안내'); assert.equal(payload.body, '오전 11시'); assert.equal(payload.priority, 'high');
+    assert.deepEqual(payload.data, { notificationId: 'notice-1' });
+    return Response.json({ data: { status: 'ok', id: 'ticket' } });
+  }) as typeof fetch);
+  assert.equal((await provider.send({ to: 'ExpoPushToken[fixture_token]', notificationId: 'notice-1', ttl: 300, priority: 'high', title: '교회 공지 · 예배 안내', body: '오전 11시' })).status, 'accepted');
+});
 
 test('Expo adapter sends a generic OS-visible payload without private text and distinguishes a ticket from a receipt', async () => {
   const calls: { url: string; input: unknown }[] = [];

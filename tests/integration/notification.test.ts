@@ -37,11 +37,13 @@ test('automatic inbox is opt-in, skips old content, respects per-channel start a
   await Promise.all([s.inbox.list({}), s.inbox.list({})]);
   const rows = (await s.inbox.list({})).data;
   assert.deepEqual(rows.map(row => row.target?.id), [fresh.id]);
+  assert.equal(rows[0].body, 'Not copied to notifications');
   assert.ok(!rows.some(row => [old.id, hidden.id, future.id].includes(row.target?.id ?? '')));
   const read = await s.inbox.update(rows[0].id, { read: true });
-  await db.notice.update({ where: { id: fresh.id }, data: { title: 'Changed public title' } });
+  await db.notice.update({ where: { id: fresh.id }, data: { title: 'Changed public title', content: { body: '<p>Updated public announcement</p>' } } });
   const after = (await s.inbox.list({})).data;
   assert.equal(after.length, 1); assert.equal(after[0].readAt, read.readAt); assert.equal(after[0].title, 'Changed public title');
+  assert.equal(after[0].body, 'Updated public announcement');
   const stored = await db.memberNotification.findFirstOrThrow({ where: { ownerId: s.owner } });
   assert.ok(!JSON.stringify(stored).includes('Changed public title'));
   assert.ok(!JSON.stringify(stored).includes('Not copied'));

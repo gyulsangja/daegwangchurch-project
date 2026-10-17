@@ -5,7 +5,7 @@ const resultSchema = z.discriminatedUnion('status', [
   z.object({ status: z.literal('error'), details: z.object({ error: z.string() }).optional() }),
 ]);
 export type PushResult = { status: 'accepted'; receiptId: string } | { status: 'delivered' | 'pending' | 'retry' | 'unknown' | 'failed' | 'unregistered'; code: string };
-export type PushMessage = { to: string; notificationId: string; ttl: number; priority?: 'normal' | 'high' };
+export type PushMessage = { to: string; notificationId: string; ttl: number; priority?: 'normal' | 'high'; title?: string; body?: string };
 export type PushProvider = { send: (message: PushMessage) => Promise<PushResult>; receipt: (id: string) => Promise<PushResult> };
 function failure(code?: string): PushResult {
   if (code === 'DeviceNotRegistered') return { status: 'unregistered', code };
@@ -19,8 +19,8 @@ export function createExpoPushProvider(accessToken?: string, fetcher: typeof fet
   return {
     async send(message) {
       try {
-        // No personal content, membership, owner ID or untrusted URL in a lock-screen payload.
-        const response = await post('send', { to: message.to, title: '대광교회', body: '새 알림이 있습니다. 앱에서 확인해 주세요.', data: { notificationId: message.notificationId }, sound: 'default', channelId: 'church-updates', ttl: message.ttl, priority: message.priority ?? 'normal' });
+        // Preview is assembled only after current publication/access checks by planPush.
+        const response = await post('send', { to: message.to, title: message.title ?? '대광교회', body: message.body ?? '새 알림이 있습니다. 앱에서 확인해 주세요.', data: { notificationId: message.notificationId }, sound: 'default', channelId: 'church-updates', ttl: message.ttl, priority: message.priority ?? 'normal' });
         if (response.status === 429) return { status: 'retry', code: 'RateLimited' };
         if (response.status >= 500) return { status: 'unknown', code: 'ProviderUnavailable' };
         if (!response.ok) return { status: 'failed', code: 'ProviderRejected' };

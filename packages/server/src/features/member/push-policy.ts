@@ -6,6 +6,7 @@ import { activationTimes, type NotificationKey } from './notification-activation
 import { createAppWorshipQueries } from '../worship/app-query-core';
 import { upcomingEventWhere } from '../events/app-query-core';
 import { eligibleGroupPush } from './group-push';
+import { notificationPreview } from './notification-copy';
 
 const dayMs = 86400000;
 export const koreanDay = (date: Date) => new Date(date.getTime() + 9 * 3600000).toISOString().slice(0, 10);
@@ -15,7 +16,7 @@ export function afterQuietHours(date: Date) {
   const day = koreanDay(new Date(date.getTime() + (hour >= 22 ? dayMs : 0)));
   return new Date(`${day}T08:00:00+09:00`);
 }
-export type PushPlan = { due: Date; expires: Date; slotKey: string; general: boolean };
+export type PushPlan = { due: Date; expires: Date; slotKey: string; general: boolean; preview: { title: string; body: string } };
 export async function planPush(db: PrismaClient, device: MemberPushDevice, row: MemberNotification, sources: NotificationSources, now: Date): Promise<PushPlan | null> {
   if (device.ownerId !== row.ownerId || device.expiresAt <= now || row.readAt || row.createdAt < device.enabledAt) return null;
   if (await db.memberDeletion.findUnique({ where: { ownerId: row.ownerId }, select: { ownerId: true } })) return null;
@@ -28,7 +29,7 @@ export async function planPush(db: PrismaClient, device: MemberPushDevice, row: 
     if (!notice?.publishedAt || notice.publishedAt.getTime() !== row.createdAt.getTime()) return null;
     const expires = new Date(row.createdAt.getTime() + dayMs);
     const due = afterQuietHours(new Date(Math.max(row.createdAt.getTime(), now.getTime())));
-    return now < expires && due < expires ? { due, expires, slotKey: row.id, general: true } : null;
+    return now < expires && due < expires ? { due, expires, slotKey: row.id, general: true, preview: notificationPreview('groups', notice.title, notice.body, notice.audience === 'PUBLIC') } : null;
   }
   const preference = await db.memberNotificationPreference.findUnique({ where: { ownerId: row.ownerId } });
   if (!preference) return null;
@@ -61,5 +62,5 @@ export async function planPush(db: PrismaClient, device: MemberPushDevice, row: 
   }
   if (general) due = afterQuietHours(new Date(Math.max(due.getTime(), now.getTime())));
   if (now >= expires || due >= expires) return null;
-  return { due, expires, slotKey, general };
+  return { due, expires, slotKey, general, preview: notificationPreview(target.kind, current.title, current.body) };
 }

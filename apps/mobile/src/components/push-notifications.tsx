@@ -5,7 +5,7 @@ import { useMemberSession } from './member-session';
 import { IntroCard } from './app-screen';
 import { Action, Failure, styles } from './ui';
 import { useNoticeResource } from '../hooks/use-notices';
-import { devicePushState, disableDevicePush, enableDevicePush, observeDevicePush, openPushSettings } from '../lib/device-push';
+import { devicePushState, disableDevicePush, enableDevicePush, observeDevicePush, openPushSettings, reconcileDevicePush } from '../lib/device-push';
 
 export function PushNotificationBridge() {
   const { push, session } = useMemberSession(); const owner = session?.user.id ?? null;
@@ -29,7 +29,8 @@ export function PushDeviceControls() {
     {current && <IntroCard title={copy[current.state][0]}>{copy[current.state][1]}</IntroCard>}
     {current && ['off', 'denied'].includes(current.state) && <Action title={busy ? '연결 중' : '이 휴대폰에서 알림 받기'} disabled={busy} onPress={() => void perform(() => enableDevicePush(push, session!.user.id))} />}
     {current?.canDisable && <Action secondary title={busy ? '처리 중' : '이 휴대폰의 푸시 끄기'} disabled={busy} onPress={() => void perform(disableDevicePush)} />}
-    {current && ['denied', 'pending'].includes(current.state) && <Action secondary title="휴대폰 알림 설정 열기" onPress={() => void perform(openPushSettings)} />}
+    {current && current.state !== 'web' && <Action secondary title="연결 상태 다시 확인" disabled={busy} onPress={() => void perform(() => reconcileDevicePush(push, session!.user.id))} />}
+    {current && ['enabled', 'off', 'denied', 'pending'].includes(current.state) && <Action secondary title="휴대폰 알림 설정 열기" onPress={() => void perform(openPushSettings)} />}
     {result.error && <Failure message="휴대폰 알림 연결 상태를 확인하지 못했습니다." retry={result.reload} />}
     {error && <Text accessibilityRole="alert" style={styles.caption}>{error}</Text>}
   </>;

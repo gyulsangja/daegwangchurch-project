@@ -59,7 +59,8 @@ test('background workers deliver only fresh important notices without opening th
   assert.equal(await db.memberNotification.count({ where: { ownerId: s.owner } }), 1);
   const row = await db.memberPushDelivery.findFirstOrThrow({ where: { ownerId: s.owner }, include: { notification: true } });
   assert.equal(row.status, 'ACCEPTED'); assert.deepEqual(row.notification.target, { kind: 'notices', id: fresh.id });
-  assert.equal(JSON.stringify(s.sent).includes('Fixture private title'), false);
+  assert.equal(s.sent[0].title, '교회 공지 · Fixture private title never sent');
+  assert.equal(s.sent[0].priority, 'high');
   s.time(new Date(s.clock().getTime() + 900001)); await s.worker();
   assert.equal((await db.memberPushDelivery.findUniqueOrThrow({ where: { id: row.id } })).status, 'DELIVERED'); assert.equal(s.sent.length, 1);
 });
