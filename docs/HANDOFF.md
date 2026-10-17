@@ -3,10 +3,12 @@
 
 - 사용자 요청: 푸시 불규칙 수신/Firebase 전체 확인, 알림창에 실제 내용 표시. 기존 Git 업로드·배포 요청 유지.
 - 읽기 전용 운영 점검: 등록 기기 0대, 발송 이력 0건, 알림센터 공지 3건. 5분 크론 최근 6회 정상, 보관된 HTTP 응답 72회 200. 수신 설정은 켜진 회원 2명이나 기기 등록은 별개. 원인으로 Firebase 장애를 단정하지 말 것. 사용자에게 설치 앱에서 연결 버튼을 누른 결과와 ‘알람 1’ 표시 위치를 질문한 상태.
+- 10월 18일 오전 공개 API 확인: 현재 공개 공지 0개, 최신 첫시간 10월 16일자·주일 오전예배 10월 11일자. 첫시간은 당일 영상이 있어야 발송되므로 이날 점검 시점에는 당일 첫시간 발송 대상도 없음. 최근 10월 18일 08:05 KST 크론/HTTP 정상, 기기 여전히 0대.
 - 공개 콘텐츠 푸시에 제목·요약 적용, 날짜/성경 본문 포함 말씀 안내, 비공개 모임/개인 일정 잠금 화면 비노출 유지. 발송 직전 공개·권한 재검사 결과만 사용하며 화면에 표시하는 푸시는 high priority. 앱 목록에 본문 표시, 설정 저장 후 기기 미등록 경고, 연결 상태 재확인 및 OS 설정 진입 보완.
 - 검증: 전체 type-check, 모바일 및 변경 서버 파일 lint, 푸시 단위 7개/설정 준비 6개, 격리 PostgreSQL 통합 51개 통과. 실제 운영 회원에 시험 알림 발송하지 않았음. 실제 폰 수신 및 UI 시각 검증은 미완료.
 - Firebase 로컬 파일/패키지/Expo 설정 12/12 일치. 브라우저 새 창 제어가 불가했고 EAS credentials preview 프로필 선택은 자동 승인 검토가 ‘이후 자격 변경 가능성’을 이유로 차단. 키 생성·교체·삭제 없이 FCM 연결 조회만 사용자에게 추가 확인 요청. 이 승인 전 프로필 선택을 우회하지 말 것.
-- 관리자 API 배포 dpl_7bxrkZ7h67TS2sqBs2z3XoHFpamj (https://daegwangchurch-admin-9oskkz1x7-gyulsangjas-projects.vercel.app) READY, 운영 승격 전 검증 중. 새 preview APK b52d1270-c149-47e8-8c7f-b279ca851196 빌드 중. test-results/deploy/finish-push-app.mjs 세션 71550은 APK 완료→다운로드 확인→홈페이지 링크 교체/배포/운영 검증을 수행하며 push-final-app.json에 결과 기록. 완료 후 Git에 새 링크를 커밋할 것. 이전 review-final-app.json은 10월 15일 결과로 이번 빌드와 다름.
+- 관리자 API 배포 dpl_7bxrkZ7h67TS2sqBs2z3XoHFpamj (https://daegwangchurch-admin-9oskkz1x7-gyulsangjas-projects.vercel.app) HTTP/API 10개 검증 후 운영 승격 완료. 코드 Git main a779ad5. 새 preview APK b52d1270-c149-47e8-8c7f-b279ca851196 빌드 중. test-results/deploy/finish-push-app.mjs 세션 71550은 APK 완료→다운로드 확인→홈페이지 링크 교체/배포/운영 검증을 수행하며 push-final-app.json에 결과 기록. 완료 후 Git에 새 링크를 커밋할 것. 이전 review-final-app.json은 10월 15일 결과로 이번 빌드와 다름.
+- APK Git 후속 감시: test-results/deploy/commit-push-app.mjs 세션 49780, push-final-app.json 성공 후 다운로드 링크와 이 문서만 커밋·main push. 결과 push-final-git.json. 기기 등록 확인/FCM 조회 승인 질문에는 아직 응답이 없으므로 실제 수신 완료로 기록하지 말 것.
 
 ## 새 통합 기록 APK 및 Git 후속 완료 (2026-10-15)
 
