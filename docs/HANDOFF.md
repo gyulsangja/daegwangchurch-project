@@ -5,6 +5,7 @@
 - 홈 검색 제목·설명에 서울 금천구 독산동 및 예배/설교/주보/새가족 안내를 명시. Church/WebSite 구조화 데이터를 고유 ID로 연결하고 공개 좌표를 반영. 사이트맵 정적 페이지에 매 요청 현재 시각을 lastmod로 내보내던 부정확한 표시를 제거했다.
 - 새가족 안내에 보이는 질문·답변을 추가. 주소·전화·예배시간은 기존 관리자 데이터에서 읽으며 비공개 회원 정보는 사용하지 않는다. AI 인용이나 검색 순위, FAQ 검색 특수표시를 보장하지 않는다.
 - 운영 사전 점검: 홈/robots.txt/sitemap.xml HTTP 200, canonical https://daegwangchurch.kr, 사이트맵 약 1,982개 URL. 홈페이지 type-check/lint 통과. 현재 작업 배포 완료 여부는 다음 기록 확인.
+- 배포 dpl_GMo1FEifEPEnQc9yosfGouSBHauM 운영 승격 완료. Yeti 사용자 에이전트로 홈 head의 네이버 확인 태그, 새 검색 제목, Church/WebSite JSON-LD, 새가족 질문·답변, robots 및 1,982개 sitemap URL/정적 lastmod 제거를 HTTP 200으로 검증했다. 사용자에게 네이버 소유확인 및 사이트맵 제출을 안내했으며 실제 대시보드 완료 여부는 응답 대기다.
 - 등록 절차: 네이버 https://searchadvisor.naver.com → 웹마스터 도구 → https://daegwangchurch.kr → 소유확인 → 요청/사이트맵 제출에 https://daegwangchurch.kr/sitemap.xml. 구글 https://search.google.com/search-console → URL 접두어 https://daegwangchurch.kr/ → HTML 태그 확인 → Sitemaps에 sitemap.xml → 홈 URL 검사/색인 생성 요청. 실제 대시보드 소유 확인/제출은 아직 미완료.
 - 다음 https://register.search.daum.net/index.daum → 사이트 검색 신규등록. 이름 ‘대광교회’, URL https://daegwangchurch.kr/, 소개 ‘서울 금천구 독산동 대한예수교장로회 대광교회. 예배시간, 설교, 주보, 새가족 안내.’를 사용하고 등록자 정보와 약관은 사용자가 확인한다. 카카오맵 지역정보는 https://mystore.kakao.com/ 에서 별도 확인/등록하며 기존 장소를 먼저 검색해 중복 생성을 피한다. 기존 홈페이지/유튜브·지도 공식 링크도 새 도메인으로 통일할 필요가 있다.
 - 공식 근거: https://searchadvisor.naver.com/guide/seo-basic-intro , https://support.google.com/webmasters/answer/9008080?hl=ko , https://developers.google.com/search/docs/appearance/ai-features , https://register.search.daum.net/index.daum . GEO/AEO용 특수 파일이나 숨김 키워드 대신 수집 가능성·공개 정보의 명료함을 개선했다.
