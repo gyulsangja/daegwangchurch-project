@@ -1,0 +1,9 @@
+import { SectionNavigation } from '../../../components/site/section-navigation';
+import { aboutNavigation } from '@daegwang/contracts/content/navigation';
+
+export default function OfferingLayout({ children }: { children: React.ReactNode }) {
+  return <>
+    <SectionNavigation label="교회소개 하위 메뉴" items={aboutNavigation} />
+    {children}
+  </>;
+}
