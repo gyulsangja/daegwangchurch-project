@@ -1,4 +1,9 @@
 # 작업 인수인계
+## Google HTML 파일 소유 확인 준비 (2026-10-18)
+
+- 사용자가 내려받은 google8dcde8b9ac77055d.html 원본을 apps/website/public에 바이트 변경 없이 복사했고 SHA256 일치를 확인했다. 공개 소유 확인 파일이며 인증 후에도 삭제하지 않는다.
+- Google은 메타 태그 대신 파일 방식으로 진행한다. URL https://daegwangchurch.kr/google8dcde8b9ac77055d.html . 배포 dpl_fVsF612D2eSUY7tZKXch2ibCDqKb 검증 후 사용자에게 Search Console 확인 버튼을 안내할 것. 파일 배포와 Google 대시보드 확인 완료는 구분한다.
+
 ## 검색 등록 및 SEO·AI 검색 준비 (2026-10-18)
 
 - 사용자는 네이버/구글 모두 미등록으로 확인. 네이버 HTML 소유확인 태그를 제공하여 공개 메타 태그에 반영했다. 구글 태그는 대기 중. GOOGLE_SITE_VERIFICATION / NAVER_SITE_VERIFICATION / BING_SITE_VERIFICATION 환경변수도 지원한다(공개 확인값).
