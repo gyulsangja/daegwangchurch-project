@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, BookOpenText, CalendarDays, MapPin, Play, HeartHandshake } from 'lucide-react';
 import { HomeHero } from '../../components/site/home-hero';
@@ -10,6 +11,14 @@ import { getPublishedNotices } from '@daegwang/server/features/notices/queries';
 import { getPublishedBulletins } from '@daegwang/server/features/bulletins/queries';
 import { getPublishedEvents } from '@daegwang/server/features/events/queries';
 import { worshipTypeLabels } from '@daegwang/contracts/features/worship/schema';
+import { getSiteSettings } from '@daegwang/server/features/settings/queries';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  const title = `${settings.siteName} | 서울 금천구 독산동 · 예배와 말씀`;
+  const description = `서울 금천구 독산동 대한예수교장로회 ${settings.siteName} 공식 홈페이지입니다. 예배시간, 오시는 길, 주일 설교, 첫시간 주님께 묵상, 주보와 새가족 안내를 확인하세요.`;
+  return { title: { absolute: title }, description, alternates: { canonical: '/' }, openGraph: { type: 'website', locale: 'ko_KR', siteName: settings.siteName, title, description, url: '/' }, twitter: { card: 'summary', title, description } };
+}
 
 function More({ href, children }: { href: string; children: React.ReactNode }) {
   return <Link href={href} className="home-more">{children}<ArrowRight aria-hidden="true" className="size-4" /></Link>;

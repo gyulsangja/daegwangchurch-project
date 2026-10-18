@@ -46,9 +46,9 @@ async function getDynamicEntries(): Promise<DynamicEntry[]> {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [settings, dynamicEntries] = await Promise.all([getSiteSettings(), getDynamicEntries()]);
   const baseUrl = (settings.canonicalUrl || publicEnv.NEXT_PUBLIC_SITE_URL).replace(/\/$/, "");
-  const now = new Date();
   const entries = [
-    ...staticRoutes.map((path) => ({ path, updatedAt: now, priority: path === "" ? 1 : 0.7, changeFrequency: path === "" ? "weekly" as const : "monthly" as const })),
+    // Static pages have no reliable content timestamp; never claim every crawl is an update.
+    ...staticRoutes.map((path) => ({ path, updatedAt: undefined, priority: path === "" ? 1 : 0.7, changeFrequency: path === "" ? "weekly" as const : "monthly" as const })),
     ...dynamicEntries.map((entry) => ({ ...entry, priority: 0.6, changeFrequency: "monthly" as const })),
   ];
   const unique = new Map(entries.map((entry) => [entry.path, entry]));

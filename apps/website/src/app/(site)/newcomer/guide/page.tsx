@@ -5,6 +5,8 @@ import Link from "next/link";
 import { ContentShell, SectionTitle } from "../../../../components/site/content-shell";
 import { PageHero } from "../../../../components/site/page-hero";
 import { Button } from "@daegwang/web-ui/components/ui/button";
+import { getSiteSettings } from '@daegwang/server/features/settings/queries';
+import { getPublicSchedules } from '@daegwang/server/features/schedules/queries';
 
 export const metadata: Metadata = {
   title: "처음 오셨나요?",
@@ -39,7 +41,14 @@ const guideSteps = [
   },
 ];
 
-export default function NewcomerGuidePage() {
+export default async function NewcomerGuidePage() {
+  const [settings, schedules] = await Promise.all([getSiteSettings(), getPublicSchedules()]);
+  const questions = [
+    { question: '대광교회는 어디에 있나요?', answer: settings.address ? `${settings.siteName} 주소는 ${[settings.address, settings.addressDetail].filter(Boolean).join(' ')}입니다. 교통편과 지도는 오시는 길에서 확인하실 수 있습니다.` : '오시는 길에서 교회 위치와 방문 안내를 확인해 주세요.', href: '/location', label: '오시는 길' },
+    { question: '예배는 언제 드리나요?', answer: schedules.length ? schedules.map(item => `${item.name}: ${item.dayLabel} ${item.timeLabel}${item.location ? ` (${item.location})` : ''}`).join(' / ') : '예배안내에서 최신 예배시간을 확인해 주세요.', href: '/about/worship-info', label: '예배시간 자세히 보기' },
+    { question: '설교와 주보는 회원가입 없이 볼 수 있나요?', answer: '홈페이지의 공개된 설교 영상과 주보는 회원가입 없이 보실 수 있습니다. 주일 설교는 예배 메뉴에서, 주보는 교회소식 메뉴에서 확인하세요.', href: '/news/bulletins', label: '이번 주 주보' },
+    { question: '처음 방문하기 전에 문의하려면 어떻게 하나요?', answer: settings.phone ? `교회 대표전화 ${settings.phone} 또는 홈페이지 문의하기를 이용해 주세요.` : '홈페이지 문의하기에서 방문과 교회 생활에 관한 질문을 남겨 주세요.', href: '/newcomer/contact', label: '문의하기' },
+  ];
   return (
     <>
       <PageHero
@@ -70,6 +79,16 @@ export default function NewcomerGuidePage() {
             </li>
           ))}
         </ol>
+        <section className="mt-12" aria-labelledby="visitor-questions">
+          <h2 id="visitor-questions" className="text-2xl font-bold">처음 방문할 때 자주 묻는 질문</h2>
+          <div className="mt-5 divide-y divide-border">
+            {questions.map(item => <details key={item.question} className="py-4">
+              <summary className="focus-ring cursor-pointer rounded py-2 text-lg font-semibold">{item.question}</summary>
+              <p className="mt-3 whitespace-pre-line leading-7 text-text-secondary">{item.answer}</p>
+              <Link href={item.href} className="focus-ring mt-2 inline-flex min-h-11 items-center rounded font-semibold text-primary-700">{item.label} →</Link>
+            </details>)}
+          </div>
+        </section>
         <aside className="church-welcome mt-12 p-8 md:p-12">
           <p className="church-eyebrow">첫 방문을 함께 준비하겠습니다</p>
           <h2 className="mt-3 text-3xl leading-relaxed">궁금한 점이 있으신가요?</h2>
