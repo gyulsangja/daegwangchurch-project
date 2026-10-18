@@ -6,6 +6,7 @@
 - 웹 요청 처리 운영자는 입력 이메일/전화만 믿고 삭제하지 말고 기존 계정의 연락 수단으로 소유 확인 후 관리자 회원관리의 삭제 흐름을 이용한다. 실제 사용자 계정 삭제 시험은 하지 않았다. 삭제 처리 기간·영수증/백업 보관 확정 및 실접수 확인은 아직 남음.
 - docs/ios-release-plan.md에 Apple 가입·D-U-N-S·연회비 면제·Windows/EAS·APNs·TestFlight·Apple 로그인/토큰 폐기·iPad·헌금 심사 검토를 정리했다. Expo iOS export 1,487모듈 성공. IPA 서명·Apple 자격 생성·실기기/스토어 제출은 하지 않았다.
 - 홈페이지 type-check/lint 통과. 신규 요청 경로는 운영 배포 및 공개 응답 검증 후 아래에 기록한다.
+- 운영 배포 dpl_2Y759JdVeQgPU5Pe5R8dsiYZgsjm 완료. /account-deletion 및 /privacy HTTP 200, 개인정보 안내의 삭제 링크 확인. 실제 Next 폼 action 필드를 사용한 잘못된 요청(type INVALID/필수 정보 미입력)이 입력 오류로 반환되고 리다이렉트되지 않음을 확인했다. 유효한 운영 문의 생성·계정 삭제는 시험하지 않았다. 초기 dpl_5vYVupVKXRF14HvwEoeJy6pCxRFA 대신 방문 전용 안내까지 수정한 최종 배포만 운영 승격했다.
 
 ## Google Play 정식 출시 준비 시작 (2026-10-18)
 
