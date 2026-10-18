@@ -3,6 +3,7 @@
 
 - 사용자가 내려받은 google8dcde8b9ac77055d.html 원본을 apps/website/public에 바이트 변경 없이 복사했고 SHA256 일치를 확인했다. 공개 소유 확인 파일이며 인증 후에도 삭제하지 않는다.
 - Google은 메타 태그 대신 파일 방식으로 진행한다. URL https://daegwangchurch.kr/google8dcde8b9ac77055d.html . 배포 dpl_fVsF612D2eSUY7tZKXch2ibCDqKb 검증 후 사용자에게 Search Console 확인 버튼을 안내할 것. 파일 배포와 Google 대시보드 확인 완료는 구분한다.
+- 운영 배포 완료. 도메인 전환 직후 404 후 재검증에서 리다이렉트 없이 HTTP 200 및 원본과 바이트 일치를 확인했다. 사용자 Search Console의 ‘확인’ 클릭과 사이트맵 제출은 아직 응답 대기.
 
 ## 검색 등록 및 SEO·AI 검색 준비 (2026-10-18)
 
