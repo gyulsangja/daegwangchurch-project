@@ -3,8 +3,20 @@ import type { PrismaClient } from '@daegwang/database/generated/client';
 import { careCreateSchema, careSchema, careStatusSchema } from '@daegwang/contracts/features/member/extras';
 import { MemberRecordConflict, MemberRecordNotFound } from './record-service';
 
-export const carePolicySchema = z.object({ version: z.string().min(1).max(100), notice: z.string().min(1).max(10000), retentionDays: z.number().int().min(1).max(3650), adminIds: z.array(z.string().min(1)).min(1).max(20) }).strict();
+export const carePolicySchema = z.object({ version: z.string().min(1).max(100), notice: z.string().min(1).max(10000), retentionDays: z.number().int().min(1).max(3650), retentionYears: z.number().int().min(1).max(10).optional(), adminIds: z.array(z.string().min(1)).min(1).max(20) }).strict();
 export type CarePolicy = z.infer<typeof carePolicySchema>;
+export const careRetentionLabel = (policy: CarePolicy) => policy.retentionYears ? `${policy.retentionYears}년` : `${policy.retentionDays}일`;
+export function careExpiry(receivedAt: Date, policy: CarePolicy) {
+  if (!policy.retentionYears) return new Date(receivedAt.getTime() + policy.retentionDays * 86400000);
+  // Calendar years, including leap days. Feb 29 expires on Feb 28 in a non-leap year.
+  // Church dates use Asia/Seoul (UTC+09:00, no DST).
+  const koreaOffset = 9 * 60 * 60 * 1000;
+  const expires = new Date(receivedAt.getTime() + koreaOffset);
+  const month = expires.getUTCMonth();
+  expires.setUTCFullYear(expires.getUTCFullYear() + policy.retentionYears);
+  if (expires.getUTCMonth() !== month) expires.setUTCDate(0);
+  return new Date(expires.getTime() - koreaOffset);
+}
 type Db = Pick<PrismaClient, 'memberCareRequest'>;
 const dto = (row: { id: string; content: unknown; status: string; version: number; createdAt: Date; updatedAt: Date }) => careSchema.parse({ ...row, createdAt: row.createdAt.toISOString(), updatedAt: row.updatedAt.toISOString() });
 export function createCareService(db: Db, identity: string, approvedPolicy: CarePolicy, now = () => new Date()) {
@@ -16,7 +28,7 @@ export function createCareService(db: Db, identity: string, approvedPolicy: Care
     async create(input: unknown) {
       const value = careCreateSchema.parse(input);
       if (value.policyVersion !== policy.version) throw new MemberRecordConflict();
-      const row = await db.memberCareRequest.upsert({ where: { ownerId_requestKey: { ownerId, requestKey: value.requestKey } }, create: { ownerId, requestKey: value.requestKey, content: value.content, policyVersion: policy.version, consentedAt: now(), expiresAt: new Date(now().getTime() + policy.retentionDays * 86400000) }, update: {} });
+      const row = await db.memberCareRequest.upsert({ where: { ownerId_requestKey: { ownerId, requestKey: value.requestKey } }, create: { ownerId, requestKey: value.requestKey, content: value.content, policyVersion: policy.version, consentedAt: now(), expiresAt: careExpiry(now(), policy) }, update: {} });
       if (row.expiresAt <= now()) throw new MemberRecordNotFound();
       // A retry key cannot be used to silently submit different sensitive contents.
       if (JSON.stringify(row.content) !== JSON.stringify(value.content)) {

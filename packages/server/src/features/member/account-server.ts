@@ -9,20 +9,21 @@ import { accountPolicySchema, createAccountService, AccountOperationError } from
 import { memberIdentity } from './record-server';
 import { deletionConfig } from './deletion-config';
 import { requestChurchOnSignup } from './church-membership';
+import { withAgePolicy } from './age-policy';
 
 export function configuredAccountPolicy() {
   // Enabling requires reviewed policies, configured SMTP/OTP templates and a server-only salt.
   if (process.env.APP_ACCOUNT_ENABLED !== 'true' || process.env.APP_ACCOUNT_EMAIL_READY !== 'true' || (process.env.APP_ACCOUNT_RATE_LIMIT_SALT?.length ?? 0) < 32) return null;
-  try { return accountPolicySchema.parse(JSON.parse(process.env.APP_ACCOUNT_POLICY ?? '')); } catch { return null; }
+  try { return withAgePolicy(accountPolicySchema.parse(JSON.parse(process.env.APP_ACCOUNT_POLICY ?? ''))); } catch { return null; }
 }
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
 export function configuredRegistrationPolicy() {
   if (process.env.APP_ACCOUNT_SIMPLE_SIGNUP !== 'true') return deletionConfig(process.env) ? configuredAccountPolicy() : null;
   if ((process.env.APP_ACCOUNT_RATE_LIMIT_SALT?.length ?? 0) < 32) return null;
   if (process.env.APP_ACCOUNT_POLICY) {
-    try { return accountPolicySchema.parse(JSON.parse(process.env.APP_ACCOUNT_POLICY)); } catch { return null; }
+    try { return withAgePolicy(accountPolicySchema.parse(JSON.parse(process.env.APP_ACCOUNT_POLICY))); } catch { return null; }
   }
-  return { version: 'simple-signup-v1', terms: '', privacy: '', deletion: '', care: '' };
+  return withAgePolicy({ version: 'simple-signup-v1', terms: '', privacy: '', deletion: '', care: '' });
 }
 export async function accountHandler(request: Request, operation: string) {
   const headers = new Headers({ 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', Vary: 'Origin' });
@@ -41,6 +42,7 @@ export async function accountHandler(request: Request, operation: string) {
     const chunks: Uint8Array[] = []; let length = 0;
     while (true) { const part = await reader.read(); if (part.done) break; length += part.value.byteLength; if (length > 16384) { await reader.cancel(); return reply(413, '입력 내용이 너무 깁니다.'); } chunks.push(part.value); }
     let input: unknown; try { input = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { return reply(422, '입력 형식을 확인해 주세요.'); }
+    if (operation === 'signup' && !z.object({ ageConfirmed: z.literal(true) }).safeParse(input).success) return reply(422, '만 14세 이상 확인이 필요합니다. 최신 앱으로 업데이트한 뒤 가입해 주세요.');
     const { email } = z.object({ email: z.email().max(254) }).parse(input);
     if (operation === 'signup' && z.object({ churchRequest: z.unknown().optional() }).parse(input).churchRequest && process.env.APP_CHURCH_MEMBERSHIP_ENABLED !== 'true') return reply(503, '교인 확인 요청을 준비하고 있습니다.');
     const emailHash = createHmac('sha256', process.env.APP_ACCOUNT_RATE_LIMIT_SALT!).update(email.trim().toLowerCase()).digest('hex');
@@ -57,7 +59,7 @@ export async function accountHandler(request: Request, operation: string) {
       auth: () => createClient(url, publishableKey, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }).auth,
       async rememberConsent(ownerId, _email, displayName, accepted, churchRequest) {
         if (churchRequest && process.env.APP_CHURCH_MEMBERSHIP_ENABLED !== 'true') throw new AccountOperationError(503);
-        const data = { emailHash, displayName, policyVersion: accepted.version, termsHash: hash(accepted.terms), privacyHash: hash(accepted.privacy), policySnapshot: { terms: accepted.terms, privacy: accepted.privacy, ...(churchRequest ? { churchRequest } : {}) }, consentedAt: now, expiresAt: new Date(now.getTime() + 86400000) };
+        const data = { emailHash, displayName, policyVersion: accepted.version, termsHash: hash(accepted.terms), privacyHash: hash(accepted.privacy), policySnapshot: { ageConfirmed: true, terms: accepted.terms, privacy: accepted.privacy, ...(churchRequest ? { churchRequest } : {}) }, consentedAt: now, expiresAt: new Date(now.getTime() + 86400000) };
         await db.pendingRegistration.upsert({ where: { ownerId }, create: { ownerId, ...data }, update: data });
       },
       async confirmConsent(ownerId) {
@@ -66,9 +68,9 @@ export async function accountHandler(request: Request, operation: string) {
           if (await tx.memberDeletion.findUnique({ where: { ownerId } })) throw new AccountOperationError(409);
           const consent = await tx.pendingRegistration.findFirst({ where: { ownerId, emailHash, expiresAt: { gt: new Date() } } });
           if (!consent) throw new AccountOperationError(409);
-          const snapshot = z.object({ terms: z.string(), privacy: z.string(), churchRequest: z.unknown().optional() }).parse(consent.policySnapshot);
+          const snapshot = z.object({ ageConfirmed: z.literal(true).optional(), terms: z.string(), privacy: z.string(), churchRequest: z.unknown().optional() }).parse(consent.policySnapshot);
           const churchRequest = snapshot.churchRequest;
-          consent.policySnapshot = { terms: snapshot.terms, privacy: snapshot.privacy };
+          consent.policySnapshot = { terms: snapshot.terms, privacy: snapshot.privacy, ...(snapshot.ageConfirmed ? { ageConfirmed: true } : {}) };
           const acceptedSnapshot = snapshot.terms || snapshot.privacy ? { policy: consent.policySnapshot, termsHash: consent.termsHash, privacyHash: consent.privacyHash } : Prisma.DbNull;
           await tx.memberProfile.upsert({ where: { ownerId }, create: { ownerId, displayName: consent.displayName, consentVersion: snapshot.terms || snapshot.privacy ? consent.policyVersion : null, consentedAt: snapshot.terms || snapshot.privacy ? consent.consentedAt : null, consentSnapshot: acceptedSnapshot }, update: {} });
           await tx.memberProfile.updateMany({ where: { ownerId, consentVersion: null }, data: { consentVersion: snapshot.terms || snapshot.privacy ? consent.policyVersion : null, consentedAt: snapshot.terms || snapshot.privacy ? consent.consentedAt : null, consentSnapshot: acceptedSnapshot, version: { increment: 1 } } });

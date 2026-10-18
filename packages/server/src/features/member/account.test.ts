@@ -18,9 +18,11 @@ function fixture(options: { error?: { status: number }; sessionOnSignup?: boolea
   const service = createAccountService({ auth: () => auth, policy: options.emptyPolicy ? { ...policy, terms: '', privacy: '' } : policy, immediateSignup: options.immediateSignup, rememberConsent: async () => { remembered++; }, confirmConsent: async () => { confirmed++; } });
   return { service, calls, counts: () => ({ remembered, confirmed }) };
 }
-const signup = { email: user.email, password: 'test-password-only', confirm: 'test-password-only', displayName: '', policyVersion: policy.version, consent: true };
+const signup = { email: user.email, password: 'test-password-only', confirm: 'test-password-only', displayName: '', policyVersion: policy.version, consent: true, ageConfirmed: true };
 test('real account adapter validates consent before provider and never records duplicate signup consent', async () => {
   const f = fixture();
+  await assert.rejects(f.service('signup', { ...signup, ageConfirmed: false }));
+  await assert.rejects(f.service('signup', { ...signup, ageConfirmed: undefined }));
   await assert.rejects(f.service('signup', { ...signup, consent: false }));
   await assert.rejects(f.service('signup', { ...signup, policyVersion: 'old' }), (e: unknown) => e instanceof AccountOperationError && e.status === 409);
   assert.deepEqual(f.calls, []);

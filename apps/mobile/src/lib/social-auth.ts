@@ -7,7 +7,7 @@ import { accountClient } from '../hooks/use-member-options';
 import { prepareOAuthCrypto } from './oauth-crypto';
 
 let active = false;
-export async function authenticateSocial(provider: 'google' | 'kakao', input: { displayName: string; consent: true; policyVersion: string; churchRequest?: ChurchDetails }) {
+export async function authenticateSocial(provider: 'google' | 'kakao', input: { displayName: string; consent: true; ageConfirmed: true; policyVersion: string; churchRequest?: ChurchDetails }) {
   if (active) throw new Error('진행 중인 로그인을 먼저 완료해 주세요.');
   active = true;
   let accepted = false;

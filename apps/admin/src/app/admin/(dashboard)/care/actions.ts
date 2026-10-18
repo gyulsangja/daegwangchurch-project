@@ -15,10 +15,11 @@ export async function saveCareSettingsAction(_state: { message: string; ok: bool
   const admin = await requireSuperAdmin();
   try {
     await saveCareSettings(getPrisma(), admin.id, { enabled: form.get('enabled') === 'on', policy: {
-      version: crypto.randomUUID(), retentionDays: Number(form.get('retentionDays')),
+      version: crypto.randomUUID(), retentionDays: form.get('retentionUnit') === 'years' ? Number(form.get('retentionDays')) * 365 : Number(form.get('retentionDays')),
+      ...(form.get('retentionUnit') === 'years' ? { retentionYears: Number(form.get('retentionDays')) } : {}),
       notice: String(form.get('notice') ?? '').trim(), adminIds: [...new Set(form.getAll('adminIds').map(String))],
     } });
     revalidatePath('/admin/care');
     return { ok: true, message: '접수 설정을 저장했습니다. 앱에서 상담·심방 화면을 다시 열면 반영됩니다.' };
-  } catch { return { ok: false, message: '활성 담당자 1명 이상, 보관 기간(1~3650일), 동의 안내를 확인해 주세요.' }; }
+  } catch { return { ok: false, message: '활성 담당자 1명 이상, 보관 기간(1~3650일 또는 1~10년), 동의 안내를 확인해 주세요.' }; }
 }

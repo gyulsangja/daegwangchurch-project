@@ -2,7 +2,7 @@ import { AdminDialog } from '../../../../components/admin/admin-dialog';
 import Link from 'next/link';
 import { getPrisma } from '@daegwang/database/prisma';
 import { readCareSettings } from '@daegwang/server/features/member/care-settings';
-import { createCareAdminService } from '@daegwang/server/features/member/care-service';
+import { createCareAdminService, careRetentionLabel } from '@daegwang/server/features/member/care-service';
 import { careStatusLabels } from '@daegwang/contracts/features/member/extras';
 import { requireAdmin } from '../../../../lib/auth/permissions';
 import { OperationForm } from '../../../../components/admin/operation-form';
@@ -17,12 +17,13 @@ export default async function CarePage({ searchParams }: { searchParams: Promise
   const filtered = rows.filter(row => (status === 'ALL' || (status === 'OPEN' ? transitions[row.status].length > 0 : row.status === status)) && `${row.content.name} ${row.content.phone}`.includes(q.trim()));
   return <div className="mx-auto max-w-4xl space-y-6">
     <header><h1 className="text-3xl font-extrabold">상담·심방</h1><p className="mt-2 text-text-secondary">앱에서 받은 요청을 담당자가 확인하고 연락해 일정을 정합니다.</p></header>
-    <p role="status" className="rounded-xl border border-border bg-white p-4"><strong>{settings?.enabled ? '앱 접수 중' : '새 요청 접수 중지'}</strong> · {settings ? `접수일로부터 ${settings.policy.retentionDays}일 보관` : '담당자와 접수 설정을 저장해 주세요.'}</p>
+    <p role="status" className="rounded-xl border border-border bg-white p-4"><strong>{settings?.enabled ? '앱 접수 중' : '새 요청 접수 중지'}</strong> · {settings ? `접수일로부터 ${careRetentionLabel(settings.policy)} 보관` : '담당자와 접수 설정을 저장해 주세요.'}</p>
     {superAdmin && <AdminDialog  title={<>접수 설정 · 담당자와 보관 기간</>} trigger={<>접수 설정 · 담당자와 보관 기간</>}>
       <OperationForm key={settings?.policy.version ?? 'new'} action={saveCareSettingsAction} submit="접수 설정 저장">
         <label className="flex items-center gap-3"><input type="checkbox" name="enabled" defaultChecked={settings?.enabled ?? false} className="!w-5" />앱에서 새 상담·심방 요청 받기</label>
         <fieldset><legend className="mb-2 font-bold">요청을 열람하고 처리할 담당자</legend><p className="mb-2 text-sm text-text-secondary">최고관리자도 담당자로 지정해야 요청 내용을 볼 수 있습니다.</p>{admins.map(person => <label key={person.id} className="flex min-h-11 items-center gap-3"><input type="checkbox" name="adminIds" value={person.id} defaultChecked={settings?.policy.adminIds.includes(person.id)} className="!w-5" />{person.displayName}</label>)}</fieldset>
-        <label className="block">접수일로부터 보관할 기간 (일)<input type="number" name="retentionDays" required min={1} max={3650} defaultValue={settings?.policy.retentionDays ?? 90} /></label>
+        <label className="block">접수일로부터 보관할 기간<input type="number" name="retentionDays" required min={1} max={3650} defaultValue={settings?.policy.retentionYears ?? settings?.policy.retentionDays ?? 5} /></label>
+        <label className="block">기간 단위<select name="retentionUnit" defaultValue={!settings || settings.policy.retentionYears ? 'years' : 'days'}><option value="years">년 · 윤년을 포함한 달력 기준 (최대 10년)</option><option value="days">일 (최대 3650일)</option></select></label>
         <label className="block">앱에 표시할 개인정보 전달 동의 안내<textarea name="notice" rows={5} required maxLength={10000} defaultValue={settings?.policy.notice ?? '상담·심방을 위해 이름, 연락처, 희망 시간과 요청 내용을 지정된 교회 담당자에게 전달합니다.'} /></label>
         <p className="text-sm text-text-secondary">보관 기간은 앱 동의 안내에 자동으로 함께 표시됩니다. 기간 변경은 새 요청부터 적용하며 기존 요청의 만료일은 유지됩니다. 접수를 중지해도 기존 요청은 처리할 수 있습니다. 개인 묵상·기도 기록은 열람하지 않습니다.</p>
       </OperationForm>

@@ -17,7 +17,7 @@ import { sessionStorage } from '../lib/session-storage';
 
 const sessionKey = 'daegwang-member-session-v1';
 const auth = createMemberAuth(process.env.EXPO_PUBLIC_SUPABASE_URL, process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY, { storage: sessionStorage, storageKey: sessionKey, useProcessLock: Platform.OS !== 'web' });
-type SessionContext = { session: Session | null; configured: boolean; client: ReturnType<typeof createMemberClient>; bookmarks: ReturnType<typeof createBookmarkClient>; schedules: ReturnType<typeof createScheduleClient>; extras: ReturnType<typeof createMemberExtrasClient>; push: ReturnType<typeof createPushClient>; signIn: (email: string, password: string) => Promise<void>; signInSocial: (provider: 'google' | 'kakao', input: { displayName: string; consent: true; policyVersion: string; churchRequest?: ChurchDetails }) => Promise<boolean>; signOut: () => Promise<void> };
+type SessionContext = { session: Session | null; configured: boolean; client: ReturnType<typeof createMemberClient>; bookmarks: ReturnType<typeof createBookmarkClient>; schedules: ReturnType<typeof createScheduleClient>; extras: ReturnType<typeof createMemberExtrasClient>; push: ReturnType<typeof createPushClient>; signIn: (email: string, password: string) => Promise<void>; signInSocial: (provider: 'google' | 'kakao', input: { displayName: string; consent: true; ageConfirmed: true; policyVersion: string; churchRequest?: ChurchDetails }) => Promise<boolean>; signOut: () => Promise<void> };
 const Context = createContext<SessionContext | null>(null);
 export function MemberSessionProvider({ children }: PropsWithChildren) {
   const [restoring, setRestoring] = useState(!!auth);

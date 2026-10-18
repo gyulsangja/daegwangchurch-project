@@ -31,7 +31,7 @@ export async function socialConsentHandler(request: Request) {
         await getPrisma().$transaction(async tx => {
           await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${ownerId}::text, 0))`;
           if (await tx.memberDeletion.findUnique({ where: { ownerId } })) throw new MemberRecordConflict();
-          const consent = { consentVersion: policy!.version, consentedAt: new Date(), consentSnapshot: { terms: policy!.terms, privacy: policy!.privacy } };
+          const consent = { consentVersion: policy!.version, consentedAt: new Date(), consentSnapshot: { ageConfirmed: true, terms: policy!.terms, privacy: policy!.privacy } };
           await tx.memberProfile.upsert({ where: { ownerId }, create: { ownerId, displayName: value.displayName, ...consent }, update: {} });
           await tx.memberProfile.updateMany({ where: { ownerId, consentVersion: { not: policy!.version } }, data: { ...consent, version: { increment: 1 } } });
           await tx.memberProfile.updateMany({ where: { ownerId, consentVersion: null }, data: { displayName: value.displayName, ...consent, version: { increment: 1 } } });

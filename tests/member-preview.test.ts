@@ -69,7 +69,7 @@ test('notification read state and preferences are owner scoped and versions prev
   await assert.rejects(a.savePreferences({ ...defaultPreferences, devotionalTime: '25:99' }));
 });
 test('signup stays unverified until a valid one-time code; real addresses are refused', async () => {
-  const s = setup(); const input = { email: 'new@example.invalid', password: 'Test-only-123', confirm: 'Test-only-123', displayName: '', consent: true as const, policyVersion: previewPolicy.version };
+  const s = setup(); const input = { email: 'new@example.invalid', password: 'Test-only-123', confirm: 'Test-only-123', displayName: '', consent: true as const, ageConfirmed: true as const, policyVersion: previewPolicy.version };
   await assert.rejects(s.account.signup({ ...input, email: 'real@example.com' }));
   await s.account.signup(input); assert.equal(await s.login(input.email, input.password), undefined);
   await assert.rejects(s.account.verify(input.email, '000000')); await s.account.verify(input.email, '123456');
