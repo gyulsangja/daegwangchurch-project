@@ -7,6 +7,8 @@
 - 앱 정책에 연령 기준·담당자·처리 항목·삭제 경로 안내를 보완하고 버전을 변경. 개인정보 초안의 국외 이전·수탁 법인·백업/로그 기간·민감정보 별도 동의는 아직 미확정이며 최종 스토어 적합성 완료로 간주하지 않는다.
 - 기존 APK에 연령 확인 필드가 없어 새 서버 배포 뒤 기존 앱의 신규 가입은 업데이트가 필요하다. 기존 로그인 자체는 변경하지 않는다. 새 preview APK와 관리자/API를 함께 제공해야 한다.
 - 전체 type-check, 세 앱 lint 통과. 가입/복구·소셜·상담 윤년/기간 및 미리보기 회귀 테스트 20개 통과. 운영 실제 가입·계정 삭제·상담 요청 생성은 시험하지 않았다.
+- 배포 완료: 관리자/API dpl_55xD9AceuxhoWnQPgPPnKgo3KHLZ, 홈페이지 최종 dpl_yeKN4wMi2S66tBHqvKjYNLGfx4RL. 홈페이지 개인정보 안내 담당자·전화·14세·5년·삭제 경로 확인, 관리자/API 10경로 및 연령 미확인/false 요청 422 확인. 개인정보 선행 홈페이지 배포 dpl_9y8nnWecmuWy5NqV2v9wiwUQGTPM은 최종 다운로드 반영 배포로 대체됐다.
+- Android preview APK 9623925f-2b45-451c-9414-8de2f8f1fb0d 완료. https://daegwangchurch.kr/app 에서 새 파일로 업데이트. 직접 링크 https://expo.dev/artifacts/eas/4eQtlZ6lqg7ri-S1il57LADqp6rUGQZdYJ919k_hz-0.apk . 다운로드 응답/크기 및 홈페이지 링크 검증. 실제 휴대폰 설치·가입 확인은 별도 필요. Play AAB나 iOS IPA/스토어 제출은 하지 않았다.
 
 ## 개인정보 초안과 웹 계정 삭제 및 iOS 준비 (2026-10-18)
 
