@@ -2,7 +2,7 @@
 ## 헌금안내 공통 제목 영역 (2026-10-18)
 
 - 헌금안내에 다른 서브페이지와 동일한 PageHero를 추가했다. 교회소개 표제·헌금 안내 제목·소개 문장을 표시하고 본문 중복 제목은 제거했다. 앞서 추가한 2차 메뉴와 계좌 정보는 유지한다.
-- 홈페이지 type-check 및 lint 통과. Vercel 배포 dpl_DhmN9K8cfxEZULuh1WZPnPUSouoj 운영 검증 후 완료 기록을 갱신한다.
+- 홈페이지 type-check 및 lint 통과. Vercel 배포 dpl_DhmN9K8cfxEZULuh1WZPnPUSouoj 운영 승격 완료. 주요 경로 4개 검증 및 https://daegwangchurch.kr/offering HTTP 200, 공통 제목 영역, h1 1개, 2차 메뉴 현재 페이지 표시 확인.
 
 ## 시간 선택 APK 및 헌금안내 운영 배포 완료 (2026-10-18)
 
