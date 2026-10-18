@@ -1,4 +1,11 @@
 # 작업 인수인계
+## 아이폰 홈페이지 QR 및 홈 화면 추가 안내 (2026-10-19)
+
+- 사용자가 Apple 개발자 계정 없이 홈페이지 QR·홈 화면 추가 안내부터 배포하는 대안을 선택했다. iOS 설치 앱/IPA/TestFlight 배포가 아니며 개인 묵상·기도 기록과 푸시는 제공하지 않는다는 점을 안내한다.
+- /app에서 Android APK와 아이폰 홈페이지 바로가기를 구분하고 아이폰 전용 QR을 추가. QR 목적지는 https://daegwangchurch.kr/app/iphone . scripts/generate-app-qr.mjs로 기존 공통 QR과 함께 재생성 가능.
+- /app/iphone에 Safari → 홈페이지 첫 화면 열기 → 공유 → 홈 화면에 추가 절차를 제공한다. 안내 페이지 자체를 홈 화면에 저장하지 않도록 설명. 기존 앱의 교회 아이콘 파일을 apple-icon.png로 재사용하여 홈 화면 아이콘 제공. 첫 화면/하단 공통 안내 카드도 두 기종의 이용 방법을 구분했다.
+- iPhone 실제 홈 화면 추가는 사용자 기기에서 확인 필요. 설치 앱은 향후 Apple Developer 등록·서명·기기 또는 TestFlight 배포를 준비해야 한다. 공식 기준: https://support.apple.com/en-mide/guide/iphone/iphea86e5236/27/ios/27 , https://developer.apple.com/documentation/xcode/distributing-your-app-for-beta-testing-and-releases .
+
 ## 가입 연령과 개인정보 운영 기준 확정 (2026-10-18)
 
 - 사용자 확정: 만 14세 미만 가입 불허 / 개인정보 담당자 한상은 성도 / 연락처 기존 교회 전화 02-857-0191 / 상담·심방 신규 요청 5년 보관. iPhone 보유, Apple 개발자 계정 없음.
