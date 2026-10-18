@@ -1,3 +1,4 @@
+import { TimePicker } from './time-picker';
 import { DatePicker } from './date-picker';
 import { useDraftCache } from '../hooks/use-draft-cache';
 import { ReauthAction } from './reauth-action';
@@ -26,7 +27,7 @@ export function ScheduleEditor({ id, date }: { id?: string; date?: string }) {
   async function save() {
     if (pendingSave.current || !content) return;
     const parsed = personalScheduleSchema.safeParse(content);
-    if (!parsed.success) { setError('제목과 날짜·시간을 확인해 주세요. 날짜는 YYYY-MM-DD, 시간은 HH:mm 형식이며 종료는 시작보다 늦어야 합니다.'); return; }
+    if (!parsed.success) { setError('제목과 날짜·시간을 확인해 주세요. 종료 날짜와 시간은 시작보다 늦어야 합니다.'); return; }
     pendingSave.current = true; setBusy(true); setError('');
     try { const row = id ? await schedules.update(id, version, parsed.data) : await schedules.create(parsed.data); cache.clear(); setSavedId(row.id); }
     catch (cause) { setError(cause instanceof Error ? cause.message : '저장하지 못했습니다. 입력 내용은 유지됩니다.'); }
@@ -40,9 +41,9 @@ export function ScheduleEditor({ id, date }: { id?: string; date?: string }) {
     {content && <>{field('일정 제목', content.title, title => setContent({ ...content, title }), 200)}
       <DatePicker label="시작 날짜" value={content.startDate} onChange={startDate => setContent({ ...content, startDate })} disabled={busy} /><DatePicker label="종료 날짜" value={content.endDate} onChange={endDate => setContent({ ...content, endDate })} disabled={busy} />
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48 }}><Text style={styles.title}>종일</Text><Switch accessibilityLabel="종일 일정" value={content.allDay} disabled={busy} onValueChange={allDay => setContent({ ...content, allDay, startTime: allDay ? null : '10:00', endTime: allDay ? null : '11:00' })} /></View>
-      {!content.allDay && <>{field('시작 시간 · 한국 시간', content.startTime ?? '', startTime => setContent({ ...content, startTime }), 5)}{field('종료 시간 · 한국 시간', content.endTime ?? '', endTime => setContent({ ...content, endTime }), 5)}</>}
+      {!content.allDay && <><TimePicker label="시작 시간 · 한국 시간" value={content.startTime ?? '10:00'} disabled={busy} onChange={startTime => setContent({ ...content, startTime })} /><TimePicker label="종료 시간 · 한국 시간" value={content.endTime ?? '11:00'} disabled={busy} onChange={endTime => setContent({ ...content, endTime })} /></>}
       {field('장소 · 선택', content.location, location => setContent({ ...content, location }), 300)}{field('메모 · 선택', content.note, note => setContent({ ...content, note }), 10000, true)}
-      <Card title="알림">푸시 알림은 아직 제공하지 않습니다.</Card>{!!error && <Text accessibilityRole="alert" style={styles.caption}>{error}</Text>}<Action title={busy ? '저장 중' : '일정 저장'} disabled={busy} onPress={() => void save()} />
+      <Card title="알림">알림 설정에서 이 휴대폰의 푸시를 연결하고 ‘내가 만든·저장한 일정’을 켜면 시작 30분 전, 종일 일정은 오전 8시에 알려드립니다.</Card>{!!error && <Text accessibilityRole="alert" style={styles.caption}>{error}</Text>}<Action title={busy ? '저장 중' : '일정 저장'} disabled={busy} onPress={() => void save()} />
     </>}
     <ConfirmDialog visible={!!pending} title="작성을 그만둘까요?" message="저장하지 않은 내용은 사라집니다." confirmLabel="저장하지 않고 나가기" onCancel={() => setPending(null)} onConfirm={() => { const action = pending; cache.clear(); setPending(null); if (action) navigation.dispatch(action); }} />
   </AppScreen>;

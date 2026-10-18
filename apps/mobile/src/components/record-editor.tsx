@@ -58,7 +58,7 @@ export function RecordEditor({ id, kind: kindValue, worshipId, reflectionId, dat
   async function save() {
     if (saving.current || !content) return;
     const parsed = memberRecordInputSchema.safeParse(content);
-    if (!parsed.success) { setError('내용과 날짜를 확인해 주세요. 날짜는 YYYY-MM-DD 형식이며 내용은 20,000자 이내입니다.'); return; }
+    if (!parsed.success) { setError('날짜를 선택하고 내용을 확인해 주세요. 내용은 20,000자 이내로 작성할 수 있습니다.'); return; }
     saving.current = true; setBusy(true); setError('');
     try { const result = editingId ? await client.update(editingId, version, parsed.data) : await client.create(parsed.data); cache.clear(); setSavedId(result.id); }
     catch (cause) { setError(cause instanceof Error ? cause.message : '저장하지 못했습니다. 입력한 내용은 유지됩니다.'); }
