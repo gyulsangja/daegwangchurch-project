@@ -5,6 +5,7 @@
 - /app에서 Android APK와 아이폰 홈페이지 바로가기를 구분하고 아이폰 전용 QR을 추가. QR 목적지는 https://daegwangchurch.kr/app/iphone . scripts/generate-app-qr.mjs로 기존 공통 QR과 함께 재생성 가능.
 - /app/iphone에 Safari → 홈페이지 첫 화면 열기 → 공유 → 홈 화면에 추가 절차를 제공한다. 안내 페이지 자체를 홈 화면에 저장하지 않도록 설명. 기존 앱의 교회 아이콘 파일을 apple-icon.png로 재사용하여 홈 화면 아이콘 제공. 첫 화면/하단 공통 안내 카드도 두 기종의 이용 방법을 구분했다.
 - iPhone 실제 홈 화면 추가는 사용자 기기에서 확인 필요. 설치 앱은 향후 Apple Developer 등록·서명·기기 또는 TestFlight 배포를 준비해야 한다. 공식 기준: https://support.apple.com/en-mide/guide/iphone/iphea86e5236/27/ios/27 , https://developer.apple.com/documentation/xcode/distributing-your-app-for-beta-testing-and-releases .
+- 홈페이지 type-check/lint 통과. Vercel dpl_gixJYzFZmGkB3YYFgdUEQoMWfaJb 운영 승격 완료. /app, /app/iphone, QR SVG 정상 응답과 안내·기존 APK 링크·apple-touch-icon 메타데이터 확인. Git main에 코드 업로드 완료.
 
 ## 가입 연령과 개인정보 운영 기준 확정 (2026-10-18)
 
