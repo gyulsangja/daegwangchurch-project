@@ -24,15 +24,16 @@ export async function submitInquiryAction(
   }
 
   const d = result.data;
+  const deletionRequest = formData.get('returnPath') === '/account-deletion';
   try {
     await getPrisma().inquiry.create({
       data: {
-        type: d.type,
+        type: deletionRequest ? 'GENERAL' : d.type,
         name: d.name,
         phone: d.phone ?? null,
         email: d.email ?? null,
         preferredContact: d.preferredContact ?? null,
-        title: d.title ?? null,
+        title: deletionRequest ? '대광교회 앱 계정 및 데이터 삭제 요청' : d.title ?? null,
         content: d.content,
         privacyAgreedAt: new Date(),
       },
@@ -42,7 +43,7 @@ export async function submitInquiryAction(
     return { message: "문의를 접수하지 못했습니다. 잠시 후 다시 시도해 주세요." };
   }
 
-  const returnPath =
+  const returnPath = deletionRequest ? '/account-deletion' :
     formData.get("returnPath") === "/newcomer/register"
       ? "/newcomer/register"
       : "/newcomer/contact";
