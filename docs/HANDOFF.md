@@ -1,4 +1,11 @@
 # 작업 인수인계
+## 시간 선택 APK 및 헌금안내 운영 배포 완료 (2026-10-18)
+
+- Android preview APK d3ea2b01-53db-4751-8e7f-a0c233359c7c 완료. 시·분 선택창, 묵상 알림 스위치와 시간 배치 개선 포함. 다운로드 파일 HTTP/크기 확인 완료.
+- APK: https://expo.dev/artifacts/eas/NDCR3zfjixTVCA5pRd2hMuKdr3ZEj9N3EIf8VGP48xQ.apk
+- 홈페이지 배포 dpl_CvbxrGr6S3grxAeKVAnKekJwCtcY 운영 승격 완료. https://daegwangchurch.kr/app 새 APK 링크 확인, /offering HTTP 200 및 교회소개 2차 메뉴·헌금안내 aria-current 선택 상태 확인. 홈페이지 type-check/lint 통과.
+- 이번 빌드는 테스트용 직접 설치 APK이며 스토어 출시는 아님. 실제 휴대폰 화면 및 푸시 수신 검증은 별도로 남아 있다. 아래 진행 중 기록보다 이 완료 기록이 우선한다.
+
 ## 헌금안내 2차 메뉴 및 임시 배포 진행 (2026-10-18)
 
 - /offering이 /about 바깥 경로여서 교회소개 하위 메뉴가 누락되어 있었다. offering/layout.tsx에 기존 SectionNavigation과 aboutNavigation을 적용하여 동일 메뉴와 현재 페이지 강조를 제공한다. 기존 URL과 헌금 정보는 유지한다.
