@@ -1,4 +1,11 @@
 # 작업 인수인계
+## Android 1.0.1 배포 완료 (2026-10-21)
+
+- APK 빌드 `7c04dc4f-cf24-4745-8a9e-ef29677bf830` FINISHED 확인. version 1.0.1 / versionCode 2. 공지 첨부 이미지 보기와 앱 실행 시 새 버전 안내 포함.
+- 다운로드: https://expo.dev/artifacts/eas/QZjdSG4PseGfxv-sX3YiH7Yp24cKwjz_oieSDvETVM4.apk . APK HEAD 정상 확인 후 릴리스 스크립트로 홈페이지 링크와 android-release.json을 함께 갱신.
+- 홈페이지 `dpl_8aQstv7QNJeGGt4JV8xvSJGDah5c` 검증 및 운영 승격 완료. 실제 https://daegwangchurch.kr/app 의 APK 링크와 /api/app-release 버전 1.0.1/build 2가 일치함을 확인. 버전 정책 테스트 2개 통과.
+- 아래 이전 기록의 APK 대기 상태는 해소됨. 이미 설치된 구버전에는 업데이트 감지 코드가 없으므로 이번 한 번은 홈페이지에서 수동으로 덮어쓰기 설치해야 한다. 새 버전부터 향후 build 번호 증가 시 안내된다. 동일 버전에는 안내가 나오지 않는 것이 정상. 실제 휴대폰 설치 및 팝업 확인은 별도 필요.
+
 ## 앱 업데이트 안내 및 다른 게시판 한글 주소 점검 (2026-10-21)
 
 - 앱 시작/다시 활성화 시 HTTPS 공개 `/api/app-release`에서 배포 버전을 확인. expo-application의 실제 Android build 번호와 앱 ID로 비교하며 Expo Go·개발 서버·iOS·웹은 제외. 새 버전만 한 실행 중 한 번 안내, 나중에 선택 가능. 네트워크 실패·미공개 릴리스·잘못된 URL은 앱 사용을 막지 않는다.

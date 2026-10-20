@@ -1,1 +1,7 @@
-null
+{
+  "applicationId": "org.daegwangchurch.app",
+  "version": "1.0.1",
+  "build": 2,
+  "downloadUrl": "https://expo.dev/artifacts/eas/QZjdSG4PseGfxv-sX3YiH7Yp24cKwjz_oieSDvETVM4.apk",
+  "notes": "공지 첨부 이미지를 바로 볼 수 있고, 새 버전이 나오면 앱에서 업데이트를 안내합니다."
+}
