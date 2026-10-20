@@ -8,6 +8,9 @@
 - 한글 URL 공통 decode를 공지 외 사진앨범·일정·주보·부서·예배 콘텐츠에 적용. 신규 공지·앨범·일정·주보 slug에 시간값 대신 randomUUID를 사용해 같은 제목 동시 등록 충돌을 방지. 기존 slug와 게시물은 변경하지 않는다. 예배 콘텐츠는 종류/날짜/영상 ID, 부서는 직접 입력한 고유 주소 정책 유지(중복 주소 저장 시 안내).
 - 검증: 전체 type-check, 세 앱 lint 통과. 업데이트 버전/앱 ID/미공개/악성 URL, 한글 decode/동일 제목 주소 및 기존 공지 테스트 6개, 예배 서비스 회귀 11개 통과. 실제 휴대폰 설치·팝업은 새 APK 완료 후 별도 확인 필요.
 - iOS 안내 정정: 유료 계정 없이도 무료 Apple 계정+Mac Xcode로 개인 기기 개발 테스트 가능(7일 서명 제한). 한국 교인 대상 일반 네이티브 앱 배포는 Developer 가입 후 TestFlight/App Store 등이 필요. 홈페이지 홈 화면 바로가기는 설치 앱의 개인 기록/푸시와 동일하지 않음.
+- 운영 반영 완료: 홈페이지 `dpl_4HqYyZoRzEfj8mpsPrEsqMhDaGqu`, 관리자 `dpl_FuHTYsH8PqMm4xUMZXkXgJAYkHdt`. 홈페이지 4경로·한글 공지 인라인 이미지, 관리자/API 10경로 확인 후 승격. 공개 사이트맵의 공지·앨범·주보·예배·부서 실제 상세 모두 HTTP 200/404 digest 없음. 일정은 공개 샘플이 없어 운영 실물 조회 미검증. test:release-features 28개 통과. Git 코드 커밋 `2da151a`.
+- 종료 시 APK 상태는 IN_QUEUE이며 완료/설치로 보고하면 안 된다. 다운로드는 이전 APK 유지, 버전 API는 null 유지. 다음 작업은 위 EAS 빌드 상태 조회 및 완료 후 릴리스 스크립트→홈페이지 배포→Git 반영. 이 기능을 탑재한 APK부터 다음 업데이트 안내를 받을 수 있다.
+- iOS 비용 참고: 한국도 자격을 갖춘 비영리 법인은 Apple Developer 연회비 면제를 신청할 수 있다. 대광교회가 법적 자격을 충족하는지는 확인되지 않았으며 자동 면제를 약속하지 않는다. https://developer.apple.com/help/account/membership/fee-waivers
 
 ## 공지 이미지 첨부와 상세 조회 수정 (2026-10-21)
 
