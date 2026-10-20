@@ -34,6 +34,7 @@ export default async function NoticePage({ params }: Props) {
       id: attachment.id,
       name: attachment.media.originalName,
       sizeBytes: attachment.media.sizeBytes,
+      mimeType: attachment.media.mimeType,
       url: getPublicStorageUrl(attachment.media.bucket, attachment.media.objectPath),
     })),
   }} />;

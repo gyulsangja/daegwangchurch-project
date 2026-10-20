@@ -8,7 +8,8 @@ import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
 import { ExternalLink, Paperclip, } from "lucide-react";
-import { useActionState, useMemo } from "react";
+import { useActionState, useMemo, useState } from "react";
+import { prepareNoticeAttachments } from '../../lib/prepare-notice-attachments';
 
 import { createNoticeAction, updateNoticeAction, type NoticeActionState } from "../../features/notices/actions";
 import { noticeStatusLabels } from "@daegwang/contracts/features/notices/schema";
@@ -29,8 +30,18 @@ export type NoticeFormValues = {
 const initialState: NoticeActionState = {};
 
 export function NoticeForm({ initialValues = {} }: { initialValues?: NoticeFormValues }) {
+  const [progress, setProgress] = useState('');
   const action = useMemo(
-    () => (initialValues.id ? updateNoticeAction.bind(null, initialValues.id) : createNoticeAction),
+    () => async (previous: NoticeActionState, form: FormData): Promise<NoticeActionState> => {
+      try {
+        await prepareNoticeAttachments(form, setProgress);
+      } catch (error) {
+        setProgress('');
+        return { message: error instanceof Error ? error.message : '첨부파일을 준비하지 못했습니다.' };
+      }
+      // Keep Next's successful redirect outside the preprocessing error handler.
+      return initialValues.id ? updateNoticeAction(initialValues.id, previous, form) : createNoticeAction(previous, form);
+    },
     [initialValues.id],
   );
   const [state, formAction, pending] = useActionState(action, initialState);
@@ -40,6 +51,7 @@ export function NoticeForm({ initialValues = {} }: { initialValues?: NoticeFormV
     <form action={formAction} data-unsaved-warning className="mt-8 grid gap-6 lg:grid-cols-[1fr_20rem]">
       <Paper variant="outlined" className="flex flex-col gap-6 p-5 md:p-7">
         {state.message ? <Alert severity="error">{state.message}</Alert> : null}
+        {pending && <p role="status" className="text-sm text-primary-700">{progress || '첨부파일 준비 중…'}</p>}
         <TextField fullWidth required label="제목" name="title" defaultValue={initialValues.title ?? ""} error={Boolean(error("title"))} helperText={error("title")} />
         <TextField fullWidth required label="분류" name="category" defaultValue={initialValues.category ?? "교회소식"} error={Boolean(error("category"))} helperText={error("category") ?? "예: 교회소식, 예배안내, 새가족, 공동기도. 공동기도도 공개 공지이며 홈페이지에 노출됩니다."} />
         <TextField fullWidth required multiline minRows={14} label="본문" name="body" defaultValue={initialValues.body ?? ""} error={Boolean(error("body"))} helperText={error("body") ?? "줄바꿈을 포함한 일반 텍스트로 저장됩니다."} />
@@ -61,7 +73,7 @@ export function NoticeForm({ initialValues = {} }: { initialValues?: NoticeFormV
             <Paperclip aria-hidden="true" className="mt-1 size-7 shrink-0 text-primary-600" />
             <div className="min-w-0 flex-1">
               <label htmlFor="attachmentFiles" className="font-extrabold">첨부파일 추가</label>
-              <p className="mt-1 text-sm text-text-secondary">PDF, 이미지, DOCX, XLSX, PPTX, HWP, TXT · 각 5MB 이하 · 전체 10MB 이하</p>
+              <p className="mt-1 text-sm text-text-secondary">이미지는 저장할 때 자동으로 축소·압축합니다(긴 변 최대 2560px). PDF·문서와 합쳐 최대 10개, 업로드 전체 3.5MB까지이며 문서는 자동 압축하지 않습니다.</p>
               <input id="attachmentFiles" name="attachmentFiles" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.docx,.xlsx,.pptx,.hwp,.txt" multiple className="mt-4 block w-full text-sm file:mr-4 file:rounded-full file:border-0 file:bg-primary-50 file:px-4 file:py-2 file:font-bold file:text-primary-700" />
               {error("attachmentFiles") ? <p className="mt-2 text-sm text-red-600">{error("attachmentFiles")}</p> : null}
             </div>

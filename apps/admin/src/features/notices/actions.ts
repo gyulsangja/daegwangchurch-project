@@ -15,7 +15,7 @@ export type NoticeActionState = {
 
 const PUBLIC_BUCKET = "public-assets";
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const MAX_TOTAL_SIZE = 10 * 1024 * 1024;
+const MAX_TOTAL_SIZE = 3.5 * 1024 * 1024;
 const MAX_ATTACHMENT_COUNT = 10;
 const allowedTypes = new Map([
   ["application/pdf", "pdf"],
@@ -53,7 +53,7 @@ function validateAttachments(files: File[]) {
   if (files.length > MAX_ATTACHMENT_COUNT) return `첨부파일은 한 번에 최대 ${MAX_ATTACHMENT_COUNT}개까지 업로드할 수 있습니다.`;
   if (files.some((file) => !allowedTypes.has(file.type))) return "PDF, 이미지, DOCX, XLSX, PPTX, HWP, TXT 파일만 업로드할 수 있습니다.";
   if (files.some((file) => file.size > MAX_FILE_SIZE)) return "각 첨부파일은 5MB 이하만 업로드할 수 있습니다.";
-  if (files.reduce((sum, file) => sum + file.size, 0) > MAX_TOTAL_SIZE) return "첨부파일 전체 용량은 10MB 이하여야 합니다.";
+  if (files.reduce((sum, file) => sum + file.size, 0) > MAX_TOTAL_SIZE) return "첨부파일 전체 용량은 3.5MB 이하여야 합니다.";
   return null;
 }
 

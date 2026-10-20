@@ -4,6 +4,7 @@ import type { Prisma } from "@daegwang/database/generated/client";
 import { getPrisma } from "@daegwang/database/prisma";
 import { hasDatabaseConfig } from "@daegwang/config/env";
 import { publishedNoticeWhere } from './public-policy';
+import { decodeNoticeSlug } from '@daegwang/contracts/features/notices/attachments';
 
 type NoticeContent = { body?: unknown };
 
@@ -74,8 +75,8 @@ export async function getPublishedNoticeBySlug(slug: string) {
   if (!hasDatabaseConfig()) return null;
   try {
     return await getPrisma().notice.findFirst({
-      where: { slug, ...publishedNoticeWhere(new Date()) },
-      include: { attachments: { include: { media: true }, orderBy: { sortOrder: "asc" } } },
+      where: { slug: decodeNoticeSlug(slug), ...publishedNoticeWhere(new Date()) },
+      include: { attachments: { where: { media: { visibility: 'PUBLIC', deletedAt: null } }, include: { media: true }, orderBy: { sortOrder: "asc" } } },
     });
   } catch (error) {
     console.error("Failed to load published notice", error);

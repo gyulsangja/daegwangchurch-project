@@ -4,6 +4,8 @@ import Link from "next/link";
 
 import { ContentShell } from "../site/content-shell";
 import { Button } from "@daegwang/web-ui/components/ui/button";
+import { isNoticeImage } from '@daegwang/contracts/features/notices/attachments';
+import { NoticeImage } from './notice-image';
 
 type NoticeDetail = {
   title: string;
@@ -12,7 +14,7 @@ type NoticeDetail = {
   date: string;
   isImportant: boolean;
   isPinned: boolean;
-  attachments: Array<{ id: string; name: string; sizeBytes: number; url: string }>;
+  attachments: Array<{ id: string; name: string; sizeBytes: number; url: string; mimeType: string }>;
 };
 
 export function NoticeDetailPage({ notice }: { notice: NoticeDetail }) {
@@ -32,6 +34,7 @@ export function NoticeDetailPage({ notice }: { notice: NoticeDetail }) {
           <p className="mt-5 flex items-center gap-2 text-sm text-text-secondary"><CalendarDays aria-hidden="true" className="size-4" />{notice.date}</p>
         </header>
         <div className="whitespace-pre-wrap py-10 text-lg leading-9 text-text-secondary">{notice.body}</div>
+        {notice.attachments.filter(file => isNoticeImage(file.mimeType)).map(file => <NoticeImage key={file.id} url={file.url} name={file.name} />)}
         {notice.attachments.length ? (
           <section className="border-t border-border py-8">
             <h2 className="flex items-center gap-2 text-lg font-extrabold"><Paperclip aria-hidden="true" className="size-5 text-primary-600" /> 첨부파일</h2>
