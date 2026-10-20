@@ -1,3 +1,4 @@
+import { decodeContentSlug } from "@daegwang/contracts/content-slug";
 import "server-only";
 
 import type { Prisma } from "@daegwang/database/generated/client";
@@ -60,7 +61,7 @@ export async function getPublishedAlbums(query = "", take = 30) {
 export async function getPublishedAlbumBySlug(slug: string) {
   if (!hasDatabaseConfig()) return null;
   try {
-    return await getPrisma().album.findFirst({ where: { slug, ...publishedWhere() }, include: albumMediaInclude });
+    return await getPrisma().album.findFirst({ where: { slug: decodeContentSlug(slug), ...publishedWhere() }, include: albumMediaInclude });
   } catch (error) {
     console.error("Failed to load published album", error);
     return null;

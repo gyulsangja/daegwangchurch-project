@@ -1,5 +1,8 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+import { createContentSlug } from "@daegwang/contracts/content-slug";
+
 import { revalidatePath } from "@/lib/revalidate";
 import { redirect } from "next/navigation";
 
@@ -11,8 +14,7 @@ import { getPrisma } from "@daegwang/database/prisma";
 export type EventActionState = { message?: string; errors?: Record<string, string[]> };
 
 function buildSlug(title: string) {
-  const base = title.normalize("NFKC").toLowerCase().replace(/[^\p{Letter}\p{Number}]+/gu, "-").replace(/^-+|-+$/g, "").slice(0, 70);
-  return `${base || "event"}-${Date.now().toString(36)}`;
+  return createContentSlug(title, "event", randomUUID());
 }
 
 function parseInput(formData: FormData):

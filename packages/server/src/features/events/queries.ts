@@ -1,3 +1,4 @@
+import { decodeContentSlug } from "@daegwang/contracts/content-slug";
 import "server-only";
 
 import type { Prisma } from "@daegwang/database/generated/client";
@@ -63,7 +64,7 @@ export async function getPublishedEvents(query = "", take = 50) {
 export async function getPublishedEventBySlug(slug: string) {
   if (!hasDatabaseConfig()) return null;
   try {
-    return await getPrisma().event.findFirst({ where: { slug, ...publishedWhere() } });
+    return await getPrisma().event.findFirst({ where: { slug: decodeContentSlug(slug), ...publishedWhere() } });
   } catch (error) {
     console.error("Failed to load published event", error);
     return null;

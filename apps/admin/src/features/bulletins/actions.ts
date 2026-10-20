@@ -1,5 +1,7 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+
 import { revalidatePath } from "@/lib/revalidate";
 import { redirect } from "next/navigation";
 
@@ -17,7 +19,7 @@ const PUBLIC_BUCKET = "public-assets";
 const MAX_PDF_SIZE = 10 * 1024 * 1024;
 
 function buildSlug(worshipDate: string) {
-  return `bulletin-${worshipDate}-${Date.now().toString(36)}`;
+  return `bulletin-${worshipDate}-${randomUUID()}`;
 }
 
 function getPdfFile(formData: FormData) {

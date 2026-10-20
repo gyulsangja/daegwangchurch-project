@@ -1,7 +1,7 @@
 {
   "cli": { "version": ">= 18.0.0", "appVersionSource": "remote" },
   "build": {
-    "preview": { "environment": "preview", "distribution": "internal", "android": { "buildType": "apk" } },
+    "preview": { "environment": "preview", "distribution": "internal", "autoIncrement": true, "android": { "buildType": "apk" } },
     "production": { "environment": "production", "autoIncrement": true, "android": { "buildType": "app-bundle" } }
   }
 }

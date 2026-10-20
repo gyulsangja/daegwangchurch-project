@@ -1,3 +1,4 @@
+import { decodeContentSlug } from "@daegwang/contracts/content-slug";
 import "server-only";
 
 import { bulletinVisibility } from './app-query-core';
@@ -51,7 +52,7 @@ export async function getPublishedBulletinBySlug(slug: string) {
   if (!hasDatabaseConfig()) return null;
   try {
     return await getPrisma().bulletin.findFirst({
-      where: { slug, ...publishedWhere() },
+      where: { slug: decodeContentSlug(slug), ...publishedWhere() },
       include: { pdfMedia: true },
     });
   } catch (error) {

@@ -11,6 +11,7 @@ import { colors } from '../components/ui';
 import { FeatureNoticeProvider } from '../components/app-screen';
 import { MemberSessionProvider } from '../components/member-session';
 import { PushNotificationBridge } from '../components/push-notifications';
+import { AppUpdate } from '../components/app-update';
 
 void SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -71,5 +72,5 @@ export default function Layout() {
     <Stack.Screen name="notices/[id]" options={{ headerShown: false }} />
     <Stack.Screen name="devotional/index" options={{ title: '첫시간 주님께 목록', headerBackTitle: '뒤로' }} />
     <Stack.Screen name="devotional/[id]" options={{ title: '첫시간 주님께', headerBackTitle: '뒤로' }} />
-  </Stack><PushNotificationBridge /></FeatureNoticeProvider></MemberSessionProvider>;
+  </Stack><PushNotificationBridge /><AppUpdate /></FeatureNoticeProvider></MemberSessionProvider>;
 }

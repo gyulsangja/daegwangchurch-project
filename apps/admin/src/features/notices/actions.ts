@@ -1,5 +1,8 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+import { createContentSlug } from "@daegwang/contracts/content-slug";
+
 import { revalidatePath } from "@/lib/revalidate";
 import { redirect } from "next/navigation";
 
@@ -32,13 +35,7 @@ const allowedTypes = new Map([
 ]);
 
 function buildSlug(title: string) {
-  const base = title
-    .normalize("NFKC")
-    .toLowerCase()
-    .replace(/[^\p{Letter}\p{Number}]+/gu, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 70);
-  return `${base || "notice"}-${Date.now().toString(36)}`;
+  return createContentSlug(title, "notice", randomUUID());
 }
 
 function toDate(value?: string) {

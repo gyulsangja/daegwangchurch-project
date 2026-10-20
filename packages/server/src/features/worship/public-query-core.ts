@@ -1,3 +1,4 @@
+import { decodeContentSlug } from "@daegwang/contracts/content-slug";
 import type { PrismaClient, WorshipContentType } from "@daegwang/database/generated/client";
 
 export const worshipVisibility = (now: Date) => ({ status: 'PUBLISHED' as const, deletedAt: null, OR: [{ publishedAt: null }, { publishedAt: { lte: now } }] });
@@ -16,7 +17,7 @@ export function createPublicWorshipQueries(
       });
     },
     bySlug(slug: string) {
-      return database.worshipContent.findFirst({ where: { slug, ...visibility() } });
+      return database.worshipContent.findFirst({ where: { slug: decodeContentSlug(slug), ...visibility() } });
     },
   };
 }
