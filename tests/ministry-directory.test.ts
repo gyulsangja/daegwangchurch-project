@@ -49,7 +49,7 @@ test('filters and pagination are stable and returned arrays cannot mutate stored
   const directory = make(); const first = directory.list(admin); const second = directory.list(admin, { page: 2 });
   assert.equal(first.items.length, 12); assert.equal(second.items.length, 2);
   assert.equal(new Set([...first.items, ...second.items].map(m => m.id)).size, 14);
-  assert.equal(directory.list(admin, { status: 'NEW' }).total, 2);
+  assert.equal(directory.list(admin, { status: 'ACTIVE' }).total, 14);
   const config = directory.config(admin); config.organizations[0].name = 'changed';
   first.items[0].organizationIds.push('org-other');
   assert.notEqual(directory.config(admin).organizations[0].name, 'changed');
@@ -63,4 +63,69 @@ test('local review cannot be enabled in production or from an outside host/origi
   assert.equal(isLocalMutationOrigin('localhost:3002', 'https://evil.example'), false);
   assert.equal(isLocalMutationOrigin('localhost:3002', null), false);
   assert.equal(isLocalMutationOrigin('localhost:3002', 'http://localhost:3002'), true);
+});
+
+test('annual draft isolation, roles, activation, immutable old year and stale leader scope', () => {
+  const d = make(); const original = d.years.read(admin,2026);
+  d.years.create(admin,{year:2027,sourceYear:2026,sourceVersion:original.version,copyMembers:true,copyRoles:false});
+  let draft = d.years.read(admin,2027);
+  d.years.assign(admin,2027,{version:draft.version,memberId:'demo-member-1',position:'ELDER',affiliations:[{organizationId:'org-youth',role:'TEACHER'},{organizationId:'org-service',role:'VOLUNTEER'}]});
+  assert.equal(d.detail(admin,'demo-member-1').position,'MEMBER');
+  draft = d.years.read(admin,2027);
+  d.years.activate(admin,2027,{version:draft.version,activeVersion:original.version,confirmed:true});
+  assert.equal(d.detail(admin,'demo-member-1').position,'ELDER');
+  assert.equal(d.years.read(admin,2026).assignments[0].position,'MEMBER');
+  assert.equal(d.list(leader).total,0);
+  assert.throws(() => d.years.assign(admin,2026,{version:d.years.read(admin,2026).version,memberId:'demo-member-1',position:'DEACON',affiliations:[]}),code('CONFLICT'));
+  assert.equal(d.records.list(admin,'demo-member-1').filter(e=>e.kind==='POSITION').length,1);
+});
+
+test('year catalogs reject cycles, in-use deletion, other church links and stale versions', () => {
+  const d=make(); const period=d.years.read(admin,2026);
+  const {name,positions,statuses,organizationTypes,roles,organizations,version}=period;
+  const config={name,positions,statuses,organizationTypes,roles,organizations,version};
+  assert.throws(()=>d.years.configure(admin,2026,{...config,organizations:organizations.map((o,i)=>i===0?{...o,parentId:o.id}:o)}),code('INVALID'));
+  assert.throws(()=>d.years.configure(admin,2026,{...config,positions:[]}),code('INVALID'));
+  assert.throws(()=>d.years.assign(admin,2026,{version,memberId:'other-member',position:'',affiliations:[]}),code('NOT_FOUND'));
+  assert.throws(()=>d.years.configure(leader,2026,config),code('FORBIDDEN'));
+  d.years.configure(admin,2026,config);
+  assert.throws(()=>d.years.configure(admin,2026,config),code('CONFLICT'));
+});
+
+test('dated position and membership changes preserve earlier history; newcomer is independent', () => {
+  const d=make(); const m='demo-member-1';
+  d.records.add(admin,m,{kind:'POSITION',date:'2025-03-01',value:'ELDER'});
+  d.records.add(admin,m,{kind:'POSITION',date:'2020-03-01',value:'DEACON'});
+  assert.equal(d.detail(admin,m).position,'ELDER');
+  d.records.add(admin,m,{kind:'SETTLEMENT',date:'2026-10-01',value:'NEW'});
+  assert.equal(d.detail(admin,m).status,'ACTIVE');
+  d.records.add(admin,m,{kind:'STATUS',date:'2026-10-02',value:'TRANSFERRED'});
+  assert.equal(d.detail(admin,m).status,'TRANSFERRED');
+  assert.equal(d.records.list(admin,m).length,4);
+  assert.throws(()=>d.records.add(admin,m,{kind:'POSITION',date:'2025-02-30',value:'ELDER'}));
+  assert.throws(()=>d.records.add(admin,m,{kind:'POSITION',date:'2028-01-01',value:'ELDER'}),code('INVALID'));
+  assert.throws(()=>d.records.add(leader,m,{kind:'POSITION',date:'2025-01-01',value:'ELDER'}),code('FORBIDDEN'));
+});
+
+test('care needs explicit permission; attendance duplicates and service overlaps require audited correction', () => {
+  const d=make(); const m='demo-member-1'; const counselor:Actor={...admin,permissions:['CARE']};
+  const care={kind:'CARE',date:'2026-10-20',category:'COUNSEL',content:'synthetic confidential note',nextDate:null};
+  assert.throws(()=>d.records.add(admin,m,care),code('FORBIDDEN'));
+  const saved=d.records.add(counselor,m,care);
+  assert.equal(d.records.list(admin,m).length,0);
+  assert.equal(d.records.list(counselor,m).length,1);
+  assert.ok(!JSON.stringify(d.detail(admin,m)).includes(care.content));
+  assert.throws(()=>d.records.correct(admin,m,saved.id,'wrong record'),code('FORBIDDEN'));
+  const attendance={kind:'ATTENDANCE',date:'2026-10-18',organizationId:'',event:'Sunday service',value:'PRESENT'};
+  const a=d.records.add(admin,m,attendance);
+  assert.throws(()=>d.records.add(admin,m,attendance),code('CONFLICT'));
+  d.records.correct(admin,m,a.id,'entered by mistake');
+  d.records.add(admin,m,{...attendance,value:'ONLINE'});
+  const activity={kind:'SERVICE',date:'2026-01-01',organizationId:'org-service',role:'VOLUNTEER',endDate:null};
+  const service=d.records.add(admin,m,activity);
+  assert.throws(()=>d.records.add(admin,m,activity),code('CONFLICT'));
+  d.records.correct(admin,m,service.id,'add end date');
+  d.records.add(admin,m,{...activity,endDate:'2026-06-30'});
+  d.records.add(admin,m,{...activity,date:'2026-07-01'});
+  assert.throws(()=>d.records.add(admin,'other-member',attendance),code('NOT_FOUND'));
 });

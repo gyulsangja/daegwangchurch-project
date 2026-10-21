@@ -11,7 +11,7 @@ export async function handle(request: Request, action: (service: ReturnType<type
     if (error instanceof ZodError) return Response.json({ message: '입력값을 확인해 주세요.', errors: error.flatten().fieldErrors }, { status: 422 });
     if (isDirectoryError(error)) {
       const messages = { CONFLICT: '다른 작업에서 정보가 변경되었습니다. 새로고침 후 다시 수정해 주세요.', NOT_FOUND: '교인 정보를 찾을 수 없습니다.', FORBIDDEN: '이 작업을 할 권한이 없습니다.', INVALID: '상태·직분·소속을 다시 확인해 주세요.' };
-      return Response.json({ message: messages[error.code] }, { status: { CONFLICT: 409, NOT_FOUND: 404, FORBIDDEN: 403, INVALID: 422 }[error.code] });
+      return Response.json({ message: error.message === error.code ? messages[error.code] : error.message }, { status: { CONFLICT: 409, NOT_FOUND: 404, FORBIDDEN: 403, INVALID: 422 }[error.code] });
     }
     if (error instanceof SyntaxError) return Response.json({ message: '잘못된 요청 형식입니다.' }, { status: 400 });
     if (error instanceof Error && error.message === 'BODY_LIMIT') return Response.json({ message: '입력 내용이 너무 큽니다.' }, { status: 413 });
