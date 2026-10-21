@@ -22,7 +22,7 @@ export function createDirectory(initial: DirectoryState, id: () => string, now =
   const initialYear = Number(now().slice(0, 4));
   const fail = (code: 'FORBIDDEN' | 'NOT_FOUND' | 'CONFLICT' | 'INVALID', message?: string): never => { throw new DirectoryError(code, message); };
   const years = createYearService(state, now, fail, (actor, before, after) => records.capture(actor, before, after));
-  const records = createRecordService(state, id, now, fail, (actor, member) => years.syncMember(actor, member), actor => years.read(actor, years.activeYear(actor.churchId)).roles);
+  const records = createRecordService(state, id, now, fail, (actor, member) => years.syncMember(actor, member), actor => years.read(actor, years.activeYear(actor.churchId)).roles, actor => years.read(actor, years.activeYear(actor.churchId)).courses);
   const church = (actor: Actor) => {
     if (!actor.id || !['ADMIN', 'OFFICE', 'LEADER'].includes(actor.role)) throw new DirectoryError('FORBIDDEN');
     const found = state.churches.find(item => item.id === actor.churchId);

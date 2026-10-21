@@ -5,7 +5,7 @@ type Code = { code: string; label: string };
 export type AnnualAssignment = { memberId: string; name: string; position: string; affiliations: { organizationId: string; role: string }[] };
 export type MinistryYear = {
   churchId: string; year: number; state: 'DRAFT' | 'ACTIVE' | 'ARCHIVED'; version: number;
-  name: string; positions: Code[]; statuses: Code[]; organizationTypes: Code[]; roles: Code[];
+  name: string; positions: Code[]; statuses: Code[]; organizationTypes: Code[]; roles: Code[]; courses: Code[];
   organizations: { id: string; name: string; parentId: string | null; type: string }[];
   assignments: AnnualAssignment[];
   events: { at: string; actorId: string; action: string; memberId?: string; assignment?: AnnualAssignment }[];
@@ -15,6 +15,7 @@ export function createYearService(state: DirectoryState, now: () => string, fail
   const periods: MinistryYear[] = state.churches.map(church => ({
     churchId: church.id, year: Number(now().slice(0, 4)), state: 'ACTIVE', version: 1,
     name: church.name, positions: structuredClone(church.positions), statuses: structuredClone(church.statuses),
+    courses: [{code:'NEWCOMER',label:'새가족 교육'},{code:'BAPTISM',label:'세례 교육'},{code:'DISCIPLE',label:'제자훈련'},{code:'BIBLE',label:'성경공부'},{code:'TEACHER',label:'교사 교육'}],
     organizationTypes: [{ code: 'DEPARTMENT', label: '부서' }, { code: 'FELLOWSHIP', label: '전도회' }, { code: 'SMALL_GROUP', label: '소그룹' }, { code: 'SCHOOL', label: '교회학교' }, { code: 'SERVICE', label: '봉사팀' }],
     roles: [{ code: 'LEADER', label: '회장' }, { code: 'SECRETARY', label: '총무' }, { code: 'TREASURER', label: '회계' }, { code: 'STUDENT', label: '학생' }, { code: 'TEACHER', label: '교사' }, { code: 'VOLUNTEER', label: '봉사자' }, { code: 'DIRECTOR', label: '부장' }],
     organizations: state.organizations.filter(o => o.churchId === church.id).map(o => ({ id: o.id, name: o.name, parentId: o.parentId, type: 'DEPARTMENT' })),
@@ -53,7 +54,7 @@ export function createYearService(state: DirectoryState, now: () => string, fail
     }
   };
   const validateReferences = (period: MinistryYear) => {
-    for (const catalog of [period.positions, period.statuses, period.organizationTypes, period.roles]) {
+    for (const catalog of [period.positions, period.statuses, period.organizationTypes, period.roles, period.courses]) {
       if (new Set(catalog.map(c => c.code)).size !== catalog.length || new Set(catalog.map(c => c.label)).size !== catalog.length) fail('INVALID', '같은 코드나 이름을 중복 등록할 수 없습니다.');
     }
     if (new Set(period.organizations.map(o => o.id)).size !== period.organizations.length) fail('INVALID');

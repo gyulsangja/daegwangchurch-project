@@ -21,6 +21,16 @@ try {
   await page.waitForURL(url=>url.searchParams.get('tab')==='구성원 배정');
   await page.screenshot({path:'test-results/ministry/annual-desktop.png',fullPage:true,caret:'initial'});
   await page.goto(`${base}/members/demo-member-1`);
+  await page.getByRole('button',{name:'교육 이력',exact:true}).click();
+  await page.getByText('교육 이력 추가',{exact:true}).click();
+  await page.getByRole('combobox',{name:'교육 과정',exact:true}).selectOption('NEWCOMER');
+  await page.getByLabel('시작일',{exact:true}).fill('2026-10-01');
+  await page.getByLabel('기수·반').fill('가상 가을반');
+  await page.getByRole('combobox',{name:'교육 상태',exact:true}).selectOption('COMPLETED');
+  await page.getByLabel('수료·중단일 (수강 중이면 비움)',{exact:true}).fill('2026-10-18');
+  await page.getByRole('button',{name:'기록 저장',exact:true}).click();
+  await page.waitForURL(url=>url.searchParams.get('recordKind')==='EDUCATION');
+  await page.getByText('2026-10-01 · 새가족 교육 · 가상 가을반 · 수료',{exact:true}).waitFor();
   await page.getByRole('button',{name:'출석',exact:true}).click();
   await page.getByText('출석 추가',{exact:true}).click();
   await page.getByLabel('발생일',{exact:true}).fill('2026-10-18');

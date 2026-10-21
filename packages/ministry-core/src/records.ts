@@ -2,7 +2,7 @@ import { ministryRecordSchema, type MinistryRecordInput } from '@daegwang/contra
 import type { Actor, DirectoryState, Member } from './directory';
 type Entry = MinistryRecordInput & { id: string; churchId: string; memberId: string; actorId: string; recordedAt: string; label: string; voided?: boolean; correction?: {reason:string;actorId:string;at:string} };
 type Fail = (code: 'FORBIDDEN' | 'NOT_FOUND' | 'CONFLICT' | 'INVALID', message?: string) => never;
-export function createRecordService(state: DirectoryState, id: () => string, now: () => string, fail: Fail, sync: (actor: Actor, member: Member) => void, roles: (actor: Actor) => {code:string;label:string}[]) {
+export function createRecordService(state: DirectoryState, id: () => string, now: () => string, fail: Fail, sync: (actor: Actor, member: Member) => void, roles: (actor: Actor) => {code:string;label:string}[], courses: (actor: Actor) => {code:string;label:string}[]) {
   const entries: Entry[] = [];
   const today = () => new Date(now()).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
   const find = (actor: Actor, memberId: string, care = false) => {
@@ -20,7 +20,7 @@ export function createRecordService(state: DirectoryState, id: () => string, now
       const entry = entries.find(e => e.churchId === actor.churchId && e.memberId === memberId && e.id === entryId);
       if (!entry) return fail('NOT_FOUND');
       find(actor, memberId, entry.kind === 'CARE');
-      if (!['SERVICE', 'ATTENDANCE', 'CARE'].includes(entry.kind)) return fail('INVALID', '직분·상태는 올바른 발생일로 변경 기록을 추가해 주세요.');
+      if (!['SERVICE', 'ATTENDANCE', 'CARE', 'EDUCATION'].includes(entry.kind)) return fail('INVALID', '직분·상태는 올바른 발생일로 변경 기록을 추가해 주세요.');
       if (entry.voided) return fail('CONFLICT');
       if (typeof reason !== 'string' || !reason.trim() || reason.length > 300) return fail('INVALID', '정정 사유를 입력해 주세요.');
       entry.voided = true; entry.correction = {reason:reason.trim(),actorId:actor.id,at:now()};
@@ -43,6 +43,15 @@ export function createRecordService(state: DirectoryState, id: () => string, now
       if (input.date > today()) fail('INVALID', '미래 날짜의 이력은 아직 등록할 수 없습니다.');
       const config = state.churches.find(c => c.id === actor.churchId)!;
       let label: string = input.kind;
+      if (input.kind === 'EDUCATION') {
+        const course = courses(actor).find(c => c.code === input.courseId);
+        if (!course) return fail('INVALID', '환경설정에 등록된 교육 과정을 선택해 주세요.');
+        if (input.value !== 'IN_PROGRESS' && !input.endDate) return fail('INVALID', '수료·중단일을 입력해 주세요.');
+        if (input.value === 'IN_PROGRESS' && input.endDate) return fail('INVALID', '수강 중에는 종료일을 비워 주세요.');
+        if (input.endDate && (input.endDate < input.date || input.endDate > today())) return fail('INVALID', '종료일은 시작일 이후부터 오늘까지 선택해 주세요.');
+        if (entries.some(e => !e.voided && e.churchId === actor.churchId && e.memberId === memberId && e.kind === 'EDUCATION' && e.courseId === input.courseId && e.cohort === input.cohort && e.date === input.date)) return fail('CONFLICT', '같은 교육 참여 기록이 있습니다. 기존 기록을 정정한 뒤 변경 내용을 등록해 주세요.');
+        label = `${course.label}${input.cohort ? ` · ${input.cohort}` : ''} · ${{IN_PROGRESS:'수강 중',COMPLETED:'수료',STOPPED:'중단'}[input.value]}`;
+      }
       if (input.kind === 'POSITION' || input.kind === 'STATUS') {
         const code = (input.kind === 'POSITION' ? config.positions : config.statuses).find(c => c.code === input.value);
         if (!code) return fail('INVALID'); label = code.label;

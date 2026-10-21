@@ -11,6 +11,28 @@ const input = { name: '가상 등록', status: 'ACTIVE', position: '', phone: ''
 const make = () => createDirectory(createFixture(), randomUUID, () => '2026-10-21T00:00:00.000Z');
 const code = (expected: string) => (error: unknown) => error instanceof DirectoryError && error.code === expected;
 
+test('education validates completion dates, preserves corrections and separates repeat cohorts', () => {
+  const d=make(); const m='demo-member-1';
+  const input={kind:'EDUCATION',courseId:'NEWCOMER',cohort:'2026 spring',date:'2026-03-01',value:'IN_PROGRESS',endDate:null,teacher:'Example teacher'};
+  const saved=d.records.add(admin,m,input);
+  assert.throws(()=>d.records.add(admin,m,input),code('CONFLICT'));
+  assert.throws(()=>d.records.add(admin,m,{...input,value:'COMPLETED'}),code('INVALID'));
+  assert.throws(()=>d.records.add(admin,m,{...input,value:'COMPLETED',endDate:'2026-02-01'}),code('INVALID'));
+  assert.throws(()=>d.records.add(admin,m,{...input,value:'COMPLETED',endDate:'2027-01-01'}),code('INVALID'));
+  assert.throws(()=>d.records.add(admin,m,{...input,courseId:'unknown'}),code('INVALID'));
+  d.records.correct(admin,m,saved.id,'Record completion');
+  d.records.add(admin,m,{...input,value:'COMPLETED',endDate:'2026-04-01'});
+  d.records.add(admin,m,{...input,cohort:'2026 autumn',date:'2026-09-01'});
+  const history=d.records.list(admin,m);
+  assert.equal(history.length,3); assert.equal(history.filter(e=>e.voided).length,1);
+  assert.equal(d.detail(admin,m).status,'ACTIVE');assert.equal(d.detail(admin,m).position,'MEMBER');
+  assert.throws(()=>d.records.add(leader,m,input),code('FORBIDDEN'));
+  assert.throws(()=>d.records.add(admin,'other-member',input),code('NOT_FOUND'));
+  const period=d.years.read(admin,2026);
+  d.years.create(admin,{year:2027,sourceYear:2026,sourceVersion:period.version,copyMembers:true,copyRoles:true});
+  assert.deepEqual(d.years.read(admin,2027).courses,period.courses);
+});
+
 test('every read is church scoped; leader can only read assigned organizations and no private profile', () => {
   const directory = make();
   assert.equal(directory.list(admin).total, 14);

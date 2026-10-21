@@ -6,6 +6,7 @@ export const yearConfigSchema = z.object({
   version: z.number().int().positive(), name: z.string().trim().min(1).max(80),
   positions: z.array(code).max(60), statuses: z.array(code).min(1).max(30),
   organizationTypes: z.array(code).min(1).max(40), roles: z.array(code).max(40),
+  courses: z.array(code).max(80).default([]),
   organizations: z.array(z.object({ id: z.string().min(1).max(100), name: z.string().trim().min(1).max(80), parentId: z.string().max(100).nullable(), type: z.string().min(1).max(80) }).strict()).max(150),
 }).strict();
 export const yearAssignmentSchema = z.object({
