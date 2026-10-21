@@ -43,7 +43,10 @@
     "maintain:deletions": "tsx scripts/process-member-deletions.ts",
     "test:push": "tsx --test packages/server/src/features/member/push.test.ts && node --test tests/push-readiness.test.mjs",
     "check:push": "node scripts/check-push.mjs",
-    "maintain:push": "tsx scripts/process-push.ts"
+    "maintain:push": "tsx scripts/process-push.ts",
+    "dev:ministry": "npm run dev --workspace @daegwang/ministry",
+    "build:ministry": "npm run build --workspace @daegwang/ministry",
+    "test:ministry": "tsx --test tests/ministry-directory.test.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

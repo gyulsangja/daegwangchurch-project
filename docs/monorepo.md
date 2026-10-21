@@ -1,5 +1,7 @@
 # 모노레포 운영 및 배포 전환
 
+2026-10-21: `apps/ministry`(Next.js, localhost:3002)와 `packages/ministry-core`를 추가했다. 독립 로컬 개발본이며 기존 운영 관리자·DB와 연결하지 않는다. `npm run dev:ministry`로 가상 자료를 확인한다. 운영 로그인/영구 교적 저장은 후속 단계다. 새 앱도 루트 lockfile과 앱 간 직접 import 금지 원칙을 따르며, check:boundaries는 모든 apps 하위 프로젝트를 자동 검사한다. 자세한 기준은 docs/ministry/README.md.
+
 2026-10-09 서버리스 연결 주의: Vercel 실행용 `apps/admin`·`apps/website`의 DATABASE_URL은 Supabase **transaction pooler(6543)** 를 사용한다. 세션 풀(5432)을 여러 함수 인스턴스에서 사용해 연결 한도가 소진되는 실제 오류를 확인했다. 공통 PrismaPg 풀은 인스턴스당 max 2, 연결 대기 10초, idle 10초로 제한했다. DB CLI의 DIRECT_URL/마이그레이션 연결은 별도로 유지하며 일괄 포트 변경하지 않는다. [Supabase Prisma 연결](https://supabase.com/docs/guides/database/prisma), [Prisma 드라이버 풀 설정](https://docs.prisma.io/docs/orm/v7/prisma-client/setup-and-configuration/databases-connections/connection-pool).
 
 2026-10-06 후속: 원격 푸시 모듈/기기 API/발송 작업을 구현하고 푸시 migration까지 실제 DB 총 12개 적용. Expo/FCM 계정·HTTPS 배포·주기 호출·실기기 연결 전으로 발송은 꺼져 있다. 아래 과거 상태보다 [푸시 연결 안내](notifications.md)와 HANDOFF 최상단을 우선한다.

@@ -1,0 +1,7 @@
+import Link from 'next/link';
+import type { createDirectory } from '@daegwang/ministry-core/directory';
+type Service = ReturnType<typeof createDirectory>;
+export function MemberList({ rows, config, returnTo = '/members' }: { rows: ReturnType<Service['list']>['items']; config: ReturnType<Service['config']>; returnTo?: string }) {
+  if (!rows.length) return <div className="empty"><strong>조건에 맞는 교인이 없습니다.</strong><p>검색 조건을 바꾸거나 교인을 등록해 주세요.</p><Link href="/members">전체 교인 보기</Link></div>;
+  return <div className="table-wrap"><table><caption className="sr-only">교인 목록</caption><thead><tr><th>이름</th><th>교적 상태</th><th>직분</th><th>소속</th></tr></thead><tbody>{rows.map(row => <tr key={row.id}><td><Link className="person-link" href={`/members/${row.id}?returnTo=${encodeURIComponent(returnTo)}`}><span className="avatar" aria-hidden="true">{row.name.replace('가상교인 ', '').slice(0, 1)}</span><strong>{row.name}</strong></Link></td><td><span className={`status ${row.status === 'NEW' ? 'new' : ''}`}>{config.statuses.find(s => s.code === row.status)?.label ?? row.status}</span></td><td>{config.positions.find(p => p.code === row.position)?.label ?? '미지정'}</td><td><div className="chips">{row.organizationIds.length ? row.organizationIds.map(id => <span key={id} className="chip">{config.organizations.find(o => o.id === id)?.name ?? '소속'}</span>) : <span className="muted">미배정</span>}</div></td></tr>)}</tbody></table></div>;
+}

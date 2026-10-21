@@ -1,0 +1,8 @@
+import Link from 'next/link';
+import { ArrowUpRight, UserPlus, Users, Network, Search } from 'lucide-react';
+import { workspace } from '@/lib/workspace';
+import { MemberList } from '@/components/member-list';
+export default async function Home() {
+  const { service, actor, config } = await workspace(); const data = service.overview(actor);
+  return <><div className="page-heading"><div><p className="eyebrow">대광교회 · 교적 업무</p><h1>우리 교회를 한눈에</h1><p>교인을 찾고, 가족과 소속을 함께 살펴보세요.</p></div><Link href="/members/new" className="button primary"><UserPlus size={18} />교인 등록</Link></div><form action="/members" className="home-search"><Search aria-hidden="true" size={23} /><label className="sr-only" htmlFor="home-q">교인 이름</label><input id="home-q" name="q" placeholder="찾으시는 교인의 이름을 입력하세요" maxLength={80} /><button className="button primary">교인 찾기</button></form><div className="stats"><Link href="/members" className="stat"><span><Users size={19} />전체 교인</span><strong>{data.total}<small>명</small></strong><p>앱 가입 여부와 관계없는 교적 <ArrowUpRight size={16} /></p></Link>{data.statuses.slice(0, 2).map(s => <Link className="stat" key={s.code} href={`/members?status=${s.code}`}><span>{s.label}</span><strong>{s.count}<small>명</small></strong><p>해당 교인 살펴보기 <ArrowUpRight size={16} /></p></Link>)}</div><section className="panel"><div className="section-heading"><div><h2>최근 등록한 교인</h2><p>등록된 정보를 확인하고 필요한 내용을 채워 주세요.</p></div><Link href="/members" className="text-link">전체 보기 →</Link></div><MemberList rows={data.recent} config={config} /></section><section className="followup"><Network size={25} /><div><h2>소속을 함께 확인해 주세요</h2><p>소속이 배정되지 않은 교인이 {data.unassigned}명 있습니다. 실제 조직 구성은 확인 후 적용합니다.</p></div><Link href="/organizations" className="button">조직 살펴보기</Link></section></>;
+}
