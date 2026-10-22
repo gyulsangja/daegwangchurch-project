@@ -1,10 +1,11 @@
+import {createFamilyService} from './families';
 import { createRecordService } from './records';
 import { createYearService } from './years';
 import { memberInputSchema, memberSearchSchema, memberUpdateSchema, type MemberInput } from '@daegwang/contracts/ministry';
 
 export type Actor = { id: string; churchId: string; role: 'ADMIN' | 'OFFICE' | 'LEADER'; organizationIds: string[]; scopeYear?: number; permissions?: ('CARE')[] };
 export type Organization = { id: string; churchId: string; name: string; parentId: string | null };
-export type Family = { id: string; churchId: string; name: string; members: { memberId: string; relationship: string }[] };
+export type Family = { id: string; churchId: string; name: string; version:number; representativeId:string|null; archived:boolean; members: { memberId: string; relationship: string }[] };
 export type Member = MemberInput & { id: string; churchId: string; version: number; createdAt: string; updatedAt: string };
 export type Audit = { id: string; churchId: string; actorId: string; memberId: string; action: 'CREATE' | 'UPDATE' | 'READ'; fields: string[]; at: string };
 export type Church = { id: string; name: string; statuses: { code: string; label: string }[]; positions: { code: string; label: string }[] };
@@ -47,7 +48,7 @@ export function createDirectory(initial: DirectoryState, id: () => string, now =
   };
   const summary = (member: Member) => ({ id: member.id, name: member.name, status: member.status, position: member.position, organizationIds: [...member.organizationIds], createdAt: member.createdAt });
   return {
-    years, records,
+    years, records, families:createFamilyService(state,id,now,fail),
     config(actor: Actor) {
       const config = church(actor);
       return structuredClone({ ...config, activeYear: years.activeYear(actor.churchId), organizations: state.organizations.filter(org => org.churchId === actor.churchId && (actor.role !== 'LEADER' || ((actor.scopeYear ?? initialYear) === years.activeYear(actor.churchId) && actor.organizationIds.includes(org.id)))) });
@@ -70,10 +71,10 @@ export function createDirectory(initial: DirectoryState, id: () => string, now =
       record(actor, member.id, 'READ');
       const basic = { ...summary(member), version: member.version, updatedAt: member.updatedAt };
       if (actor.role === 'LEADER') return { ...basic, privateProfile: null, family: null, history: [], annualHistory: [] };
-      const family = state.families.find(f => f.churchId === actor.churchId && f.members.some(m => m.memberId === memberId));
+      const family = state.families.find(f => f.churchId === actor.churchId && !f.archived && f.members.some(m => m.memberId === memberId));
       return {
         ...basic, annualHistory: years.memberHistory(actor, memberId), privateProfile: { phone: member.phone, address: member.address },
-        family: family ? { name: family.name, members: family.members.flatMap(link => { const related = state.members.find(m => m.id === link.memberId && m.churchId === actor.churchId); return related ? [{ id: related.id, name: related.name, relationship: link.relationship }] : []; }) } : null,
+        family: family ? { id:family.id, name: family.name, members: family.members.flatMap(link => { const related = state.members.find(m => m.id === link.memberId && m.churchId === actor.churchId); return related ? [{ id: related.id, name: related.name, relationship: link.relationship }] : []; }) } : null,
         history: structuredClone(state.audits.filter(a => a.churchId === actor.churchId && a.memberId === memberId && a.action !== 'READ').slice(-30).reverse()),
       };
     },

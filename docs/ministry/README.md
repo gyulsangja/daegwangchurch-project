@@ -86,6 +86,8 @@ Sprint 0 설계 및 교적 업무 검토용 개발 기반. 현재 명부 관리 
 
 ## 실행
 
+2026-10-23 후속: `/families`에서 가구 등록/수정, 기준 교인과의 관계 지정, 구성원 추가/제외, 가구 연결 해제 가능. 한 교인은 하나의 활성 가구에 속한다. 기준 교인은 관계 표시용이며 특별 권한이나 주소 자동 공유를 의미하지 않는다. 가구 해제는 구성원을 삭제하지 않고 마지막 가구 구성을 보관한다. 가족 전체 혈연 그래프·미등록 가족·일반 편집 전체 이력 복원·가구 간 원자적 이동은 후속 범위다. API는 기존 로컬 접근 제한을 따른다. 브라우저 검사 `node tests/ministry-families-browser.mjs`.
+
 저장소 루트에서 `npm run dev:ministry` → http://localhost:3002 . 가상 교인으로만 등록/수정한다. 테스트 `npm run test:ministry`, 검사 `npm run type-check --workspace @daegwang/ministry`, `npm run lint --workspace @daegwang/ministry`, 빌드 `npm run build:ministry`.
 
 브라우저 검증: 로컬 서버 실행 후 `node tests/ministry-browser.mjs`. 기본 Microsoft Edge headless, 다른 설치된 브라우저는 TEST_BROWSER_CHANNEL 지정. 테스트는 가상 교인을 추가/수정하므로 검증 후 서버를 재시작하면 초기 가상 자료로 돌아간다. production build의 실행 환경에서는 API가 503을 반환하는 것이 현재 정상이다.

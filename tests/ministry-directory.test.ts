@@ -11,6 +11,31 @@ const input = { name: '가상 등록', status: 'ACTIVE', position: '', phone: ''
 const make = () => createDirectory(createFixture(), randomUUID, () => '2026-10-21T00:00:00.000Z');
 const code = (expected: string) => (error: unknown) => error instanceof DirectoryError && error.code === expected;
 
+test('families enforce church boundary, relation reference, one household and stale-write protection',()=>{
+ const d=make();const input={name:'Example household',representativeId:'demo-member-3',members:[{memberId:'demo-member-3',relationship:'기준 교인'},{memberId:'demo-member-4',relationship:'배우자'}]};
+ assert.throws(()=>d.families.create(leader,input),code('FORBIDDEN'));
+ assert.throws(()=>d.families.list(leader),code('FORBIDDEN'));
+ assert.throws(()=>d.families.create(admin,{...input,members:[...input.members,{memberId:'other-member',relationship:'가구원'}]}),code('NOT_FOUND'));
+ assert.throws(()=>d.families.create(admin,{...input,representativeId:'demo-member-5'}),code('INVALID'));
+ assert.throws(()=>d.families.create(admin,{...input,representativeId:null}),code('INVALID'));
+ assert.throws(()=>d.families.create(admin,{...input,members:[...input.members,{memberId:'demo-member-1',relationship:'가구원'}]}),code('CONFLICT'));
+ const family=d.families.create(admin,input);
+ assert.equal(d.detail(admin,'demo-member-4').family?.id,family.id);
+ assert.throws(()=>d.families.create(admin,input),code('CONFLICT'));
+ d.families.update(admin,family.id,{...input,version:1,name:'Updated household'});
+ assert.throws(()=>d.families.update(admin,family.id,{...input,version:1}),code('CONFLICT'));
+ assert.throws(()=>d.families.archive({...admin,churchId:'demo-other'},family.id,{version:2,confirmed:true}),code('NOT_FOUND'));
+ d.families.archive(admin,family.id,{version:2,confirmed:true});
+ assert.equal(d.detail(admin,'demo-member-4').family,null);
+ assert.equal(d.list(admin).total,14);
+ assert.equal(d.families.read(admin,family.id).members.length,2);
+ assert.equal(d.families.read(admin,family.id).archived,true);
+ assert.equal(d.families.candidates(admin).find(m=>m.id==='demo-member-4')?.familyId,null);
+ assert.ok(d.detail(admin,'demo-member-3').history.some(e=>e.fields.includes('family')));
+ assert.ok(!JSON.stringify(d.detail(admin,'demo-member-3').history).includes('배우자'));
+ d.families.create(admin,input);
+});
+
 test('organization roster changes are atomic, role-scoped, versioned and preserve other affiliations', () => {
   const d=make();const year=2026;const period=d.years.read(admin,year);
   const payload={version:period.version,organizationId:'org-youth',members:[{memberId:'demo-member-1',role:'LEADER'},{memberId:'demo-member-2',role:'TREASURER'}]};
