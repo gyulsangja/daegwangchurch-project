@@ -1,4 +1,13 @@
 # 작업 인수인계
+## 목회 개발 DB 지속 저장 (2026-10-23 후속)
+
+- ‘계속 진행’에 따라 재시작 초기화 문제부터 해결. `.local/ministry/review.sqlite` 개발 전용 SQLite 저장, Node.js 24 이상. 운영 PostgreSQL/기존 앱 DB/인증 계정에는 연결하지 않음. 운영 사용 가능으로 보고하지 않는다.
+- packages/database의 독립 SQLite 어댑터 + apps/ministry persistentDirectory 연결. 도메인 상태·연도/배정·개인 기록·가족·감사를 버전된 스냅샷에 저장. 매 호출 최신 DB를 트랜잭션 내 로드→도메인 권한/버전 검사→감사와 함께 저장. 실패 롤백, 손상/다른 형식 시 자동 fixture 초기화 금지. 이전 메모리 singleton 제거.
+- 화면 안내를 ‘이 PC 개발 DB에 저장’으로 변경. .local 디렉터리 Git 제외. `npm run backup:ministry`는 기본 DB를 새 backup 파일에 저장. Node SQLite API 사용, 운영 Prisma migration에는 변경 없음. 설치 lockfile은 ministry의 database workspace 의존성과 Node 엔진 항목만 추가.
+- 검증: 기존 도메인 12개+저장소 3개, 전체 type-check/ministry lint/build/경계. 별도 프로세스·백업 읽기, 실패 롤백·손상 비초기화·동시수정 version·교회/상담 경계 검증. 브라우저 테스트는 `.local/ministry/browser-storage-check.sqlite` 별도 가상 DB로 실행.
+- 이제 재시작으로 자료를 초기화하지 않는다. 브라우저 반복 테스트는 새 별도 MINISTRY_LOCAL_DB_PATH를 지정해야 한다. 기존 메모리 단계의 안내는 과거 기록이다. 실제 개인정보 금지, 로컬 고정 검토 액터는 로그인 인증이 아님.
+- 다음: 운영 인증·명시적 목회 권한 부여/회수, 정규화된 PostgreSQL 교적 스키마·전용 DB 역할·복합 FK/트랜잭션 및 운영 백업 정책. 개발용 JSON 스냅샷 DB를 운영 DB 설계 완료로 혼동하지 않는다.
+
 ## 가구·가족 관계 편집 (2026-10-23 후속)
 
 - 다음 개발 단계로 예시만 표시하던 가족 관계를 등록/수정 가능하게 연결. `/families` 메뉴, 가구명·구성원 검색, 등록 교인 추가/제외, 선택적 기준 교인과의 관계, 가구 연결 해제. 교인 상세 가족 탭과 상호 이동. 기준 교인을 바꾸거나 제외하면 관계를 초기화해 잘못된 관계를 유지하지 않음.

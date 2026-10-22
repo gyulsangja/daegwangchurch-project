@@ -1,4 +1,6 @@
 import {createFamilyService} from './families';
+import type { MinistryYear } from './years';
+import type { Entry } from './records';
 import { createRecordService } from './records';
 import { createYearService } from './years';
 import { memberInputSchema, memberSearchSchema, memberUpdateSchema, type MemberInput } from '@daegwang/contracts/ministry';
@@ -10,6 +12,7 @@ export type Member = MemberInput & { id: string; churchId: string; version: numb
 export type Audit = { id: string; churchId: string; actorId: string; memberId: string; action: 'CREATE' | 'UPDATE' | 'READ'; fields: string[]; at: string };
 export type Church = { id: string; name: string; statuses: { code: string; label: string }[]; positions: { code: string; label: string }[] };
 export type DirectoryState = { churches: Church[]; members: Member[]; organizations: Organization[]; families: Family[]; audits: Audit[] };
+export type DirectorySnapshot = {schemaVersion:1;state:DirectoryState;years:MinistryYear[];records:Entry[]};
 export class DirectoryError extends Error { constructor(public code: 'FORBIDDEN' | 'NOT_FOUND' | 'CONFLICT' | 'INVALID', message?: string) { super(message ?? code); this.name = 'DirectoryError'; } }
 // Next development bundles may load the shared module in separate contexts.
 export function isDirectoryError(error: unknown): error is DirectoryError {
@@ -18,12 +21,12 @@ export function isDirectoryError(error: unknown): error is DirectoryError {
 
 // Initial in-memory adapter for local workflow review; not a production database.
 // Production writes must move version checks and audit insertion into one DB transaction.
-export function createDirectory(initial: DirectoryState, id: () => string, now = () => new Date().toISOString()) {
-  const state = structuredClone(initial);
+export function createDirectory(initial: DirectoryState, id: () => string, now = () => new Date().toISOString(), restored?: DirectorySnapshot) {
+  const state = structuredClone(restored?.state ?? initial);
   const initialYear = Number(now().slice(0, 4));
   const fail = (code: 'FORBIDDEN' | 'NOT_FOUND' | 'CONFLICT' | 'INVALID', message?: string): never => { throw new DirectoryError(code, message); };
-  const years = createYearService(state, now, fail, (actor, before, after) => records.capture(actor, before, after));
-  const records = createRecordService(state, id, now, fail, (actor, member) => years.syncMember(actor, member), actor => years.read(actor, years.activeYear(actor.churchId)).roles, actor => years.read(actor, years.activeYear(actor.churchId)).courses);
+  const years = createYearService(state, now, fail, (actor, before, after) => records.capture(actor, before, after), restored?.years);
+  const records = createRecordService(state, id, now, fail, (actor, member) => years.syncMember(actor, member), actor => years.read(actor, years.activeYear(actor.churchId)).roles, actor => years.read(actor, years.activeYear(actor.churchId)).courses, restored?.records);
   const church = (actor: Actor) => {
     if (!actor.id || !['ADMIN', 'OFFICE', 'LEADER'].includes(actor.role)) throw new DirectoryError('FORBIDDEN');
     const found = state.churches.find(item => item.id === actor.churchId);
@@ -48,6 +51,7 @@ export function createDirectory(initial: DirectoryState, id: () => string, now =
   };
   const summary = (member: Member) => ({ id: member.id, name: member.name, status: member.status, position: member.position, organizationIds: [...member.organizationIds], createdAt: member.createdAt });
   return {
+    snapshot():DirectorySnapshot { return {schemaVersion:1,state:structuredClone(state),years:years.snapshot(),records:records.snapshot()}; },
     years, records, families:createFamilyService(state,id,now,fail),
     config(actor: Actor) {
       const config = church(actor);

@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-Sprint 0 설계 및 교적 업무 검토용 개발 기반. 현재 명부 관리 방식/열 이름은 사용자도 정확히 모르는 상태다. 실제 교적 자료를 읽거나 기존 회원을 자동 이관하지 않는다. 개발본은 명시적인 로컬 실행에서만 가상 데이터를 제공한다. 로그인·운영 DB·지속 저장·실제 권한 계정은 후속 단계이며 이 개발본을 실사용 시스템으로 배포하지 않는다.
+교적 업무 검토용 로컬 개발 기반. 현재 명부 관리 방식/열 이름은 사용자도 정확히 모르는 상태다. 실제 교적 자료를 읽거나 기존 회원을 자동 이관하지 않는다. 개발본은 명시적인 로컬 실행에서만 가상 데이터를 제공한다. 2026-10-23부터 이 PC의 SQLite 개발 DB에 지속 저장한다. 로그인·운영 DB·실제 권한 계정은 후속 단계이며 이 개발본을 실사용 시스템으로 배포하지 않는다.
 
 ## 확인된 기존 구조
 
@@ -25,7 +25,7 @@ Sprint 0 설계 및 교적 업무 검토용 개발 기반. 현재 명부 관리 
 4. 조직: 조직별 구성원 및 담당 구조. 현재 개발본의 조직명·직분·상태는 가상 설정값이며 대광교회의 확정 조직이 아니다.
 5. 후속: 가족 관계 편집, 조직 트리 편집, 명부 가져오기·내보내기, 운영 설정. 미구현 기능 버튼은 실제 동작처럼 표시하지 않는다.
 
-일차 개발본에서 등록/수정은 서버 메모리에 저장되며 서버 재시작/개발 리로드 시 초기화된다. 브라우저 저장소에 개인정보를 저장하지 않는다.
+등록/수정은 `.local/ministry/review.sqlite`에 저장된다. 서버 재시작/개발 리로드로 초기화하지 않는다. 브라우저 저장소에는 저장하지 않는다. 기존 메모리 개발본의 초기화 안내는 이 내용으로 대체한다.
 
 ## 데이터 설계 초안
 
@@ -90,4 +90,14 @@ Sprint 0 설계 및 교적 업무 검토용 개발 기반. 현재 명부 관리 
 
 저장소 루트에서 `npm run dev:ministry` → http://localhost:3002 . 가상 교인으로만 등록/수정한다. 테스트 `npm run test:ministry`, 검사 `npm run type-check --workspace @daegwang/ministry`, `npm run lint --workspace @daegwang/ministry`, 빌드 `npm run build:ministry`.
 
-브라우저 검증: 로컬 서버 실행 후 `node tests/ministry-browser.mjs`. 기본 Microsoft Edge headless, 다른 설치된 브라우저는 TEST_BROWSER_CHANNEL 지정. 테스트는 가상 교인을 추가/수정하므로 검증 후 서버를 재시작하면 초기 가상 자료로 돌아간다. production build의 실행 환경에서는 API가 503을 반환하는 것이 현재 정상이다.
+브라우저 검증: 로컬 서버 실행 후 `node tests/ministry-browser.mjs`. 기본 Microsoft Edge headless, 다른 설치된 브라우저는 TEST_BROWSER_CHANNEL 지정. 테스트는 가상 교인을 추가/수정하므로 `MINISTRY_LOCAL_DB_PATH`를 별도의 새 테스트 DB 절대경로로 지정한 서버에서 실행한다. 이제 재시작만으로 테스트 자료가 삭제되지 않는다. production build의 실행 환경에서는 API가 503을 반환하는 것이 현재 정상이다.
+
+## 로컬 저장·백업 (2026-10-23)
+
+- Node.js 24 이상 필요. [Node.js SQLite API](https://nodejs.org/download/release/v26.5.1/docs/api/sqlite.html)의 DatabaseSync/backup 사용. 새 npm 네이티브 모듈 설치 없음. `packages/database/src/ministry-local.ts`에 운영 Prisma와 분리한 어댑터 추가. 기존 DATABASE_URL·Supabase·운영 migration을 사용하지 않는다.
+- 현재 저장 방식은 교적 상태·연도별 설정·개인 기록을 하나의 버전된 스냅샷으로 저장하는 **개발용 SQLite 어댑터**다. 운영 PostgreSQL 정규화 모델/복합 FK/RLS/암호화/인증 구현을 대체하지 않는다. 실제 개인정보 입력 금지.
+- 도메인 호출마다 `BEGIN IMMEDIATE`로 최신 상태를 읽고, 권한/입력/version 검사 후 데이터와 감사 기록을 같은 트랜잭션에 저장한다. HTTP 본문 파싱·비동기 네트워크 요청은 잠금 안에서 실행하지 않는다. 실패 시 롤백하고 메모리 객체를 버린다. 복수 연결에서도 낡은 상태로 덮어쓰지 않는다.
+- 형식 버전·체크섬 검사. 지원하지 않는 형식이나 손상된 DB는 오류를 반환하며 자동 초기화하지 않는다. 체크섬은 손상 감지용이며 암호화나 악의적인 변조 방지 수단이 아니다. 레코드별 정규화 및 대용량 최적화는 운영 어댑터 단계.
+- 기본 파일 `.local/ministry/review.sqlite`, WAL/SHM 및 `backups/` 모두 `.local/` 아래. Git 제외. 다른 PC로 Git pull해도 이 개발 DB는 자동 복사되지 않는다. 최초 DB 생성 시에만 가상 fixture로 시작한다.
+- 백업: 저장소 루트에서 `npm run backup:ministry`. 기본 개발 DB를 SQLite 백업 API로 `.local/ministry/backups/`의 새 파일에 저장한다. 기존 백업을 덮어쓰지 않는다. 복구 검토는 원본을 덮어쓰지 말고 서버를 종료한 뒤 백업 절대경로를 `MINISTRY_LOCAL_DB_PATH`로 지정해 별도 실행한다. 운영 백업/보존 정책은 별도 설계 필요.
+- 저장소 검증: `tests/ministry-storage.test.ts`에서 별도 프로세스 읽기, 전체 상태 재구성, 백업 파일 읽기, 실패 롤백, 손상 시 비초기화, version 충돌 및 교회 경계를 검사한다.

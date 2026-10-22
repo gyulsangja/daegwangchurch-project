@@ -1,0 +1,10 @@
+import {existsSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
+import {join,dirname} from 'node:path';
+import {randomUUID} from 'node:crypto';
+import {backupMinistryLocal} from '../packages/database/src/ministry-local.ts';
+const source=fileURLToPath(new URL('../.local/ministry/review.sqlite',import.meta.url));
+if(!existsSync(source))throw new Error('Local ministry database does not exist. Start the local ministry app first.');
+const destination=join(dirname(source),'backups',`review-${new Date().toISOString().replaceAll(':','-')}-${randomUUID().slice(0,8)}.sqlite`);
+await backupMinistryLocal(source,destination);
+console.log(`Local synthetic-data backup saved: ${destination}`);

@@ -1,9 +1,9 @@
 import { ministryRecordSchema, type MinistryRecordInput } from '@daegwang/contracts/ministry-records';
 import type { Actor, DirectoryState, Member } from './directory';
-type Entry = MinistryRecordInput & { id: string; churchId: string; memberId: string; actorId: string; recordedAt: string; label: string; voided?: boolean; correction?: {reason:string;actorId:string;at:string} };
+export type Entry = MinistryRecordInput & { id: string; churchId: string; memberId: string; actorId: string; recordedAt: string; label: string; voided?: boolean; correction?: {reason:string;actorId:string;at:string} };
 type Fail = (code: 'FORBIDDEN' | 'NOT_FOUND' | 'CONFLICT' | 'INVALID', message?: string) => never;
-export function createRecordService(state: DirectoryState, id: () => string, now: () => string, fail: Fail, sync: (actor: Actor, member: Member) => void, roles: (actor: Actor) => {code:string;label:string}[], courses: (actor: Actor) => {code:string;label:string}[]) {
-  const entries: Entry[] = [];
+export function createRecordService(state: DirectoryState, id: () => string, now: () => string, fail: Fail, sync: (actor: Actor, member: Member) => void, roles: (actor: Actor) => {code:string;label:string}[], courses: (actor: Actor) => {code:string;label:string}[], restored: Entry[] = []) {
+  const entries: Entry[] = structuredClone(restored);
   const today = () => new Date(now()).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
   const find = (actor: Actor, memberId: string, care = false) => {
     if (!actor.id || !['ADMIN', 'OFFICE'].includes(actor.role) || (care && !actor.permissions?.includes('CARE'))) return fail('FORBIDDEN');
@@ -15,6 +15,7 @@ export function createRecordService(state: DirectoryState, id: () => string, now
     entries.push(entry); return entry;
   };
   return {
+    snapshot() { return structuredClone(entries); },
     correct(actor: Actor, memberId: string, entryId: string, reason: unknown) {
       find(actor, memberId);
       const entry = entries.find(e => e.churchId === actor.churchId && e.memberId === memberId && e.id === entryId);

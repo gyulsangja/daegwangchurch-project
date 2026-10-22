@@ -11,8 +11,8 @@ export type MinistryYear = {
   events: { at: string; actorId: string; action: string; memberId?: string; assignment?: AnnualAssignment }[];
 };
 
-export function createYearService(state: DirectoryState, now: () => string, fail: (code: 'FORBIDDEN' | 'NOT_FOUND' | 'CONFLICT' | 'INVALID', message?: string) => never, capture: (actor: Actor, before: Member, after: Member) => void = () => {}) {
-  const periods: MinistryYear[] = state.churches.map(church => ({
+export function createYearService(state: DirectoryState, now: () => string, fail: (code: 'FORBIDDEN' | 'NOT_FOUND' | 'CONFLICT' | 'INVALID', message?: string) => never, capture: (actor: Actor, before: Member, after: Member) => void = () => {}, restored?: MinistryYear[]) {
+  const periods: MinistryYear[] = restored ? structuredClone(restored) : state.churches.map(church => ({
     churchId: church.id, year: Number(now().slice(0, 4)), state: 'ACTIVE', version: 1,
     name: church.name, positions: structuredClone(church.positions), statuses: structuredClone(church.statuses),
     courses: [{code:'NEWCOMER',label:'새가족 교육'},{code:'BAPTISM',label:'세례 교육'},{code:'DISCIPLE',label:'제자훈련'},{code:'BIBLE',label:'성경공부'},{code:'TEACHER',label:'교사 교육'}],
@@ -81,6 +81,7 @@ export function createYearService(state: DirectoryState, now: () => string, fail
     }
   };
   return {
+    snapshot() { return structuredClone(periods); },
     roster(actor: Actor, year: number, raw: unknown) {
       const data = organizationRosterSchema.parse(raw); const period = edit(actor,year,data.version);
       if (!period.organizations.some(o=>o.id===data.organizationId)) return fail('NOT_FOUND');
