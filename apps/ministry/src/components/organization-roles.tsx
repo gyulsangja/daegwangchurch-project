@@ -1,0 +1,8 @@
+'use client';
+import {useState} from 'react';
+import {organizationRoleCodes} from '@daegwang/contracts/ministry-years';
+export function OrganizationRoles({org,roles,onChange}:{org:{type:string;roleCodes?:string[]};roles:{code:string;label:string}[];onChange:(codes:string[],roles:{code:string;label:string}[])=>void}) {
+  const [name,setName]=useState('');const [message,setMessage]=useState('');
+  const codes=organizationRoleCodes(org);
+  return <div className="organization-role-settings"><strong>이 조직에서 사용할 역할</strong><p className="muted">일반 구성원은 기본으로 제공됩니다. 회장·교사 등 필요한 역할만 선택하세요. 이미 배정된 역할은 구성원의 역할을 바꾼 뒤 해제할 수 있습니다.</p><div className="role-choices">{roles.map(r=><label className="check" key={r.code}><input type="checkbox" checked={codes.includes(r.code)} onChange={e=>onChange(e.target.checked?[...codes,r.code]:codes.filter(c=>c!==r.code),roles)}/>{r.label}</label>)}</div><button className="button" type="button" onClick={()=>onChange(organizationRoleCodes({type:org.type}).filter(c=>roles.some(r=>r.code===c)),roles)}>조직 유형에 맞는 기본 역할 적용</button><div className="catalog-row"><input aria-label="새 조직 역할 이름" value={name} maxLength={60} placeholder="예: 부회장, 지휘자, 반주자" onChange={e=>setName(e.target.value)}/><button className="button" type="button" onClick={()=>{const label=name.trim();if(!label){setMessage('역할 이름을 입력해 주세요.');return;}const existing=roles.find(r=>r.label===label);const code=existing?.code??crypto.randomUUID();onChange([...new Set([...codes,code])],existing?roles:[...roles,{code,label}]);setName('');setMessage('');}}>역할 추가</button></div>{message&&<p role="alert">{message}</p>}</div>;
+}

@@ -14,11 +14,13 @@ try {
   await page.getByRole('button',{name:'체계 저장',exact:true}).click();
   await page.waitForURL(url=>url.searchParams.get('tab')==='조직 구성');
   await page.getByRole('button',{name:'구성원 배정',exact:true}).click();
-  await page.getByLabel('교인 선택').selectOption('demo-member-1');
-  await page.getByRole('checkbox',{name:'교회학교 검증'}).check();
-  await page.locator('.assignment-row').filter({hasText:'교회학교 검증'}).getByLabel('역할').selectOption('TEACHER');
-  await page.getByRole('button',{name:'배정 저장',exact:true}).click();
-  await page.waitForURL(url=>url.searchParams.get('tab')==='구성원 배정');
+  await page.getByRole('button',{name:/교회학교 검증.*교회학교/}).click();
+  await page.locator('.roster-person').filter({hasText:'가상교인 가람'}).getByRole('checkbox').check();
+  await page.getByRole('combobox',{name:'가상교인 가람 역할',exact:true}).selectOption('TEACHER');
+  await page.getByRole('button',{name:'교회학교 검증 배정 저장',exact:true}).click();
+  await page.waitForURL(url=>url.searchParams.get('organization')!==null);
+  await page.locator('.roster-person').first().waitFor();
+  assert.equal(await page.getByRole('combobox',{name:'가상교인 가람 역할',exact:true}).inputValue(),'TEACHER');
   await page.screenshot({path:'test-results/ministry/annual-desktop.png',fullPage:true,caret:'initial'});
   await page.goto(`${base}/members/demo-member-1`);
   await page.getByRole('button',{name:'교육 이력',exact:true}).click();

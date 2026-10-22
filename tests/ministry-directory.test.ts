@@ -11,6 +11,29 @@ const input = { name: '가상 등록', status: 'ACTIVE', position: '', phone: ''
 const make = () => createDirectory(createFixture(), randomUUID, () => '2026-10-21T00:00:00.000Z');
 const code = (expected: string) => (error: unknown) => error instanceof DirectoryError && error.code === expected;
 
+test('organization roster changes are atomic, role-scoped, versioned and preserve other affiliations', () => {
+  const d=make();const year=2026;const period=d.years.read(admin,year);
+  const payload={version:period.version,organizationId:'org-youth',members:[{memberId:'demo-member-1',role:'LEADER'},{memberId:'demo-member-2',role:'TREASURER'}]};
+  assert.throws(()=>d.years.roster(admin,year,{...payload,members:[...payload.members,{memberId:'other-member',role:''}]}),code('NOT_FOUND'));
+  assert.deepEqual(d.years.read(admin,year),period);
+  assert.throws(()=>d.years.roster(admin,year,{...payload,members:[{memberId:'demo-member-1',role:'TEACHER'}]}),code('INVALID'));
+  assert.deepEqual(d.years.read(admin,year),period);
+  d.years.roster(admin,year,payload);
+  assert.ok(d.detail(admin,'demo-member-1').organizationIds.includes('org-service'));
+  assert.ok(d.detail(admin,'demo-member-2').organizationIds.includes('org-adults'));
+  assert.equal(d.detail(admin,'demo-member-1').position,'MEMBER');
+  assert.equal(d.list(admin,{organizationId:'org-youth'}).total,2);
+  assert.throws(()=>d.years.roster(admin,year,payload),code('CONFLICT'));
+  assert.throws(()=>d.years.roster(leader,year,payload),code('FORBIDDEN'));
+  const current=d.years.read(admin,year);
+  const {name,positions,statuses,organizationTypes,roles,courses,organizations,version}=current;
+  assert.throws(()=>d.years.configure(admin,year,{name,positions,statuses,organizationTypes,roles,courses,version,organizations:organizations.map(o=>o.id==='org-youth'?{...o,roleCodes:['SECRETARY']}:o)}),code('INVALID'));
+  assert.equal(d.years.read(admin,year).version,current.version);
+  d.years.create(admin,{year:2027,sourceYear:2026,sourceVersion:current.version,copyMembers:true,copyRoles:true});
+  d.years.roster(admin,2027,{...payload,version:d.years.read(admin,2027).version,members:[]});
+  assert.equal(d.list(admin,{organizationId:'org-youth'}).total,2);
+});
+
 test('education validates completion dates, preserves corrections and separates repeat cohorts', () => {
   const d=make(); const m='demo-member-1';
   const input={kind:'EDUCATION',courseId:'NEWCOMER',cohort:'2026 spring',date:'2026-03-01',value:'IN_PROGRESS',endDate:null,teacher:'Example teacher'};
@@ -91,7 +114,7 @@ test('annual draft isolation, roles, activation, immutable old year and stale le
   const d = make(); const original = d.years.read(admin,2026);
   d.years.create(admin,{year:2027,sourceYear:2026,sourceVersion:original.version,copyMembers:true,copyRoles:false});
   let draft = d.years.read(admin,2027);
-  d.years.assign(admin,2027,{version:draft.version,memberId:'demo-member-1',position:'ELDER',affiliations:[{organizationId:'org-youth',role:'TEACHER'},{organizationId:'org-service',role:'VOLUNTEER'}]});
+  d.years.assign(admin,2027,{version:draft.version,memberId:'demo-member-1',position:'ELDER',affiliations:[{organizationId:'org-youth',role:'LEADER'},{organizationId:'org-service',role:'VOLUNTEER'}]});
   assert.equal(d.detail(admin,'demo-member-1').position,'MEMBER');
   draft = d.years.read(admin,2027);
   d.years.activate(admin,2027,{version:draft.version,activeVersion:original.version,confirmed:true});
