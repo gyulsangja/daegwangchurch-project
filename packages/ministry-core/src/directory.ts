@@ -1,4 +1,5 @@
 import {createFamilyService} from './families';
+import {createPastoralService,type PastoralItem} from './pastoral';
 import type { MinistryYear } from './years';
 import type { Entry } from './records';
 import { createRecordService } from './records';
@@ -12,7 +13,7 @@ export type Member = MemberInput & { id: string; churchId: string; version: numb
 export type Audit = { id: string; churchId: string; actorId: string; memberId: string; action: 'CREATE' | 'UPDATE' | 'READ'; fields: string[]; at: string };
 export type Church = { id: string; name: string; statuses: { code: string; label: string }[]; positions: { code: string; label: string }[] };
 export type DirectoryState = { churches: Church[]; members: Member[]; organizations: Organization[]; families: Family[]; audits: Audit[] };
-export type DirectorySnapshot = {schemaVersion:1;state:DirectoryState;years:MinistryYear[];records:Entry[]};
+export type DirectorySnapshot = {schemaVersion:1;state:DirectoryState;years:MinistryYear[];records:Entry[];pastoral?:PastoralItem[]};
 export class DirectoryError extends Error { constructor(public code: 'FORBIDDEN' | 'NOT_FOUND' | 'CONFLICT' | 'INVALID', message?: string) { super(message ?? code); this.name = 'DirectoryError'; } }
 // Next development bundles may load the shared module in separate contexts.
 export function isDirectoryError(error: unknown): error is DirectoryError {
@@ -27,6 +28,7 @@ export function createDirectory(initial: DirectoryState, id: () => string, now =
   const fail = (code: 'FORBIDDEN' | 'NOT_FOUND' | 'CONFLICT' | 'INVALID', message?: string): never => { throw new DirectoryError(code, message); };
   const years = createYearService(state, now, fail, (actor, before, after) => records.capture(actor, before, after), restored?.years);
   const records = createRecordService(state, id, now, fail, (actor, member) => years.syncMember(actor, member), actor => years.read(actor, years.activeYear(actor.churchId)).roles, actor => years.read(actor, years.activeYear(actor.churchId)).courses, restored?.records);
+  const pastoral=createPastoralService(state,id,now,fail,restored?.pastoral);
   const church = (actor: Actor) => {
     if (!actor.id || !['ADMIN', 'OFFICE', 'LEADER'].includes(actor.role)) throw new DirectoryError('FORBIDDEN');
     const found = state.churches.find(item => item.id === actor.churchId);
@@ -51,8 +53,8 @@ export function createDirectory(initial: DirectoryState, id: () => string, now =
   };
   const summary = (member: Member) => ({ id: member.id, name: member.name, status: member.status, position: member.position, organizationIds: [...member.organizationIds], createdAt: member.createdAt });
   return {
-    snapshot():DirectorySnapshot { return {schemaVersion:1,state:structuredClone(state),years:years.snapshot(),records:records.snapshot()}; },
-    years, records, families:createFamilyService(state,id,now,fail),
+    snapshot():DirectorySnapshot { return {schemaVersion:1,state:structuredClone(state),years:years.snapshot(),records:records.snapshot(),pastoral:pastoral.snapshot()}; },
+    years, records, pastoral, families:createFamilyService(state,id,now,fail),
     config(actor: Actor) {
       const config = church(actor);
       return structuredClone({ ...config, activeYear: years.activeYear(actor.churchId), organizations: state.organizations.filter(org => org.churchId === actor.churchId && (actor.role !== 'LEADER' || ((actor.scopeYear ?? initialYear) === years.activeYear(actor.churchId) && actor.organizationIds.includes(org.id)))) });

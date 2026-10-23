@@ -8,7 +8,7 @@ mkdirSync('test-results/ministry', { recursive: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   const errors = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto(base); await page.getByRole('heading', { name: '우리 교회를 한눈에' }).waitFor();
+  await page.goto(base); await page.getByRole('heading', { name: '오늘의 목회' }).waitFor();
   await page.screenshot({ path: 'test-results/ministry/home-desktop.png', fullPage: true, caret: 'initial' });
   await page.goto(`${base}/members`);
   await page.getByRole('textbox', { name: '이름', exact: true }).fill('가람');

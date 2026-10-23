@@ -15,7 +15,7 @@ export function persistentDirectory(path:string):Service {
       return {snapshot:service.snapshot(),result};
     });
   }
-  const groups=new Set(['years','records','families']);
+  const groups=new Set(['years','records','families','pastoral']);
   // Every public domain call re-reads within a short synchronous SQLite transaction.
   // No async HTTP/body parsing or network calls run while the database is locked.
   return new Proxy({} as Service,{get(_target,key){

@@ -11,6 +11,54 @@ const input = { name: '가상 등록', status: 'ACTIVE', position: '', phone: ''
 const make = () => createDirectory(createFixture(), randomUUID, () => '2026-10-21T00:00:00.000Z');
 const code = (expected: string) => (error: unknown) => error instanceof DirectoryError && error.code === expected;
 
+test('pastoral goals, actions and prayer history are scoped, versioned and restored',()=>{
+ const d=make();const pastor={...admin,permissions:['CARE'] as ['CARE']};
+ const goal={kind:'GOAL',title:'Annual care',body:'Visit each household',date:'2026-12-31',memberId:'',goalId:'',category:'OTHER',status:'OPEN'};
+ assert.throws(()=>d.pastoral.list(admin),code('FORBIDDEN'));
+ assert.throws(()=>d.pastoral.create(leader,goal),code('FORBIDDEN'));
+ const created=d.pastoral.create(pastor,goal);
+ const plan={...goal,kind:'PLAN',title:'First visit',goalId:created.id,memberId:'demo-member-1',date:'2026-10-25'};
+ const action=d.pastoral.create(pastor,plan);
+ assert.throws(()=>d.pastoral.create(pastor,{...plan,memberId:'other-member'}),code('NOT_FOUND'));
+ assert.throws(()=>d.pastoral.update({...pastor,churchId:'demo-other'},{...plan,id:action.id,version:1}),code('NOT_FOUND'));
+ assert.throws(()=>d.pastoral.update(pastor,{...plan,id:action.id,version:1,status:'DONE'}),code('INVALID'));
+ d.pastoral.update(pastor,{...plan,id:action.id,version:1,status:'DONE',reflection:'Completed visit; follow up next month'});
+ assert.throws(()=>d.pastoral.update(pastor,{...plan,id:action.id,version:1}),code('CONFLICT'));
+ const restored=createDirectory(createFixture(),randomUUID,undefined,d.snapshot());
+ const item=restored.pastoral.list(pastor).find(i=>i.id===action.id)!;
+ assert.equal(item.status,'DONE');assert.equal(item.history.length,2);assert.equal(item.history[1].before?.status,'OPEN');
+ assert.ok(!JSON.stringify(d.detail(admin,'demo-member-1').history).includes('Completed visit'));
+ const old=d.snapshot();delete old.pastoral;
+ assert.equal(createDirectory(createFixture(),randomUUID,undefined,old).pastoral.list(pastor).length,0);
+});
+
+test('attendance batches preserve unknowns, prevent stale overwrites and share individual records',()=>{
+ const d=make();const query={date:'2026-10-21',event:'Sunday worship',organizationId:'org-youth'};
+ assert.throws(()=>d.records.attendanceRoster(leader,query),code('FORBIDDEN'));
+ assert.throws(()=>d.records.attendanceRoster(admin,{...query,organizationId:'org-other'}),code('NOT_FOUND'));
+ const roster=d.records.attendanceRoster(admin,query);assert.ok(roster.rows.length>1);
+ assert.ok(roster.rows.every(r=>r.value==='UNKNOWN'));
+ const rows=roster.rows.map((r,i)=>({memberId:r.memberId,value:i===0?'PRESENT':'UNKNOWN'}));
+ assert.throws(()=>d.records.saveAttendance(admin,{...query,revision:0,rows:[...rows,{memberId:'other-member',value:'PRESENT'}]}),code('CONFLICT'));
+ assert.equal(d.records.attendanceHistory(admin).length,0);
+ d.records.saveAttendance(admin,{...query,revision:0,rows});
+ assert.equal(d.records.attendanceHistory(admin).length,1);
+ assert.equal(d.records.list(admin,rows[0].memberId).filter(e=>e.kind==='ATTENDANCE').length,1);
+ assert.throws(()=>d.records.saveAttendance(admin,{...query,revision:0,rows}),code('CONFLICT'));
+ const revision=d.records.attendanceRoster(admin,query).revision;
+ const changed=rows.map((r,i)=>({...r,value:i===0?'ONLINE':i===1?'ABSENT':'UNKNOWN'}));
+ assert.throws(()=>d.records.saveAttendance(admin,{...query,revision,rows:changed}),code('INVALID'));
+ assert.equal(d.records.attendanceHistory(admin).length,1);
+ d.records.saveAttendance(admin,{...query,revision,rows:changed,reason:'Confirmed attendance'});
+ assert.deepEqual(d.records.attendanceHistory(admin).map(e=>e.value).sort(),['ABSENT','ONLINE']);
+ assert.ok(d.records.list(admin,rows[0].memberId).some(e=>e.voided&&e.correction?.reason==='Confirmed attendance'));
+ assert.equal(d.records.attendanceHistory({...admin,churchId:'demo-other'}).length,0);
+ assert.throws(()=>d.records.saveAttendance(admin,{...query,date:'2026-10-22',revision:0,rows}),code('INVALID'));
+ const current=d.records.attendanceRoster(admin,query);
+ d.records.saveAttendance(admin,{...query,revision:current.revision,rows:current.rows.map(r=>({memberId:r.memberId,value:'UNKNOWN'})),reason:'Wrong service'});
+ assert.equal(d.records.attendanceHistory(admin).length,0);
+});
+
 test('families enforce church boundary, relation reference, one household and stale-write protection',()=>{
  const d=make();const input={name:'Example household',representativeId:'demo-member-3',members:[{memberId:'demo-member-3',relationship:'기준 교인'},{memberId:'demo-member-4',relationship:'배우자'}]};
  assert.throws(()=>d.families.create(leader,input),code('FORBIDDEN'));

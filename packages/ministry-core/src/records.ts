@@ -1,5 +1,6 @@
 import { ministryRecordSchema, type MinistryRecordInput } from '@daegwang/contracts/ministry-records';
 import type { Actor, DirectoryState, Member } from './directory';
+import {attendanceQuery,attendanceBatch} from '@daegwang/contracts/ministry-pastoral';
 export type Entry = MinistryRecordInput & { id: string; churchId: string; memberId: string; actorId: string; recordedAt: string; label: string; voided?: boolean; correction?: {reason:string;actorId:string;at:string} };
 type Fail = (code: 'FORBIDDEN' | 'NOT_FOUND' | 'CONFLICT' | 'INVALID', message?: string) => never;
 export function createRecordService(state: DirectoryState, id: () => string, now: () => string, fail: Fail, sync: (actor: Actor, member: Member) => void, roles: (actor: Actor) => {code:string;label:string}[], courses: (actor: Actor) => {code:string;label:string}[], restored: Entry[] = []) {
@@ -16,6 +17,40 @@ export function createRecordService(state: DirectoryState, id: () => string, now
   };
   return {
     snapshot() { return structuredClone(entries); },
+    careHistory(actor:Actor){
+      if(!actor.id||!['ADMIN','OFFICE'].includes(actor.role)||!actor.permissions?.includes('CARE'))return fail('FORBIDDEN');
+      state.audits.push({id:id(),churchId:actor.churchId,actorId:actor.id,memberId:'',action:'READ',fields:['careAgenda'],at:now()});
+      return structuredClone(entries.filter(e=>e.churchId===actor.churchId&&e.kind==='CARE'&&!e.voided).sort((a,b)=>b.date.localeCompare(a.date)));
+    },
+    attendanceRoster(actor:Actor,raw:unknown){
+      if(!actor.id||!['ADMIN','OFFICE'].includes(actor.role)||!state.churches.some(c=>c.id===actor.churchId))return fail('FORBIDDEN');
+      const query=attendanceQuery.parse(raw);
+      if(query.organizationId&&!state.organizations.some(o=>o.id===query.organizationId&&o.churchId===actor.churchId))return fail('NOT_FOUND');
+      const session=entries.filter(e=>e.churchId===actor.churchId&&e.kind==='ATTENDANCE'&&e.date===query.date&&e.event===query.event&&e.organizationId===query.organizationId);
+      const members=state.members.filter(m=>m.churchId===actor.churchId&&((!['DECEASED','TRANSFERRED'].includes(m.status)&&(!query.organizationId||m.organizationIds.includes(query.organizationId)))||session.some(e=>e.memberId===m.id)));
+      return {revision:session.reduce((n,e)=>n+1+(e.voided?1:0),0),rows:members.sort((a,b)=>a.name.localeCompare(b.name,'ko')).map(m=>{const entry=session.find(e=>e.memberId===m.id&&!e.voided);return {memberId:m.id,name:m.name,value:entry?.kind==='ATTENDANCE'?entry.value:'UNKNOWN' as const};})};
+    },
+    saveAttendance(actor:Actor,raw:unknown){
+      const input=attendanceBatch.parse(raw);const query={date:input.date,event:input.event,organizationId:input.organizationId};
+      const roster=this.attendanceRoster(actor,query);
+      if(input.date>today())return fail('INVALID','출석은 오늘까지의 날짜에 기록해 주세요.');
+      if(input.revision!==roster.revision)return fail('CONFLICT');
+      if(new Set(input.rows.map(r=>r.memberId)).size!==input.rows.length||input.rows.length!==roster.rows.length||input.rows.some(r=>!roster.rows.some(m=>m.memberId===r.memberId)))return fail('CONFLICT','명단이 변경되었습니다. 출석부를 다시 불러와 주세요.');
+      const changed=input.rows.filter(r=>roster.rows.find(m=>m.memberId===r.memberId)?.value!==r.value);
+      if(changed.some(r=>roster.rows.find(m=>m.memberId===r.memberId)?.value!=='UNKNOWN')&&!input.reason)return fail('INVALID','기존 출석을 변경할 때에는 정정 사유를 입력해 주세요.');
+      // Validate the entire batch before modifying any entry. The persistence adapter commits it atomically.
+      for(const row of changed){
+        const previous=entries.find(e=>!e.voided&&e.churchId===actor.churchId&&e.memberId===row.memberId&&e.kind==='ATTENDANCE'&&e.date===input.date&&e.event===input.event&&e.organizationId===input.organizationId);
+        if(previous)this.correct(actor,row.memberId,previous.id,input.reason);
+        if(row.value!=='UNKNOWN')this.add(actor,row.memberId,{...query,kind:'ATTENDANCE',value:row.value,note:''});
+      }
+      return {changed:changed.length};
+    },
+    attendanceHistory(actor:Actor,memberId?:string){
+      if(!actor.id||!['ADMIN','OFFICE'].includes(actor.role)||!state.churches.some(c=>c.id===actor.churchId))return fail('FORBIDDEN');
+      if(memberId)find(actor,memberId);
+      return structuredClone(entries.filter((e):e is Entry & {kind:'ATTENDANCE'}=>e.kind==='ATTENDANCE'&&!e.voided&&e.churchId===actor.churchId&&(!memberId||e.memberId===memberId)));
+    },
     correct(actor: Actor, memberId: string, entryId: string, reason: unknown) {
       find(actor, memberId);
       const entry = entries.find(e => e.churchId === actor.churchId && e.memberId === memberId && e.id === entryId);

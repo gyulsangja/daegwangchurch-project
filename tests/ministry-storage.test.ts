@@ -18,6 +18,8 @@ test('local SQLite persists complete domain state across connections and a separ
  try{
    const created=invoke(path,s=>s.create(actor,{name:'가상 저장 검증',status:'ACTIVE',position:'',phone:'',address:'',organizationIds:[]}));
    invoke(path,s=>s.families.create(actor,{name:'가상 저장 가구',representativeId:null,members:[{memberId:created.id,relationship:'가구원'}]}));
+   const prayer=invoke(path,s=>s.pastoral.create(actor,{kind:'PRAYER',title:'Synthetic prayer',body:'Private pastoral note',date:'2026-10-24',memberId:created.id,goalId:'',category:'OTHER',status:'OPEN'}));
+   assert.equal(invoke(path,s=>s.pastoral.list(actor).find(i=>i.id===prayer.id)?.body),'Private pastoral note');
    invoke(path,s=>{const year=s.config(actor).activeYear;const source=s.years.read(actor,year);s.years.create(actor,{year:year+1,sourceYear:year,sourceVersion:source.version,copyMembers:true,copyRoles:true});s.records.add(actor,created.id,{kind:'CARE',date:'2026-10-01',category:'COUNSEL',content:'synthetic storage test',nextDate:null});});
    invoke(path,s=>{assert.equal(s.detail(actor,created.id).family?.name,'가상 저장 가구');assert.equal(s.records.list(actor,created.id).length,1);assert.equal(s.years.list(actor).length,2);assert.equal(s.records.list({...actor,permissions:[]},created.id).length,0);});
    const code=`import {DatabaseSync} from 'node:sqlite';const db=new DatabaseSync(${JSON.stringify(path)},{readOnly:true});const row=db.prepare('SELECT payload FROM ministry_review_snapshot WHERE id=1').get();console.log(JSON.parse(row.payload).state.members.length);db.close();`;
