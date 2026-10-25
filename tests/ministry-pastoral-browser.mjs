@@ -1,8 +1,10 @@
+import {requireIsolatedMinistryServer} from './ministry-browser-guard.mjs';
 // Run against a separate MINISTRY_LOCAL_DB_PATH, never the user's review DB.
 import assert from 'node:assert/strict';
 import {mkdirSync} from 'node:fs';
 import {chromium} from '@playwright/test';
-const base='http://127.0.0.1:3002';const browser=await chromium.launch({channel:'msedge',headless:true});
+const base='http://127.0.0.1:3002';await requireIsolatedMinistryServer(base);
+const browser=await chromium.launch({channel:'msedge',headless:true});
 mkdirSync('test-results/ministry',{recursive:true});
 try{
  const page=await browser.newPage({viewport:{width:1440,height:1000}});const errors=[];page.on('pageerror',e=>errors.push(e.message));

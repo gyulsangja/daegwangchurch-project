@@ -1,4 +1,16 @@
 # 작업 인수인계
+## 실제 Supabase 목회 연결·로그인 확인 (2026-10-26)
+
+- 사용자가 기존 계정을 최초 관리자로 지정하고 기존 Supabase 내 별도 비공개 ministry 스키마/전용 DB 계정 사용 승인. auth.users에서 해당 계정 하나만 확인 후 신규 schema/제한 런타임 역할/빈 교회와 2026년 편성/단일 명시 관리자 권한 생성. 사용자 지정 계정 외 권한 자동 부여 없음. 기존 CMS/앱 자료와 로컬 가상자료를 이관하지 않음.
+- scripts/provision-ministry.ts 명시적 --apply로 승인된 작업 수행. 비밀값은 apps/ministry/.env.local 및 .local/ministry/provision-runtime.env에만 저장(Git 제외), 콘솔/문서 미기록. Supabase default privileges로 새 테이블에 API 역할 권한이 생길 가능성을 막기 위해 anon/authenticated/service_role의 schema/table 권한 명시 회수. 신규 ministry 12개 테이블 모두 RLS+FORCE RLS 확인.
+- 실제 전용 runtime 연결/병렬 2개 풀 호출, 미승인 계정·다른 교회 거부, 테스트 insert 강제 rollback 후 교인0명, 기존 public.admin_profiles 접근 거부 확인. scripts/verify-ministry-live.ts로 새 ministry 자료만 비공개 JSON+SHA256 백업하고 독립 PGlite에 복원 검증. 비밀값/회원 자료를 출력하지 않음. 기존 운영 DB 전체 백업을 대체하지 않는다.
+- 로컬 MINISTRY_OPERATIONAL_ENABLED=true, origin http://localhost:3002. 실제 네트워크 접속 가능한 localhost 개발 서버 실행. 사용자 직접 기존 비밀번호 로그인 후 ‘된다’ 확인. http://localhost:3002/login 사용(127.0.0.1은 설정 원점과 다름). 익명 API401/외부Origin403/가상자료 미노출 확인. 이제 기본 개발 서버는 **실제 빈 목회 DB**를 사용한다. 가상 회원 입력 테스트 금지.
+- 브라우저 쓰기 테스트에 /api/review-status 사전 검사 추가. MINISTRY_OPERATIONAL_ENABLED=false + MINISTRY_TEST_MODE=true + 별도 MINISTRY_LOCAL_DB_PATH를 모두 지정해야 통과. 운영 모드에서는403으로 거부. 기존 6개 브라우저 테스트 모두 가드 적용.
+- CMS 읽기 브리지와 공개 호스팅은 아직 활성화하지 않음. 회원/상담 관리 바로가기는 사용 가능하지만 계정 매칭·접수 인계는 별도 최소 권한 CMS 연결 준비 후 켠다. 로그인/교적 운영연결 완료와 양방향 소속/상담 상태 자동동기화 완료를 혼동하지 않는다.
+- 검증:21개 자동테스트, ministry 타입/lint/경계, 원격 검증과 백업복원, 실제 사용자 로그인. 이후 다른 PC에는 비밀 환경값을 Git으로 옮기지 말고 별도 승인된 비밀 전달/호스팅 환경설정 사용.
+- 배포 준비: 기존 Vercel 팀에 daegwangchurch-ministry 프로젝트 생성, Next.js / apps/ministry / Node24 / npm ci / npm run build 설정. projectId prj_kbv8J6pjcVzHYfvogJ8RemFWSYHH. 루트 .vercel 링크는 기존 관리자 그대로이므로 향후 명령에 --project daegwangchurch-ministry를 반드시 지정. .vercelignore에 .local/백업/SQLite 제외 추가. --dry manifest 810항목에서 env/백업/Firebase 비밀/목회 DB 비밀값 미포함 확인; 업로드는 아직 수행하지 않음.
+- 자동 승인 검토가 새 Vercel 프로젝트로 DB 비밀값 등록 및 운영 활성화를 거부: 기존 배포 승인이 기존 홈페이지·관리자 두 프로젝트에 한정된다는 이유. 새 목적지 daegwangchurch-ministry의 서버 Secret 등록·배포 승인을 사용자에게 요청한 상태. 승인 전 재시도/우회 금지. 예상 공개 주소 https://daegwangchurch-ministry.vercel.app, 아직 운영 배포/환경 등록 완료 아님.
+
 ## 운영 인증·PostgreSQL 어댑터·CMS 연결 준비 (2026-10-25 후속)
 
 - 사용자 ‘모두 진행’에 따라 실제 Supabase 서버 검증 로그인/로그아웃·세션 갱신 코드, 별도 목회 권한 조회, PostgreSQL 행 저장 어댑터, 회원·접수 인계 화면/API 구현. **운영 적용/공개 배포 완료 아님.** 최초 관리자 기존 계정 이메일과 기존 Supabase 별도 ministry 스키마 사용 여부를 비동기 질문으로 요청했으며 아직 응답 전. 전용 환경변수도 미설정, 운영/브리지 플래그 false 기본값 유지.

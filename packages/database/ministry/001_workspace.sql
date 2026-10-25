@@ -47,4 +47,13 @@ DO $$ DECLARE t text; BEGIN
  END LOOP;
 END $$;
 REVOKE ALL ON ALL TABLES IN SCHEMA ministry FROM PUBLIC;
+-- Supabase may have default privileges for API roles even on newly created tables.
+DO $$ DECLARE api_role text; BEGIN
+ FOREACH api_role IN ARRAY ARRAY['anon','authenticated','service_role'] LOOP
+  IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname=api_role) THEN
+   EXECUTE format('REVOKE ALL ON SCHEMA ministry FROM %I',api_role);
+   EXECUTE format('REVOKE ALL ON ALL TABLES IN SCHEMA ministry FROM %I',api_role);
+  END IF;
+ END LOOP;
+END $$;
 COMMIT;

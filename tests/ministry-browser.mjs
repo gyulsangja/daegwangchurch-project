@@ -1,8 +1,10 @@
+import {requireIsolatedMinistryServer} from './ministry-browser-guard.mjs';
 import assert from 'node:assert/strict';
 import { mkdirSync } from 'node:fs';
 import { chromium } from '@playwright/test';
 
 const base = 'http://127.0.0.1:3002';
+await requireIsolatedMinistryServer(base);
 const browser = await chromium.launch({ channel: process.env.TEST_BROWSER_CHANNEL || 'msedge', headless: true });
 mkdirSync('test-results/ministry', { recursive: true });
 try {

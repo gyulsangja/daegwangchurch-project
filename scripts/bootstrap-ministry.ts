@@ -16,7 +16,7 @@ if(!process.argv.includes('--apply')){
   const owner=await db.query('SELECT current_user AS name');if(owner.rows[0].name===args.runtimeRole)throw new Error('Migration and runtime roles must differ');
   const state:DirectoryState={churches:[{id:args.church,name:args.name,statuses:[{code:'ACTIVE',label:'재적'},{code:'DECEASED',label:'소천'},{code:'TRANSFERRED',label:'이적'}],positions:[{code:'MEMBER',label:'성도'},{code:'DEACON',label:'집사'},{code:'ELDER',label:'장로'}]}],members:[],organizations:[],families:[],audits:[]};
   const initial=createDirectory(state,randomUUID).snapshot();
-  const migration=readFileSync('packages/database/ministry/001_workspace.sql','utf8').replace(/^BEGIN;$/m,'').replace(/^COMMIT;$/m,'');
+  const migration=readFileSync('packages/database/ministry/001_workspace.sql','utf8').replace(/^BEGIN;\r?$/m,'').replace(/^COMMIT;\r?$/m,'');
   await db.query('BEGIN');await db.query(migration);
   await db.query('INSERT INTO ministry.churches(id,payload) VALUES($1,$2)',[args.church,initial.state.churches[0]]);
   for(const year of initial.years)await db.query('INSERT INTO ministry.years(church_id,id,payload) VALUES($1,$2,$3)',[args.church,String(year.year),year]);

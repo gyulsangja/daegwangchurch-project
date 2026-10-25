@@ -8,7 +8,9 @@ const user='11111111-1111-4111-8111-111111111111';
 test('PostgreSQL ministry isolation, explicit grants, rollback, composite FK and revocation',async()=>{
  const db=new PGlite();
  try{
+  await db.exec('CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role; ALTER DEFAULT PRIVILEGES GRANT ALL ON TABLES TO anon,authenticated,service_role;');
   await db.exec(readFileSync('packages/database/ministry/001_workspace.sql','utf8'));
+  const api=await db.query<{count:number}>("SELECT count(*)::int AS count FROM information_schema.role_table_grants WHERE table_schema='ministry' AND grantee IN ('anon','authenticated','service_role')");assert.equal(api.rows[0].count,0);
   await db.exec(`CREATE ROLE ministry_test; GRANT USAGE ON SCHEMA ministry TO ministry_test; GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA ministry TO ministry_test;`);
   for(const id of ['one','two']){await db.query('INSERT INTO ministry.churches VALUES($1,$2)',[id,{id,name:id,statuses:[],positions:[]}]);await db.query('INSERT INTO ministry.members VALUES($1,$2,$3)',[id,`member-${id}`,{id:`member-${id}`,churchId:id}]);}
   await db.query('INSERT INTO ministry.access_grants(church_id,user_id,role,care) VALUES($1,$2,$3,true)',['one',user,'ADMIN']);

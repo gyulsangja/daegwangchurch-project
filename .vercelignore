@@ -1,6 +1,11 @@
 .env
 .env.*
 .git
+.local
+.local/**
+**/*.sqlite
+**/*.sqlite-wal
+**/*.sqlite-shm
 .next
 node_modules
 *.log

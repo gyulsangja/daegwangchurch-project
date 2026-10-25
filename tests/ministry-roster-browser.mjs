@@ -1,6 +1,8 @@
+import {requireIsolatedMinistryServer} from './ministry-browser-guard.mjs';
 import assert from 'node:assert/strict';
 import {chromium} from '@playwright/test';
-const base='http://127.0.0.1:3002';const browser=await chromium.launch({channel:'msedge',headless:true});
+const base='http://127.0.0.1:3002';await requireIsolatedMinistryServer(base);
+const browser=await chromium.launch({channel:'msedge',headless:true});
 try {
  const page=await browser.newPage({viewport:{width:1440,height:1000}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const period=await (await page.request.get(`${base}/api/v1/years/2026`)).json();
