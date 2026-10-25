@@ -6,9 +6,9 @@ export default async function Settings({ searchParams }: { searchParams: Promise
   const { service, actor, config } = await workspace();
   const query = await searchParams; const year = query.year === undefined ? config.activeYear : Number(query.year);
   let period;
-  try { period = service.years.read(actor, year); } catch (e) { if (isDirectoryError(e) && e.code === 'NOT_FOUND') notFound(); throw e; }
-  const years = service.years.list(actor);
-  const total = service.list(actor, { page: 1 }).total;
-  const members = Array.from({ length: Math.ceil(total / 12) }, (_, i) => service.list(actor, { page: i + 1 }).items).flat();
+  try { period = (await service.years.read(actor, year)); } catch (e) { if (isDirectoryError(e) && e.code === 'NOT_FOUND') notFound(); throw e; }
+  const years = (await service.years.list(actor));
+  const total = (await service.list(actor, { page: 1 })).total;
+  const members = (await Promise.all(Array.from({ length: Math.ceil(total / 12) }, async (_, i) => (await service.list(actor, { page: i + 1 })).items))).flat();
   return <><div className="page-heading"><div><p className="eyebrow">교회 운영 기준</p><h1>환경설정</h1><p>직분·조직·전도회 구성과 임원 역할을 연도별로 관리합니다.</p></div></div><YearSettings key={`${year}-${period.version}-${query.tab}-${query.organization}-${query.member}`} period={period} years={years} members={members.map(m => ({ id: m.id, name: m.name }))} activeYear={config.activeYear} initialTab={query.tab} initialMember={query.member} initialOrganization={query.organization} /></>;
 }

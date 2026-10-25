@@ -6,7 +6,8 @@
   "exports": {
     "./prisma": "./src/prisma.ts",
     "./generated/*": "./src/generated/*.ts",
-    "./ministry-local": "./src/ministry-local.ts"
+    "./ministry-local": "./src/ministry-local.ts",
+    "./ministry-postgres": "./src/ministry-postgres.ts"
   },
   "dependencies": {
     "@prisma/client": "^7.8.0",

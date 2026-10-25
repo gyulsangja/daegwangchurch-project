@@ -1,4 +1,14 @@
 # 작업 인수인계
+## 운영 인증·PostgreSQL 어댑터·CMS 연결 준비 (2026-10-25 후속)
+
+- 사용자 ‘모두 진행’에 따라 실제 Supabase 서버 검증 로그인/로그아웃·세션 갱신 코드, 별도 목회 권한 조회, PostgreSQL 행 저장 어댑터, 회원·접수 인계 화면/API 구현. **운영 적용/공개 배포 완료 아님.** 최초 관리자 기존 계정 이메일과 기존 Supabase 별도 ministry 스키마 사용 여부를 비동기 질문으로 요청했으며 아직 응답 전. 전용 환경변수도 미설정, 운영/브리지 플래그 false 기본값 유지.
+- packages/database/ministry/001_workspace.sql은 별도 적용 경로. 교회·권한·교인·조직·가구·연도·기록·기도/목회·회차·감사·계정 연결·접수 연결 테이블. RLS FORCE, 교회+교인 복합 FK와 고유 제약. 상세 내용·연도/가구 등은 JSON 행이므로 완전 정규화 완료로 말하지 않는다. 운영 역할은 SUPERUSER/BYPASSRLS 불허; 별도 역할의 최소 권한 필요. 기존 CMS migration 명령은 변경 없음.
+- 운영 실행은 MINISTRY_OPERATIONAL_ENABLED=true + 명시적 MINISTRY_ORIGIN/CHURCH_ID/DATABASE_URL + Supabase 공개 설정 필요. getUser 서버 검증, 전용 HttpOnly 쿠키와 proxy 갱신, Origin/Host 검사. 매 서비스 호출에서 최신 권한 FOR SHARE + 교회 FOR UPDATE, 읽기/도메인 검증/감사/쓰기 하나의 트랜잭션. SQLite 경로를 운영 fallback으로 쓰지 않음. 모든 페이지를 async 서비스 호출로 전환. ADMIN/OFFICE+CARE 모델을 유지하며 조직별 출석 권한 등 세분화는 후속.
+- /integration: 기존 공지/주보/설교/승인/상담 관리 링크. 브리지 별도 읽기 전용 CMS 연결+교회 ID 일치+기존 활성 CMS 관리자(ADMIN/SUPER_ADMIN) 확인. 기존 CONFIRMED 회원만 교적과 명시적 연결, version/중복 검사. 상담은 목회 CARE와 기존 care_settings 지정 관리자 둘 다 필요. 만료/취소/완료 접수 제외, 본문/주소/전화 복제 없이 연락·협의 일정 생성. 회원은 최대500, 접수100건. 기존 CMS 상태·소속 자동 동기화/자동승인/연결해제 UI는 아직 없음; 기존 관리자에서 처리하도록 표시.
+- scripts/bootstrap-ministry.ts: 승인된 관리자 auth UUID/교회/미리 생성한 제한 런타임 역할로 빈 교회·연도·권한 초기화. 명시적 --apply와 migration URL 필요, 자동 실행하지 않음. schema가 이미 있으면 실패·롤백. 가상자료 이관 없음. scripts/check-ministry-config.mjs는 비밀값 출력 없이 설정 유무만 확인.
+- 검증: 기존 도메인/SQLite 19개, 실제 PGlite SQL/RLS/FK/롤백/권한회수 1개, CMS 읽기 권한/상담 담당자/민감본문 비복제 1개. 타입/lint/build/경계 및 기존 목회·교인 CRUD 브라우저 회귀 검증. 실제 원격 DB 풀러·병행 연결/복원, Supabase 실계정 쿠키 갱신·로그아웃·권한 해제는 운영 설정 후 반드시 확인. 테스트 DB는 .local/ministry/operational-prep-test.sqlite로 기본 DB와 분리.
+- 다음 필요한 사용자 답: 최초 목회 운영 관리자 이메일, 기존 Supabase 별도 비공개 schema 사용/별도 프로젝트 선택. 답변 후 관리자 UUID 확인 → 전용 DB 역할과 환경 준비 → 백업·SQL 검토 → 승인된 운영 적용 → 실제 로그인/권한회수/복원검증 → 공개 배포. 그 전 운영 flag 켜지 않기.
+
 ## 회차 명단 보존·상담 후속 연결 (2026-10-25)
 
 - 출석부 첫 저장 때 미확인 포함 교인 ID/당시 이름을 attendanceSessions optional 스냅샷으로 보존. 이후 소속·교적·이름 변경에 영향받지 않음. 조회만으로는 명단을 확정하지 않으며 전원 미확인 상태도 저장 가능. 최초 명단 저장도 revision 증가, 오래된 저장 충돌. 기존 개인 기록은 그대로 유지. 명단 밖 교인을 개인 기록 API로 끼워 넣는 것은 차단.

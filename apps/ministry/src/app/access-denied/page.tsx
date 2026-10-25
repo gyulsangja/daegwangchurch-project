@@ -1,0 +1,1 @@
+export default function Denied(){return <main className="locked"><h1>목회 권한 확인이 필요합니다</h1><p>로그인한 계정에 이 교회의 목회 권한이 없습니다. 교회 운영 담당자에게 권한 부여를 요청해 주세요.</p><form action="/api/auth/logout" method="post"><button className="button">로그아웃</button></form></main>;}

@@ -46,10 +46,11 @@
     "maintain:push": "tsx scripts/process-push.ts",
     "dev:ministry": "npm run dev --workspace @daegwang/ministry",
     "build:ministry": "npm run build --workspace @daegwang/ministry",
-    "test:ministry": "tsx --test tests/ministry-directory.test.ts tests/ministry-storage.test.ts",
+    "test:ministry": "tsx --test tests/ministry-directory.test.ts tests/ministry-storage.test.ts tests/ministry-postgres.test.ts && node --conditions=react-server --import tsx --test tests/ministry-cms-bridge.test.ts",
     "backup:ministry": "node --import tsx scripts/backup-ministry.mjs"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.4.1",
     "@playwright/test": "^1.63.0",
     "@types/node": "^26.1.1",
     "@types/pg": "^8.20.0",

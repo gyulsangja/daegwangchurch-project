@@ -7,7 +7,7 @@ export default async function Members({ searchParams }: { searchParams: Promise<
   const { service, actor, config } = await workspace();
   const parsed = memberSearchSchema.safeParse(await searchParams);
   const query = parsed.success ? parsed.data : memberSearchSchema.parse({});
-  const data = service.list(actor, query);
+  const data = (await service.list(actor, query));
   const qs = new URLSearchParams({ q: query.q, status: query.status, organizationId: query.organizationId, page: String(query.page) });
   const returnTo = `/members?${qs}`;
   const pageLink = (page: number) => { const next = new URLSearchParams(qs); next.set('page', String(page)); return `/members?${next}`; };
