@@ -11,6 +11,42 @@ const input = { name: '가상 등록', status: 'ACTIVE', position: '', phone: ''
 const make = () => createDirectory(createFixture(), randomUUID, () => '2026-10-21T00:00:00.000Z');
 const code = (expected: string) => (error: unknown) => error instanceof DirectoryError && error.code === expected;
 
+test('saved attendance roster survives member and organization changes, including unknowns',()=>{
+ const d=make();const query={date:'2026-10-21',event:'School worship',organizationId:'org-youth'};
+ const before=d.records.attendanceRoster(admin,query);
+ assert.equal(before.savedAt,null);
+ d.records.saveAttendance(admin,{...query,revision:before.revision,rows:before.rows.map(r=>({memberId:r.memberId,value:'UNKNOWN'}))});
+ const saved=d.records.attendanceRoster(admin,query);assert.ok(saved.savedAt);assert.equal(saved.revision,1);
+ const target=before.rows[0];const member=d.detail(admin,target.memberId);
+ d.update(admin,target.memberId,{name:'Changed name',phone:'',address:'',status:'TRANSFERRED',position:member.position,organizationIds:[],version:member.version});
+ const added=d.create(admin,{name:'New student',phone:'',address:'',status:'ACTIVE',position:'',organizationIds:['org-youth']});
+ const after=d.records.attendanceRoster(admin,query);
+ assert.deepEqual(after.rows,before.rows);
+ assert.throws(()=>d.records.add(admin,added.id,{...query,kind:'ATTENDANCE',value:'PRESENT'}),code('INVALID'));
+ assert.throws(()=>d.records.saveAttendance(admin,{...query,revision:0,rows:before.rows.map(r=>({memberId:r.memberId,value:'PRESENT'}))}),code('CONFLICT'));
+ const restored=createDirectory(createFixture(),randomUUID,undefined,d.snapshot());
+ assert.deepEqual(restored.records.attendanceRoster(admin,query).rows,before.rows);
+ assert.ok(!restored.records.attendanceRoster({...admin,churchId:'demo-other'},{...query,organizationId:''}).savedAt);
+});
+
+test('care follow-up links once, respects scope, and keeps completion attached to the source',()=>{
+ const d=make();const pastor={...admin,permissions:['CARE'] as ['CARE']};
+ const source=d.records.add(pastor,'demo-member-1',{kind:'CARE',date:'2026-10-20',category:'VISIT',content:'Confidential original',nextDate:'2026-10-25'});
+ assert.throws(()=>d.pastoral.followUp(admin,source.id),code('FORBIDDEN'));
+ assert.throws(()=>d.pastoral.followUp({...pastor,churchId:'demo-other'},source.id),code('NOT_FOUND'));
+ const linked=d.pastoral.followUp(pastor,source.id);
+ assert.equal(d.pastoral.followUp(pastor,source.id).id,linked.id);
+ const item=d.pastoral.list(pastor)[0];assert.equal(item.sourceRecordId,source.id);assert.equal(item.date,'2026-10-25');assert.equal(item.body,'');
+ const update={id:item.id,version:1,kind:item.kind,title:item.title,body:'',date:item.date,memberId:item.memberId,goalId:item.goalId,category:item.category,status:'DONE',reflection:'Visit completed'};
+ assert.throws(()=>d.pastoral.update(pastor,{...update,memberId:'demo-member-2'}),code('INVALID'));
+ d.pastoral.update(pastor,update);
+ assert.equal(d.pastoral.followUp(pastor,source.id).id,linked.id);
+ assert.equal(d.pastoral.list(pastor).length,1);
+ assert.equal(d.pastoral.list(pastor)[0].status,'DONE');
+ const restored=createDirectory(createFixture(),randomUUID,undefined,d.snapshot());
+ assert.equal(restored.pastoral.list(pastor)[0].sourceRecordId,source.id);
+});
+
 test('pastoral goals, actions and prayer history are scoped, versioned and restored',()=>{
  const d=make();const pastor={...admin,permissions:['CARE'] as ['CARE']};
  const goal={kind:'GOAL',title:'Annual care',body:'Visit each household',date:'2026-12-31',memberId:'',goalId:'',category:'OTHER',status:'OPEN'};

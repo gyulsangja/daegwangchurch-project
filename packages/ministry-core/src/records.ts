@@ -3,8 +3,10 @@ import type { Actor, DirectoryState, Member } from './directory';
 import {attendanceQuery,attendanceBatch} from '@daegwang/contracts/ministry-pastoral';
 export type Entry = MinistryRecordInput & { id: string; churchId: string; memberId: string; actorId: string; recordedAt: string; label: string; voided?: boolean; correction?: {reason:string;actorId:string;at:string} };
 type Fail = (code: 'FORBIDDEN' | 'NOT_FOUND' | 'CONFLICT' | 'INVALID', message?: string) => never;
-export function createRecordService(state: DirectoryState, id: () => string, now: () => string, fail: Fail, sync: (actor: Actor, member: Member) => void, roles: (actor: Actor) => {code:string;label:string}[], courses: (actor: Actor) => {code:string;label:string}[], restored: Entry[] = []) {
+export type AttendanceSession={churchId:string;date:string;event:string;organizationId:string;savedAt:string;actorId:string;members:{memberId:string;name:string}[]};
+export function createRecordService(state: DirectoryState, id: () => string, now: () => string, fail: Fail, sync: (actor: Actor, member: Member) => void, roles: (actor: Actor) => {code:string;label:string}[], courses: (actor: Actor) => {code:string;label:string}[], restored: Entry[] = [], restoredSessions:AttendanceSession[] = []) {
   const entries: Entry[] = structuredClone(restored);
+  const sessions=structuredClone(restoredSessions);
   const today = () => new Date(now()).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
   const find = (actor: Actor, memberId: string, care = false) => {
     if (!actor.id || !['ADMIN', 'OFFICE'].includes(actor.role) || (care && !actor.permissions?.includes('CARE'))) return fail('FORBIDDEN');
@@ -17,6 +19,7 @@ export function createRecordService(state: DirectoryState, id: () => string, now
   };
   return {
     snapshot() { return structuredClone(entries); },
+    sessionSnapshot(){return structuredClone(sessions);},
     careHistory(actor:Actor){
       if(!actor.id||!['ADMIN','OFFICE'].includes(actor.role)||!actor.permissions?.includes('CARE'))return fail('FORBIDDEN');
       state.audits.push({id:id(),churchId:actor.churchId,actorId:actor.id,memberId:'',action:'READ',fields:['careAgenda'],at:now()});
@@ -25,10 +28,12 @@ export function createRecordService(state: DirectoryState, id: () => string, now
     attendanceRoster(actor:Actor,raw:unknown){
       if(!actor.id||!['ADMIN','OFFICE'].includes(actor.role)||!state.churches.some(c=>c.id===actor.churchId))return fail('FORBIDDEN');
       const query=attendanceQuery.parse(raw);
-      if(query.organizationId&&!state.organizations.some(o=>o.id===query.organizationId&&o.churchId===actor.churchId))return fail('NOT_FOUND');
+      const saved=sessions.find(s=>s.churchId===actor.churchId&&s.date===query.date&&s.event===query.event&&s.organizationId===query.organizationId);
+      if(!saved&&query.organizationId&&!state.organizations.some(o=>o.id===query.organizationId&&o.churchId===actor.churchId))return fail('NOT_FOUND');
       const session=entries.filter(e=>e.churchId===actor.churchId&&e.kind==='ATTENDANCE'&&e.date===query.date&&e.event===query.event&&e.organizationId===query.organizationId);
       const members=state.members.filter(m=>m.churchId===actor.churchId&&((!['DECEASED','TRANSFERRED'].includes(m.status)&&(!query.organizationId||m.organizationIds.includes(query.organizationId)))||session.some(e=>e.memberId===m.id)));
-      return {revision:session.reduce((n,e)=>n+1+(e.voided?1:0),0),rows:members.sort((a,b)=>a.name.localeCompare(b.name,'ko')).map(m=>{const entry=session.find(e=>e.memberId===m.id&&!e.voided);return {memberId:m.id,name:m.name,value:entry?.kind==='ATTENDANCE'?entry.value:'UNKNOWN' as const};})};
+      const roster=saved?.members??members.map(m=>({memberId:m.id,name:m.name}));
+      return {savedAt:saved?.savedAt??null,revision:session.reduce((n,e)=>n+1+(e.voided?1:0),saved?1:0),rows:[...roster].sort((a,b)=>a.name.localeCompare(b.name,'ko')).map(m=>{const entry=session.find(e=>e.memberId===m.memberId&&!e.voided);return {memberId:m.memberId,name:m.name,value:entry?.kind==='ATTENDANCE'?entry.value:'UNKNOWN' as const};})};
     },
     saveAttendance(actor:Actor,raw:unknown){
       const input=attendanceBatch.parse(raw);const query={date:input.date,event:input.event,organizationId:input.organizationId};
@@ -44,6 +49,7 @@ export function createRecordService(state: DirectoryState, id: () => string, now
         if(previous)this.correct(actor,row.memberId,previous.id,input.reason);
         if(row.value!=='UNKNOWN')this.add(actor,row.memberId,{...query,kind:'ATTENDANCE',value:row.value,note:''});
       }
+      if(!roster.savedAt)sessions.push({...query,churchId:actor.churchId,savedAt:now(),actorId:actor.id,members:roster.rows.map(r=>({memberId:r.memberId,name:r.name}))});
       return {changed:changed.length};
     },
     attendanceHistory(actor:Actor,memberId?:string){
@@ -76,6 +82,10 @@ export function createRecordService(state: DirectoryState, id: () => string, now
     },
     add(actor: Actor, memberId: string, raw: unknown) {
       const input = ministryRecordSchema.parse(raw); const member = find(actor, memberId, input.kind === 'CARE');
+      if(input.kind==='ATTENDANCE'){
+        const saved=sessions.find(s=>s.churchId===actor.churchId&&s.date===input.date&&s.event===input.event&&s.organizationId===input.organizationId);
+        if(saved&&!saved.members.some(m=>m.memberId===memberId))return fail('INVALID','이 교인은 저장된 회차 명단에 없습니다. 명단 밖 출석 추가는 아직 지원하지 않습니다.');
+      }
       if (input.date > today()) fail('INVALID', '미래 날짜의 이력은 아직 등록할 수 없습니다.');
       const config = state.churches.find(c => c.id === actor.churchId)!;
       let label: string = input.kind;
