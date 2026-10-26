@@ -1,5 +1,10 @@
 # 작업 인수인계
 
+## 홈페이지 목회시스템 진입 주소 연결 (2026-10-27)
+
+- 사용자 요청에 따라 홈페이지 `/ministry`와 `/ministry/:path*`를 별도 목회시스템의 동일한 하위 경로로 307 이동하도록 연결. 기존 `/admin`과 같은 방식으로 이동 후 주소창은 목회시스템 운영 주소를 표시한다. 인증 origin·쿠키·메일 callback은 기존 목회 도메인을 유지한다.
+- `apps/website/next.config.ts`에서 운영 기본값은 `https://daegwangchurch-ministry.vercel.app`, 개발 기본값은 localhost:3002. 선택 환경변수 `MINISTRY_URL`로 변경 가능하며 origin 형식과 자기 자신으로의 이동을 검증한다. ADMIN_URL 미설정 상태에서도 목회 주소 연결은 유지한다.
+
 ## 목회시스템 운영 배포 및 메일 발송 준비 (2026-10-27)
 
 - https://daegwangchurch-ministry.vercel.app 운영 배포 완료. 기존 Vercel 목회 프로젝트에 Production 전용 최소권한 DB·Supabase·origin 등록, 앱/홈페이지와 분리. GitHub main 자동 배포 연결. 소스 `0abc02c`, 배포 `dpl_GUmhtfZeLkRGfkNP2Y9VKcva9Fdc`.

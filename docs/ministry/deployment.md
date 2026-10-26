@@ -4,6 +4,8 @@
 
 운영 주소: https://daegwangchurch-ministry.vercel.app
 
+홈페이지 진입 주소: https://daegwangchurch.kr/ministry — 기존 `/admin`과 같이 별도 운영 주소로 307 이동한다. `/ministry/users` 등 하위 경로와 쿼리도 전달한다. 주소창은 이동 후 목회 운영 도메인으로 바뀌며 로그인 origin과 메일 callback은 위 운영 주소 기준이다.
+
 기존 홈페이지·CMS와 별도 프로젝트이며 Root Directory는 `apps/ministry`, Node.js는 24.x다. 빌드·설치·서울 함수 리전은 `apps/ministry/vercel.json`에 기록한다. 루트 npm lockfile을 사용한다. 운영 DB 마이그레이션은 빌드에 포함하지 않는다.
 
 ## 환경
