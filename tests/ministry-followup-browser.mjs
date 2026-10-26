@@ -15,6 +15,7 @@ try{
  const response=await page.request.post(`${base}/api/v1/members/demo-member-1/records`,{headers:{Origin:base},data:{kind:'CARE',date:'2026-10-21',category:'VISIT',content:'Synthetic follow-up browser test',nextDate:'2026-10-25'}});
  assert.equal(response.status(),200);
  await page.goto(`${base}/care`);
+ await page.locator('summary').filter({hasText:'별도로 남긴 교인별 상담·심방 기록'}).click();
  await page.getByRole('button',{name:'후속 일정으로 연결',exact:true}).click();
  await page.getByRole('button',{name:'연결된 후속 일정 보기',exact:true}).click();
  const dialog=page.getByRole('dialog');

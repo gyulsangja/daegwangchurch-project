@@ -11,6 +11,21 @@ const input = { name: '가상 등록', status: 'ACTIVE', position: '', phone: ''
 const make = () => createDirectory(createFixture(), randomUUID, () => '2026-10-21T00:00:00.000Z');
 const code = (expected: string) => (error: unknown) => error instanceof DirectoryError && error.code === expected;
 
+test('pastoral periods and shared member links retain one source and prevent cross-tenant and circular goals',()=>{
+ const d=make();const actor={...admin,permissions:['CARE'] as ('CARE')[]};const a=d.create(actor,{...input,name:'One'}).id;const b=d.create(actor,{...input,name:'Two'}).id;
+ const base={kind:'GOAL',title:'Annual ministry',body:'Shared goal',date:'2026-12-31',memberId:'',memberIds:[a,b],scope:'YEAR',period:'2026',goalId:'',category:'OTHER',status:'OPEN'};
+ const annual=d.pastoral.create(actor,base);const monthly=d.pastoral.create(actor,{...base,title:'Monthly care',scope:'MONTH',period:'2026-10',goalId:annual.id});
+ const prayer=d.pastoral.create(actor,{...base,kind:'PRAYER',scope:'ONGOING',period:'',title:'Ongoing prayer',goalId:monthly.id});
+ assert.equal(d.pastoral.list(actor).find(i=>i.id===prayer.id)?.memberIds?.length,2);
+ d.pastoral.update(actor,{...base,id:annual.id,version:1,reflection:'Met both members',reflectionDate:'2026-10-20'});
+ const shared=d.pastoral.list(actor).find(i=>i.id===annual.id)!;assert.equal(shared.history.at(-1)?.date,'2026-10-20');assert.deepEqual(shared.history.at(-1)?.before?.memberIds,[a,b]);
+ assert.throws(()=>d.pastoral.update(actor,{...base,id:annual.id,version:2,goalId:monthly.id,reflection:'bad cycle'}),code('INVALID'));
+ assert.throws(()=>d.pastoral.create(actor,{...base,memberIds:[a,'another-church']}),code('NOT_FOUND'));
+ assert.throws(()=>d.pastoral.create(actor,{...base,scope:'MONTH',period:'2026-13'}),code('INVALID'));
+ assert.throws(()=>d.pastoral.create(admin,base),code('FORBIDDEN'));
+ const restored=createDirectory(createFixture(),randomUUID,undefined,d.snapshot());assert.equal(restored.pastoral.list(actor).find(i=>i.id===annual.id)?.scope,'YEAR');
+});
+
 test('bulk education is atomic, rejects stale saves, and updates the same personal records',()=>{
  const d=make();const one=d.create(admin,{...input,name:'First'});const two=d.create(admin,{...input,name:'Second'});
  const lesson={kind:'EDUCATION' as const,date:'2026-10-20',courseId:'NEWCOMER',cohort:'Fall',teacher:'Teacher',value:'IN_PROGRESS' as const,endDate:null,note:''};

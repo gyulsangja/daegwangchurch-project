@@ -1,2 +1,2 @@
 import {PastoralPage} from '@/components/pastoral-page';
-export default function Page(){return <PastoralPage mode="GOAL"/>;}
+export default async function Page({searchParams}:{searchParams:Promise<{activity?:string}>}){return <PastoralPage mode="GOAL" initialId={(await searchParams).activity}/>;}
