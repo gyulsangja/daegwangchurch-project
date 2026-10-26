@@ -4,12 +4,27 @@ import { randomUUID } from 'node:crypto';
 import { createDirectory, DirectoryError, type Actor } from '../packages/ministry-core/src/directory';
 import { createFixture } from '../packages/ministry-core/src/fixture';
 import { isLocalReviewEnabled, isLocalMutationOrigin } from '../packages/ministry-core/src/local-access';
+import {pastoralMembers} from '../packages/ministry-core/src/pastoral';
 
 const admin: Actor = { id: 'admin', churchId: 'demo-daegwang', role: 'ADMIN', organizationIds: [] };
 const leader: Actor = { ...admin, id: 'leader', role: 'LEADER', organizationIds: ['org-youth'] };
 const input = { name: '가상 등록', status: 'ACTIVE', position: '', phone: '', address: '', organizationIds: ['org-youth'] };
 const make = () => createDirectory(createFixture(), randomUUID, () => '2026-10-21T00:00:00.000Z');
 const code = (expected: string) => (error: unknown) => error instanceof DirectoryError && error.code === expected;
+
+test('family and annual organization activity targets freeze membership and refresh only explicitly',()=>{
+ const d=make();const actor={...admin,permissions:['CARE'] as ('CARE')[]};const a=d.create(actor,{...input,name:'TargetA'}).id;const b=d.create(actor,{...input,name:'TargetB'}).id;const family=d.families.create(actor,{name:'Target family',representativeId:null,members:[{memberId:a,relationship:'가구원'}]});
+ const base={kind:'CARE',title:'Family and group visit',body:'One record',date:'2026-10-20',familyIds:[family.id],organizationIds:['org-youth'],organizationYear:2026,memberIds:[a],memberId:'',category:'VISIT',goalId:'',status:'DONE',reflection:'Visited together',reflectionDate:'2026-10-20'};
+ const item=d.pastoral.create(actor,base);const original=d.pastoral.list(actor).find(i=>i.id===item.id)!;assert.equal(original.targets?.families[0].name,'Target family');assert.ok(pastoralMembers(original).includes(b));assert.equal(pastoralMembers(original).filter(id=>id===a).length,1);
+ const c=d.create(actor,{...input,name:'New member'}).id;d.families.update(actor,family.id,{version:1,name:'Target family',representativeId:null,members:[{memberId:a,relationship:'가구원'},{memberId:c,relationship:'가구원'}]});
+ d.pastoral.update(actor,{...base,id:item.id,version:1,reflection:'Follow-up'});const unchanged=d.pastoral.list(actor).find(i=>i.id===item.id)!;assert.ok(!pastoralMembers(unchanged).includes(c));
+ d.pastoral.update(actor,{...base,id:item.id,version:2,reflection:'Include new participants',refreshTargets:true});const refreshed=d.pastoral.list(actor).find(i=>i.id===item.id)!;assert.ok(pastoralMembers(refreshed).includes(c));assert.deepEqual(refreshed.history.at(-1)?.before?.targets,unchanged.targets);
+ assert.throws(()=>d.pastoral.create(actor,{...base,familyIds:['foreign-family']}),code('NOT_FOUND'));
+ assert.throws(()=>d.pastoral.create(actor,{...base,organizationIds:['foreign-organization']}),code('NOT_FOUND'));
+ assert.throws(()=>d.pastoral.create(actor,{...base,targets:original.targets}));
+ assert.throws(()=>d.pastoral.list({...actor,permissions:[]}),code('FORBIDDEN'));
+ const restored=createDirectory(createFixture(),randomUUID,undefined,d.snapshot());assert.deepEqual(restored.pastoral.list(actor).find(i=>i.id===item.id)?.targets,refreshed.targets);
+});
 
 test('pastoral periods and shared member links retain one source and prevent cross-tenant and circular goals',()=>{
  const d=make();const actor={...admin,permissions:['CARE'] as ('CARE')[]};const a=d.create(actor,{...input,name:'One'}).id;const b=d.create(actor,{...input,name:'Two'}).id;

@@ -20,7 +20,7 @@ try{
  await page.getByRole('button',{name:'연결된 후속 일정 보기',exact:true}).click();
  const dialog=page.getByRole('dialog');
  await dialog.getByLabel('진행 상태').selectOption('DONE');
- await dialog.getByLabel('수행 기록·돌아보기 (상태 변경 시 필수)').fill('Synthetic follow-up completed');
+ await dialog.getByLabel('진행 내용·결과 (마무리할 때 필수)').fill('Synthetic follow-up completed');
  await dialog.getByRole('button',{name:'저장',exact:true}).click();
  await page.getByRole('button',{name:'연결된 후속 일정 보기',exact:true}).click();
  assert.equal(await dialog.getByLabel('진행 상태').inputValue(),'DONE');

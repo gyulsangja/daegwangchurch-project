@@ -46,7 +46,7 @@
     "maintain:push": "tsx scripts/process-push.ts",
     "dev:ministry": "npm run dev --workspace @daegwang/ministry",
     "build:ministry": "npm run build --workspace @daegwang/ministry",
-    "test:ministry": "tsx --test tests/ministry-directory.test.ts tests/ministry-storage.test.ts tests/ministry-postgres.test.ts tests/ministry-logout.test.ts && node --conditions=react-server --import tsx --test tests/ministry-cms-bridge.test.ts",
+    "test:ministry": "tsx --test tests/ministry-directory.test.ts tests/ministry-storage.test.ts tests/ministry-postgres.test.ts tests/ministry-logout.test.ts && node --conditions=react-server --import tsx --test tests/ministry-cms-bridge.test.ts tests/ministry-proxy.test.ts",
     "backup:ministry": "node --import tsx scripts/backup-ministry.mjs"
   },
   "devDependencies": {

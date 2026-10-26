@@ -1,9 +1,11 @@
-import {pastoralInput,pastoralChange,type PastoralInput} from '@daegwang/contracts/ministry-pastoral';
+import {pastoralInput,pastoralChange,pastoralCreate,type PastoralInput} from '@daegwang/contracts/ministry-pastoral';
 import type {Actor,DirectoryState} from './directory';
 import type {Entry} from './records';
-export type PastoralItem=PastoralInput & {id:string;churchId:string;version:number;sourceRecordId?:string;history:{at:string;date?:string;actorId:string;status:string;note:string;before?:PastoralInput}[]};
+import type {MinistryYear} from './years';
+export type PastoralTargets={families:{id:string;name:string;memberIds:string[]}[];organizations:{id:string;name:string;year:number;memberIds:string[]}[]};
+export type PastoralItem=PastoralInput & {id:string;churchId:string;version:number;sourceRecordId?:string;targets?:PastoralTargets;history:{at:string;date?:string;actorId:string;status:string;note:string;before?:PastoralInput & {targets?:PastoralTargets}}[]};
 export const scopeLabels={ONCE:'단건',YEAR:'연간',MONTH:'월간',ONGOING:'상시',SPECIAL:'특별'};
-export function pastoralMembers(item:Pick<PastoralInput,'memberId'|'memberIds'>){return [...new Set([item.memberId,...(item.memberIds??[])].filter(Boolean))];}
+export function pastoralMembers(item:Pick<PastoralInput,'memberId'|'memberIds'> & {targets?:PastoralTargets}){return [...new Set([item.memberId,...(item.memberIds??[]),...(item.targets?.families??[]).flatMap(t=>t.memberIds),...(item.targets?.organizations??[]).flatMap(t=>t.memberIds)].filter(Boolean))];}
 export function pastoralPeriod(item:PastoralInput){return item.scope==='ONGOING'?'상시':item.scope==='YEAR'?`${item.period||item.date.slice(0,4)}년`:item.scope==='MONTH'?item.period||item.date.slice(0,7):item.date;}
 export function pastoralInRange(item:PastoralInput,from:string,to:string){
  if(item.scope==='ONGOING')return true;
@@ -12,7 +14,7 @@ export function pastoralInRange(item:PastoralInput,from:string,to:string){
  return start<=to&&end>=from;
 }
 type Fail=(code:'FORBIDDEN'|'NOT_FOUND'|'CONFLICT'|'INVALID',message?:string)=>never;
-export function createPastoralService(state:DirectoryState,id:()=>string,now:()=>string,fail:Fail,restored:PastoralItem[]=[],careHistory:(actor:Actor)=>Entry[]=()=>[]){
+export function createPastoralService(state:DirectoryState,id:()=>string,now:()=>string,fail:Fail,restored:PastoralItem[]=[],careHistory:(actor:Actor)=>Entry[]=()=>[],yearConfig?:(actor:Actor,year?:number)=>MinistryYear){
   const items=structuredClone(restored);
   const authorize=(actor:Actor)=>{if(!actor.id||!['ADMIN','OFFICE'].includes(actor.role)||!actor.permissions?.includes('CARE')||!state.churches.some(c=>c.id===actor.churchId))fail('FORBIDDEN');};
   const validate=(actor:Actor,input:PastoralInput,itemId?:string)=>{
@@ -24,6 +26,20 @@ export function createPastoralService(state:DirectoryState,id:()=>string,now:()=
     const visited=new Set<string>();let parent=input.goalId;while(parent){if(parent===itemId||visited.has(parent))fail('INVALID','목표를 순환하여 연결할 수 없습니다.');visited.add(parent);parent=items.find(i=>i.id===parent&&i.churchId===actor.churchId)?.goalId??'';}
   };
   const audit=(actor:Actor,memberId:string,action:'CREATE'|'UPDATE'|'READ')=>state.audits.push({id:id(),churchId:actor.churchId,actorId:actor.id,memberId,action,fields:['pastoralWorkspace'],at:now()});
+  const targets=(actor:Actor,input:PastoralInput,previous?:PastoralItem,refresh=false):PastoralTargets=>{
+    for(const ids of [input.familyIds??[],input.organizationIds??[]])if(new Set(ids).size!==ids.length)fail('INVALID','연결 대상이 중복되었습니다.');
+    const families=(input.familyIds??[]).map(familyId=>{
+      const kept=previous?.targets?.families.find(f=>f.id===familyId);if(kept&&!refresh)return structuredClone(kept);
+      const family=state.families.find(f=>f.id===familyId&&f.churchId===actor.churchId&&!f.archived);if(!family)return fail('NOT_FOUND','연결할 가구를 찾을 수 없습니다.');
+      return {id:family.id,name:family.name,memberIds:family.members.map(m=>m.memberId)};
+    });
+    const organizations=(input.organizationIds??[]).map(organizationId=>{
+      const kept=previous?.targets?.organizations.find(o=>o.id===organizationId&&o.year===(input.organizationYear??o.year));if(kept&&!refresh)return structuredClone(kept);
+      const year=yearConfig?.(actor,input.organizationYear);const org=year?.organizations.find(o=>o.id===organizationId);if(!year||!org)return fail('NOT_FOUND','선택한 연도에 해당 조직이 없습니다.');
+      return {id:org.id,name:org.name,year:year.year,memberIds:year.assignments.filter(a=>a.affiliations.some(f=>f.organizationId===org.id)).map(a=>a.memberId)};
+    });
+    const result={families,organizations};for(const memberId of [...families,...organizations].flatMap(t=>t.memberIds))if(!state.members.some(m=>m.id===memberId&&m.churchId===actor.churchId))fail('NOT_FOUND');return result;
+  };
   return {
     snapshot(){return structuredClone(items);},
     followUp(actor:Actor,recordId:unknown){
@@ -39,17 +55,19 @@ export function createPastoralService(state:DirectoryState,id:()=>string,now:()=
       return created;
     },
     list(actor:Actor){authorize(actor);audit(actor,'','READ');return structuredClone(items.filter(i=>i.churchId===actor.churchId).sort((a,b)=>a.date.localeCompare(b.date)));},
-    create(actor:Actor,raw:unknown){authorize(actor);const input=pastoralInput.parse(raw);validate(actor,input);const item:PastoralItem={...input,id:id(),churchId:actor.churchId,version:1,history:[{at:now(),actorId:actor.id,status:input.status,note:'등록'}]};items.push(item);audit(actor,input.memberId,'CREATE');return {id:item.id};},
+    create(actor:Actor,raw:unknown){authorize(actor);const {reflection,reflectionDate,...input}=pastoralCreate.parse(raw);validate(actor,input);if(reflectionDate&&reflectionDate>new Date(now()).toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'}))fail('INVALID','수행 기록은 오늘까지의 날짜로 입력해 주세요.');if(input.status==='DONE'&&!reflection)fail('INVALID','마무리한 결과를 입력해 주세요.');const resolved=targets(actor,input);const item:PastoralItem={...input,targets:resolved,id:id(),churchId:actor.churchId,version:1,history:[{at:now(),date:reflectionDate,actorId:actor.id,status:input.status,note:reflection||'등록'}]};items.push(item);audit(actor,input.memberId,'CREATE');return {id:item.id};},
     update(actor:Actor,raw:unknown){
-      authorize(actor);const {id:itemId,version,reflection,reflectionDate,...parsed}=pastoralChange.parse(raw);
+      authorize(actor);const {id:itemId,version,reflection,reflectionDate,refreshTargets,...parsed}=pastoralChange.parse(raw);
       const item=items.find(i=>i.id===itemId&&i.churchId===actor.churchId);if(!item)return fail('NOT_FOUND');
-      const input={...parsed,scope:parsed.scope??item.scope,period:parsed.period??item.period,memberIds:parsed.memberIds??item.memberIds};
+      const input={...parsed,scope:parsed.scope??item.scope,period:parsed.period??item.period,memberIds:parsed.memberIds??item.memberIds,familyIds:parsed.familyIds??item.familyIds,organizationIds:parsed.organizationIds??item.organizationIds,organizationYear:parsed.organizationYear??item.organizationYear};
       if(reflectionDate&&reflectionDate>new Date(now()).toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'}))fail('INVALID','수행 기록은 오늘까지의 날짜로 입력해 주세요.');
       if(item.version!==version)return fail('CONFLICT');if(input.kind!==item.kind)return fail('INVALID');validate(actor,input,item.id);
       if(item.sourceRecordId&&input.memberId!==item.memberId)return fail('INVALID','상담 기록에 연결한 교인은 바꿀 수 없습니다.');
-      const before=pastoralInput.parse({kind:item.kind,title:item.title,body:item.body,date:item.date,memberId:item.memberId,goalId:item.goalId,category:item.category,status:item.status,scope:item.scope,period:item.period,memberIds:item.memberIds});
+      const resolved=targets(actor,input,item,refreshTargets);
+      if(refreshTargets&&!reflection)return fail('INVALID','구성원을 다시 반영하는 이유를 수행 기록에 남겨 주세요.');
+      const before={...pastoralInput.parse({kind:item.kind,title:item.title,body:item.body,date:item.date,memberId:item.memberId,goalId:item.goalId,category:item.category,status:item.status,scope:item.scope,period:item.period,memberIds:item.memberIds,familyIds:item.familyIds,organizationIds:item.organizationIds,organizationYear:item.organizationYear}),targets:structuredClone(item.targets)};
       if(input.status!==item.status&&!reflection)return fail('INVALID','상태를 바꾸는 이유나 수행 결과를 기록해 주세요.');
-      item.history.push({at:now(),date:reflectionDate,actorId:actor.id,status:input.status,note:reflection||'내용 수정',before});Object.assign(item,input,{version:version+1});audit(actor,item.memberId,'UPDATE');return {id:item.id};
+      item.history.push({at:now(),date:reflectionDate,actorId:actor.id,status:input.status,note:reflection||'내용 수정',before});Object.assign(item,input,{targets:resolved,version:version+1});audit(actor,item.memberId,'UPDATE');return {id:item.id};
     },
   };
 }

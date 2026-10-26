@@ -19,3 +19,5 @@
 .batch-dialog{width:min(1000px,calc(100% - 24px));max-height:90dvh;padding:0;border:1px solid #c8d5c9;border-radius:14px;color:var(--ink)}.batch-dialog::backdrop{background:#10231c88}.batch-dialog>.panel{margin:0;border:0;border-radius:0}.batch-dialog .section-heading{padding:0 0 16px;margin:0}.batch-dialog .form-grid{gap:14px}.batch-dialog .batch-candidates{max-height:180px}.batch-dialog .batch-selected{max-height:270px}
 
 .attendance-member-details{margin-top:24px}.attendance-member-details summary{padding:16px;background:#f1f5ef;border-radius:8px;font-weight:600}.family-map fieldset{border:0}
+
+.activity-targets{border:1px solid #d2ded3;border-radius:10px;padding:14px}.activity-targets summary{font-weight:600}.activity-targets .chips{margin:12px 0}.activity-targets input[type=checkbox]{width:auto}.activity-targets .batch-candidates label{display:flex;align-items:center}.activity-targets p{line-height:1.7;font-size:13px}.pastoral-card details{margin-top:12px}

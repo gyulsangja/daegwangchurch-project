@@ -4,6 +4,7 @@ import {persistentDirectory} from './persistent-directory';
 import { headers } from 'next/headers';
 import { notFound,redirect } from 'next/navigation';
 import {asyncDirectory} from '@daegwang/ministry-core/async-directory';
+import {invokeDirectory} from '@daegwang/ministry-core/directory-dispatch';
 import {operationalEnabled,operationalOrigin} from './operational-config';
 import {operationalDirectory} from './operational-directory';
 import {verifiedUser} from './auth';
@@ -15,7 +16,7 @@ export const enabled = (host: string | null) => isLocalReviewEnabled({ NODE_ENV:
 export function directory(host: string | null) {
   if (!enabled(host)) throw new Error('LOCAL_REVIEW_DISABLED');
   const local=persistentDirectory(process.env.MINISTRY_LOCAL_DB_PATH ?? resolve(process.cwd(),'../../.local/ministry/review.sqlite'));
-  return asyncDirectory(async(group,method,args)=>{const target=group?Reflect.get(local,group):local;return Reflect.apply(Reflect.get(target,method),target,args);});
+  return asyncDirectory(async(group,method,args)=>invokeDirectory(local,group,method,args));
 }
 export async function requestWorkspace(host:string|null){
  if(operationalEnabled()){

@@ -3,6 +3,7 @@ import {Pool} from 'pg';
 import {randomUUID,createHash} from 'node:crypto';
 import {createDirectory,type DirectorySnapshot,type Actor} from '@daegwang/ministry-core/directory';
 import {asyncDirectory} from '@daegwang/ministry-core/async-directory';
+import {invokeDirectory} from '@daegwang/ministry-core/directory-dispatch';
 import {ministryTransaction,readMinistryRows,writeMinistryRows,type MinistryRows} from '@daegwang/database/ministry-postgres';
 let pool:Pool|undefined;
 export function ministryPool(){
@@ -26,8 +27,7 @@ export async function operationalDirectory(userId:string,churchId:string){
    if(saved.years.length===0)throw new Error('MINISTRY_NOT_INITIALIZED');
    const domain=createDirectory(saved.state,randomUUID,undefined,saved);
    const current:Actor={...actor,role:grant.role,permissions:grant.care?['CARE']:[]};
-   const target=group?Reflect.get(domain,group):domain;
-   const result=Reflect.apply(Reflect.get(target,method),target,[current,...args.slice(1)]);
+   const result=invokeDirectory(domain,group,method,[current,...args.slice(1)]);
    await writeMinistryRows(db,churchId,before,rows(domain.snapshot()));return result;
   });
  });

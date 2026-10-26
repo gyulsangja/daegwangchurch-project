@@ -1,13 +1,15 @@
 'use client';
 import Link from 'next/link';
+import type {PastoralItem} from '@daegwang/ministry-core/pastoral';
+import {MemberPastoral} from './member-pastoral';
 import {useEffect,useRef,useState} from 'react';
 import type {Family} from '@daegwang/ministry-core/directory';
 type Candidate={id:string;name:string;familyId:string|null};
-export function FamilyWorkspace({families,candidates,initialId,initialMember}:{families:Family[];candidates:Candidate[];initialId?:string;initialMember?:string}) {
+export function FamilyWorkspace({families,candidates,initialId,initialMember,activities=[]}:{families:Family[];candidates:Candidate[];initialId?:string;initialMember?:string;activities?:PastoralItem[]}) {
  const [selected,setSelected]=useState(initialId??'');const [dirty,setDirty]=useState(false);const [search,setSearch]=useState('');
  const family=families.find(f=>f.id===selected);
  const choose=(id:string)=>{if(id===selected)return;if(dirty&&!window.confirm('저장하지 않은 가구 변경을 버리고 이동할까요?'))return;setSelected(id);setDirty(false);};
- return <div className="roster-workspace"><nav className="roster-organizations" aria-label="가구 선택"><button onClick={()=>choose('')} aria-pressed={!selected}>+ 새 가구 등록</button><label>가구 검색<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="가구명·구성원 이름"/></label>{families.filter(f=>f.name.includes(search)||f.members.some(m=>candidates.find(c=>c.id===m.memberId)?.name.includes(search))).map(f=><button key={f.id} aria-pressed={f.id===selected} onClick={()=>choose(f.id)}><strong>{f.name}</strong><small>{f.members.length}명 · {f.members.map(m=>candidates.find(c=>c.id===m.memberId)?.name).join(', ')}</small></button>)}</nav><FamilyEditor key={selected||'new'} family={family} candidates={candidates} initialMember={initialMember} onDirty={setDirty}/></div>;
+ return <div className="roster-workspace"><nav className="roster-organizations" aria-label="가구 선택"><button onClick={()=>choose('')} aria-pressed={!selected}>+ 새 가구 등록</button><label>가구 검색<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="가구명·구성원 이름"/></label>{families.filter(f=>f.name.includes(search)||f.members.some(m=>candidates.find(c=>c.id===m.memberId)?.name.includes(search))).map(f=><button key={f.id} aria-pressed={f.id===selected} onClick={()=>choose(f.id)}><strong>{f.name}</strong><small>{f.members.length}명 · {f.members.map(m=>candidates.find(c=>c.id===m.memberId)?.name).join(', ')}</small></button>)}</nav><div><FamilyEditor key={selected||'new'} family={family} candidates={candidates} initialMember={initialMember} onDirty={setDirty}/>{selected&&<MemberPastoral title="이 가구와 이어지는 목회 기록" items={activities.filter(i=>i.targets?.families.some(f=>f.id===selected))}/>}</div></div>;
 }
 function FamilyEditor({family,candidates,initialMember,onDirty}:{family?:Family;candidates:Candidate[];initialMember?:string;onDirty:(value:boolean)=>void}) {
  const eligible=candidates.find(c=>c.id===initialMember&&!c.familyId);
