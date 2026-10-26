@@ -4,6 +4,8 @@ import {operationalEnabled} from './lib/operational-config';
 export async function proxy(request:NextRequest){
  if(!operationalEnabled())return NextResponse.next();
  const requestHeaders=new Headers(request.headers);requestHeaders.set('x-ministry-path',request.nextUrl.pathname);
+ // Logout owns its response cookies. Do not refresh or reissue a session first.
+ if(request.nextUrl.pathname==='/api/auth/logout')return NextResponse.next({request:{headers:requestHeaders}});
  const url=process.env.NEXT_PUBLIC_SUPABASE_URL;const key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
  if(!url||!key)return NextResponse.next({request:{headers:requestHeaders}});
  let response=NextResponse.next({request:{headers:requestHeaders}});
