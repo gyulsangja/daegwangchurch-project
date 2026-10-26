@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import {Home,Users,Network,Settings2,HeartHandshake,NotebookPen,Flag,CalendarCheck} from 'lucide-react';
-const items=[{href:'/print',label:'문서 출력',Icon:NotebookPen},{href:'/',label:'목회 홈',Icon:Home},{href:'/care',label:'상담·심방',Icon:HeartHandshake},{href:'/prayers',label:'목회 기도',Icon:NotebookPen},{href:'/plans',label:'목표와 계획',Icon:Flag},{href:'/attendance',label:'예배 출석부',Icon:CalendarCheck}];
+const items=[{href:'/',label:'목회 홈',Icon:Home},{href:'/care',label:'상담·심방',Icon:HeartHandshake},{href:'/prayers',label:'목회 기도',Icon:NotebookPen},{href:'/plans',label:'목표와 계획',Icon:Flag},{href:'/attendance',label:'예배 출석부',Icon:CalendarCheck},{href:'/records',label:'교육·봉사 기록',Icon:NotebookPen},{href:'/statistics',label:'목회 통계',Icon:Flag},{href:'/print',label:'문서 출력',Icon:NotebookPen}];
 const directory=[{href:'/members',label:'교인',Icon:Users},{href:'/families',label:'가구',Icon:Users},{href:'/organizations',label:'조직',Icon:Network},{href:'/settings',label:'환경설정',Icon:Settings2},{href:'/integration',label:'홈페이지·앱 연결',Icon:Network}];
 export function Navigation({ name = '대광교회',operational=false }: {name?:string;operational?:boolean}) {
   const pathname = usePathname();

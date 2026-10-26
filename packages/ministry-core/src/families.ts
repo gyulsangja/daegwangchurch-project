@@ -1,4 +1,4 @@
-import {familyInputSchema,familyUpdateSchema,familyArchiveSchema} from '@daegwang/contracts/ministry-families';
+import {familyInputSchema,familyUpdateSchema,familyArchiveSchema,familyLinkSchema} from '@daegwang/contracts/ministry-families';
 import type {Actor,DirectoryState,Family} from './directory';
 export function createFamilyService(state:DirectoryState,id:()=>string,now:()=>string,fail:(code:'FORBIDDEN'|'NOT_FOUND'|'CONFLICT'|'INVALID',message?:string)=>never) {
  const authorize=(actor:Actor)=>{if(!actor.id||!['ADMIN','OFFICE'].includes(actor.role)||!state.churches.some(c=>c.id===actor.churchId))fail('FORBIDDEN');};
@@ -16,6 +16,19 @@ export function createFamilyService(state:DirectoryState,id:()=>string,now:()=>s
    }
  };
  return {
+   link(actor:Actor,raw:unknown){
+     authorize(actor);const data=familyLinkSchema.parse(raw);const source=get(actor,data.sourceId);const target=get(actor,data.targetId);
+     if(source.id===target.id)return fail('INVALID','서로 다른 가구를 선택하세요.');
+     if(source.archived||target.archived||source.version!==data.sourceVersion||target.version!==data.targetVersion)return fail('CONFLICT');
+     const reverse=(target.links??[]).find(l=>l.targetId===source.id);if(reverse)return fail('CONFLICT','반대 방향으로 이미 연결되어 있습니다. 기존 연결에서 수정하세요.');
+     const existing=(source.links??[]).find(l=>l.targetId===target.id);if(data.remove&&!existing)return fail('CONFLICT');
+     if(!data.remove&&data.relationship==='PARENT'){
+       const reaches=(id:string,seen=new Set<string>()):boolean=>{if(id===source.id)return true;if(seen.has(id))return false;seen.add(id);return (state.families.find(f=>f.id===id&&f.churchId===actor.churchId&&!f.archived)?.links??[]).filter(l=>l.relationship==='PARENT').some(l=>reaches(l.targetId,seen));};
+       if(reaches(target.id))return fail('INVALID','부모·자녀 가구 관계가 순환할 수 없습니다.');
+     }
+     source.links=(source.links??[]).filter(l=>l.targetId!==target.id);if(!data.remove)source.links.push({targetId:target.id,relationship:data.relationship,note:data.note});source.version++;target.version++;
+     for(const f of [source,target])state.audits.push({id:id(),churchId:actor.churchId,actorId:actor.id,memberId:'',action:'UPDATE',fields:['familyRelation',f.id],at:now()});return {id:source.id};
+   },
    list(actor:Actor){authorize(actor);return structuredClone(state.families.filter(f=>f.churchId===actor.churchId&&!f.archived).sort((a,b)=>a.name.localeCompare(b.name,'ko')));},
    candidates(actor:Actor){authorize(actor);return state.members.filter(m=>m.churchId===actor.churchId).sort((a,b)=>a.name.localeCompare(b.name,'ko')).map(m=>({id:m.id,name:m.name,familyId:state.families.find(f=>!f.archived&&f.churchId===actor.churchId&&f.members.some(link=>link.memberId===m.id))?.id??null}));},
    read(actor:Actor,familyId:string){return structuredClone(get(actor,familyId));},

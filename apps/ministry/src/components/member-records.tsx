@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useState } from 'react';
 import type { createDirectory } from '@daegwang/ministry-core/directory';
 type Service = ReturnType<typeof createDirectory>;
@@ -26,7 +27,7 @@ export function MemberRecords({memberId, records, config, roles, courses, canCar
   return <section className="panel records-panel"><div className="detail-body"><h2>교회생활 기록</h2><p className="muted">실제 발생일을 기준으로 기록합니다. 새가족 과정은 재적·이적 상태와 별개입니다. 소속·봉사 기간은 실제 활동 이력이며 연간 편성표는 환경설정에서 관리합니다.</p><div className="section-switcher">{Object.entries(kinds).filter(([key]) => key !== 'CARE' || canCare).map(([key,label]) => <button key={key} aria-pressed={kind === key} onClick={() => setKind(key as keyof typeof kinds)}>{label}</button>)}</div>
     {kind === 'CARE' && <p className="feedback">상담 열람 권한이 있는 담당자 전용입니다. 현재는 가상 자료로만 검토하며 실제 상담 내용을 입력하지 마세요.</p>}
     {kind === 'EDUCATION' && <p className="muted">교육 과정은 환경설정 → 체계 설정에서 추가합니다. 기수별로 반복 수강을 기록할 수 있습니다. 수료·중단 시 기존 기록을 정정한 뒤 종료일과 상태를 등록하세요. 교육 수료가 교적 상태나 직분을 자동 변경하지는 않습니다.</p>}
-    <details key={kind}><summary>{kinds[kind]} 추가</summary><form className="form-grid record-form" onSubmit={event => {event.preventDefault(); void submit(event.currentTarget);}}>
+    {['EDUCATION','SERVICE','CARE','ATTENDANCE'].includes(kind)&&<p className="feedback">여러 교인의 기록은 <Link href={kind==='ATTENDANCE'?'/attendance':`/records?kind=${kind}`}>업무별 일괄 등록</Link>에서 관리할 수 있습니다.</p>}<details key={kind}><summary>{kinds[kind]} 추가</summary><form className="form-grid record-form" onSubmit={event => {event.preventDefault(); void submit(event.currentTarget);}}>
       <label>{['SERVICE','EDUCATION'].includes(kind) ? '시작일' : '발생일'}<input name="date" type="date" required defaultValue={today} max={today}/></label>
       {kind === 'EDUCATION' && <><label>교육 과정<select name="courseId" required><option value="">과정을 선택하세요</option>{courses.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}</select></label><label>기수·반<input name="cohort" maxLength={80} placeholder="2026년 가을반"/></label><label>담당 교역자·교사<input name="teacher" maxLength={80}/></label><label>교육 상태<select name="value"><option value="IN_PROGRESS">수강 중</option><option value="COMPLETED">수료</option><option value="STOPPED">중단</option></select></label><label>수료·중단일 (수강 중이면 비움)<input name="endDate" type="date" max={today}/></label></>}
       {['POSITION','STATUS','SETTLEMENT'].includes(kind) && <label>변경 내용<select name="value" required>{(kind === 'POSITION' ? config.positions : kind === 'STATUS' ? config.statuses : [{code:'NEW',label:'새가족'},{code:'LEARNING',label:'교육 중'},{code:'SETTLED',label:'정착'}]).map(c => <option key={c.code} value={c.code}>{c.label}</option>)}</select></label>}

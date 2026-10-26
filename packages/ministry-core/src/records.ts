@@ -1,4 +1,4 @@
-import { ministryRecordSchema, type MinistryRecordInput } from '@daegwang/contracts/ministry-records';
+import { ministryRecordSchema,recordBatchSchema, type MinistryRecordInput } from '@daegwang/contracts/ministry-records';
 import type { Actor, DirectoryState, Member } from './directory';
 import {attendanceQuery,attendanceBatch} from '@daegwang/contracts/ministry-pastoral';
 export type Entry = MinistryRecordInput & { id: string; churchId: string; memberId: string; actorId: string; recordedAt: string; label: string; voided?: boolean; correction?: {reason:string;actorId:string;at:string} };
@@ -18,6 +18,27 @@ export function createRecordService(state: DirectoryState, id: () => string, now
     entries.push(entry); return entry;
   };
   return {
+    workspace(actor:Actor,kind:'EDUCATION'|'SERVICE'|'CARE'){
+      if(!['EDUCATION','SERVICE','CARE'].includes(kind)||!actor.id||!['ADMIN','OFFICE'].includes(actor.role)||!state.churches.some(c=>c.id===actor.churchId)||(kind==='CARE'&&!actor.permissions?.includes('CARE')))return fail('FORBIDDEN');
+      const own=entries.filter(e=>e.churchId===actor.churchId);
+      state.audits.push({id:id(),churchId:actor.churchId,actorId:actor.id,memberId:'',action:'READ',fields:['recordWorkspace',kind],at:now()});
+      return {revision:own.length+own.filter(e=>e.voided).length,entries:structuredClone(own.filter(e=>e.kind===kind&&!e.voided))};
+    },
+    batch(actor:Actor,raw:unknown){
+      const input=recordBatchSchema.parse(raw);const kinds=new Set(input.rows.map(r=>r.input.kind));
+      if(kinds.size!==1||!['EDUCATION','SERVICE','CARE'].includes(input.rows[0].input.kind))return fail('INVALID');
+      const kind=input.rows[0].input.kind as 'EDUCATION'|'SERVICE'|'CARE';
+      if(this.workspace(actor,kind).revision!==input.revision)return fail('CONFLICT');
+      if(new Set(input.rows.map(r=>r.memberId)).size!==input.rows.length)return fail('INVALID','같은 교인을 중복 선택할 수 없습니다.');
+      // Validate and apply on an isolated copy. No partial writes, including audit, on failure.
+      const draftState=structuredClone(state);const draft=createRecordService(draftState,id,now,fail,()=>{},roles,courses,entries,sessions);
+      for(const row of input.rows){
+        if(row.recordId){const old=entries.find(e=>e.id===row.recordId&&e.churchId===actor.churchId&&e.memberId===row.memberId&&e.kind===kind&&!e.voided);if(!old)return fail('CONFLICT');draft.correct(actor,row.memberId,row.recordId,input.reason);}
+        draft.add(actor,row.memberId,row.input);
+      }
+      entries.splice(0,entries.length,...draft.snapshot());state.audits.splice(0,state.audits.length,...draftState.audits);
+      return {saved:input.rows.length};
+    },
     snapshot() { return structuredClone(entries); },
     sessionSnapshot(){return structuredClone(sessions);},
     careHistory(actor:Actor){

@@ -11,3 +11,4 @@ export const ministryRecordSchema = z.discriminatedUnion('kind', [
   z.object({ ...base, kind: z.literal('CARE'), category: z.enum(['COUNSEL', 'VISIT']), content: z.string().trim().min(1).max(5000), nextDate: recordDate.nullable() }).strict(),
 ]);
 export type MinistryRecordInput = z.infer<typeof ministryRecordSchema>;
+export const recordBatchSchema=z.object({revision:z.number().int().nonnegative(),reason:z.string().trim().max(300).default(''),rows:z.array(z.object({memberId:z.string().min(1),recordId:z.string().optional(),input:ministryRecordSchema}).strict()).min(1).max(200)}).strict();

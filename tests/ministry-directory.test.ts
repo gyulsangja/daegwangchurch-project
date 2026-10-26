@@ -11,6 +11,36 @@ const input = { name: '가상 등록', status: 'ACTIVE', position: '', phone: ''
 const make = () => createDirectory(createFixture(), randomUUID, () => '2026-10-21T00:00:00.000Z');
 const code = (expected: string) => (error: unknown) => error instanceof DirectoryError && error.code === expected;
 
+test('bulk education is atomic, rejects stale saves, and updates the same personal records',()=>{
+ const d=make();const one=d.create(admin,{...input,name:'First'});const two=d.create(admin,{...input,name:'Second'});
+ const lesson={kind:'EDUCATION' as const,date:'2026-10-20',courseId:'NEWCOMER',cohort:'Fall',teacher:'Teacher',value:'IN_PROGRESS' as const,endDate:null,note:''};
+ const initial=d.records.workspace(admin,'EDUCATION');
+ assert.throws(()=>d.records.batch(admin,{revision:initial.revision,rows:[{memberId:one.id,input:lesson},{memberId:'other-church-member',input:lesson}]}),code('NOT_FOUND'));
+ assert.equal(d.records.workspace(admin,'EDUCATION').entries.length,0);
+ assert.equal(d.records.batch(admin,{revision:initial.revision,rows:[{memberId:one.id,input:lesson},{memberId:two.id,input:lesson}]}).saved,2);
+ assert.equal(d.records.list(admin,one.id).filter(e=>e.kind==='EDUCATION').length,1);
+ assert.throws(()=>d.records.batch(admin,{revision:initial.revision,rows:[{memberId:one.id,input:lesson}]}),code('CONFLICT'));
+ const current=d.records.workspace(admin,'EDUCATION');
+ d.records.batch(admin,{revision:current.revision,reason:'Course completed',rows:current.entries.map(e=>({memberId:e.memberId,recordId:e.id,input:{...lesson,value:'COMPLETED',endDate:'2026-10-21'}}))});
+ assert.equal(d.records.workspace(admin,'EDUCATION').entries.filter(e=>e.kind==='EDUCATION'&&e.value==='COMPLETED').length,2);
+ assert.equal(d.records.list(admin,one.id).filter(e=>e.voided).length,1);
+ assert.throws(()=>d.records.workspace(admin,'CARE'),code('FORBIDDEN'));
+ assert.throws(()=>d.records.batch(leader,{revision:0,rows:[{memberId:one.id,input:lesson}]}),code('FORBIDDEN'));
+ const restored=createDirectory(createFixture(),randomUUID,()=> '2026-10-21T00:00:00.000Z',d.snapshot());assert.equal(restored.records.workspace(admin,'EDUCATION').entries.length,2);
+});
+
+test('family links preserve separate households, reject cycles and stale edits, and restore',()=>{
+ const d=make();const ids=['A','B','C'].map(name=>{const member=d.create(admin,{...input,name});return d.families.create(admin,{name,representativeId:null,members:[{memberId:member.id,relationship:'가구원'}]}).id;});
+ const connect=(sourceId:string,targetId:string)=>d.families.link(admin,{sourceId,targetId,sourceVersion:d.families.read(admin,sourceId).version,targetVersion:d.families.read(admin,targetId).version,relationship:'PARENT',note:'Separate household'});
+ connect(ids[0],ids[1]);connect(ids[1],ids[2]);assert.equal(d.families.read(admin,ids[0]).members.length,1);
+ assert.throws(()=>connect(ids[2],ids[0]),code('INVALID'));
+ assert.throws(()=>connect(ids[0],ids[0]),code('INVALID'));
+ assert.throws(()=>d.families.link(admin,{sourceId:ids[0],targetId:ids[1],sourceVersion:1,targetVersion:1,relationship:'PARENT'}),code('CONFLICT'));
+ assert.throws(()=>d.families.link({...admin,churchId:'other'}, {sourceId:ids[0],targetId:ids[1],sourceVersion:2,targetVersion:2,relationship:'PARENT'}),code('FORBIDDEN'));
+ const restored=createDirectory(createFixture(),randomUUID,undefined,d.snapshot());assert.equal(restored.families.read(admin,ids[0]).links?.[0].targetId,ids[1]);
+ d.families.link(admin,{sourceId:ids[0],targetId:ids[1],sourceVersion:d.families.read(admin,ids[0]).version,targetVersion:d.families.read(admin,ids[1]).version,relationship:'PARENT',remove:true});assert.equal(d.families.read(admin,ids[0]).links?.length,0);
+});
+
 test('member photo stays private, survives omitted updates, and can be removed without logging bytes',()=>{
  const d=make();const photo='data:image/jpeg;base64,/9j/AA==';const saved=d.create(admin,{...input,photo});
  assert.equal(d.detail(admin,saved.id).privateProfile?.photo,photo);

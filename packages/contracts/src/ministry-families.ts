@@ -6,3 +6,4 @@ export const familyInputSchema = z.object({
 }).strict();
 export const familyUpdateSchema=familyInputSchema.extend({version:z.number().int().positive()}).strict();
 export const familyArchiveSchema=z.object({version:z.number().int().positive(),confirmed:z.literal(true)}).strict();
+export const familyLinkSchema=z.object({sourceId:z.string().min(1),targetId:z.string().min(1),sourceVersion:z.number().int().positive(),targetVersion:z.number().int().positive(),relationship:z.enum(['PARENT','SIBLING','RELATIVE','OTHER']),note:z.string().trim().max(200).default(''),remove:z.boolean().default(false)}).strict();

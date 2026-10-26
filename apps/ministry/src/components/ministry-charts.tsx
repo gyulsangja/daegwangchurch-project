@@ -1,0 +1,8 @@
+'use client';
+import {Bar,BarChart,CartesianGrid,Legend,Tooltip,XAxis,YAxis,LineChart,Line} from 'recharts';
+export type AttendancePoint={month:string;PRESENT:number;ONLINE:number;ABSENT:number;EXCUSED:number;rate:number};
+export function AttendanceCharts({data}:{data:AttendancePoint[]}){
+ if(!data.length)return null;
+ return <div className="ministry-chart-grid"><div><h3>월별 출석 구성</h3><BarChart responsive style={{width:'100%',height:280}} data={data} accessibilityLayer><CartesianGrid strokeDasharray="3 3" vertical={false}/><XAxis dataKey="month"/><YAxis allowDecimals={false}/><Tooltip/><Legend/>{[['PRESENT','현장','#487c5b'],['ONLINE','온라인','#628fab'],['ABSENT','결석','#c17b6b'],['EXCUSED','사유 결석','#bc9c50']].map(([key,name,fill])=><Bar key={key} dataKey={key} name={name} stackId="attendance" fill={fill} isAnimationActive={false}/>)}</BarChart></div><div><h3>기록 기준 출석률 추이</h3><LineChart responsive style={{width:'100%',height:280}} data={data} accessibilityLayer><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="month"/><YAxis domain={[0,100]} unit="%"/><Tooltip/><Line dataKey="rate" name="출석률 (%)" stroke="#426b50" strokeWidth={3} isAnimationActive={false}/></LineChart></div></div>;
+}
+export function CountChart({data,title}:{data:{name:string;count:number}[];title:string}){return <section className="panel detail-body"><h2>{title}</h2><BarChart responsive style={{width:'100%',height:280}} data={data} accessibilityLayer><CartesianGrid strokeDasharray="3 3" vertical={false}/><XAxis dataKey="name"/><YAxis allowDecimals={false}/><Tooltip/><Bar dataKey="count" name="인원" fill="#527c61" isAnimationActive={false}/></BarChart><ul className="chart-data-list">{data.map(d=><li key={d.name}>{d.name} <strong>{d.count}명</strong></li>)}</ul></section>;}

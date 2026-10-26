@@ -8,7 +8,7 @@ import { memberInputSchema, memberSearchSchema, memberUpdateSchema, type MemberI
 
 export type Actor = { id: string; churchId: string; role: 'ADMIN' | 'OFFICE' | 'LEADER'; organizationIds: string[]; scopeYear?: number; permissions?: ('CARE')[] };
 export type Organization = { id: string; churchId: string; name: string; parentId: string | null };
-export type Family = { id: string; churchId: string; name: string; version:number; representativeId:string|null; archived:boolean; members: { memberId: string; relationship: string }[] };
+export type Family = { id: string; churchId: string; name: string; version:number; representativeId:string|null; archived:boolean; links?:{targetId:string;relationship:'PARENT'|'SIBLING'|'RELATIVE'|'OTHER';note:string}[]; members: { memberId: string; relationship: string }[] };
 export type Member = MemberInput & { id: string; churchId: string; version: number; createdAt: string; updatedAt: string };
 export type Audit = { id: string; churchId: string; actorId: string; memberId: string; action: 'CREATE' | 'UPDATE' | 'READ'; fields: string[]; at: string };
 export type Church = { id: string; name: string; statuses: { code: string; label: string }[]; positions: { code: string; label: string }[] };
