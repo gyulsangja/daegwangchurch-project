@@ -1,5 +1,14 @@
 # 작업 인수인계
 
+## 목회시스템 운영 배포 및 메일 발송 준비 (2026-10-27)
+
+- https://daegwangchurch-ministry.vercel.app 운영 배포 완료. 기존 Vercel 목회 프로젝트에 Production 전용 최소권한 DB·Supabase·origin 등록, 앱/홈페이지와 분리. GitHub main 자동 배포 연결. 소스 `0abc02c`, 배포 `dpl_GUmhtfZeLkRGfkNP2Y9VKcva9Fdc`.
+- Next.js audit 중요 항목 확인 후 16.4.3으로 패치, eslint-config-next 동일 버전 및 lockfile 반영. 자동 32개·타입·build·경계 통과, lint 오류 없음(인증 화면 전체 페이지 이동 권고 3개). 운영 HTTP 접근 경계 10개 통과. 실제 root 로그인→목회 홈/사용자 및 권한 정상 사용자 확인 완료.
+- Supabase에 HTTPS 운영 초대/복구 callback 2개 추가. 가상 자료와 테스트 API는 운영에서 비활성. 홈페이지 연동용 DB 비밀값은 없으므로 CMS bridge는 여전히 비활성이다.
+- 사용자는 Resend 가입 완료, 발신 주소 `root@daegwangchurch.kr` 지정. DNS 등록·발송 전용 키·Supabase SMTP 연결 명시 승인. 닷홈 DNS에 DKIM TXT와 rsend/send CNAME 3개 등록 완료, 권한 네임서버 반영 및 Resend Verified 확인. 교회 도메인 한정 Sending access 키 `daegwang-supabase-auth` 생성, Supabase SMTP에만 저장(파일·Git 제외). host smtp.resend.com/465/username resend, 발신 이름 대광교회. 사용자 승인으로 운영 비밀번호 찾기에서 gojekal@naver.com에 1통 요청, Resend 발송 및 실제 수신 사용자 확인 완료. 비밀번호 변경 없음.
+- SMTP는 공유 Supabase 인증 이메일에 적용된다. 기본 이메일 본문/제목은 영문이며 새 초대 수락 전 과정은 실제 대상이 정해지면 별도 확인. root 주소 수신함은 생성하지 않았으므로 해당 계정의 이메일 복구에는 수신 환경 준비 필요. 기존 홈페이지 DNS 유지. 미사용 auth.daegwangchurch.kr Resend 항목은 DNS 미등록 상태이며 사용하지 않는다.
+- [배포 및 메일 절차](ministry/deployment.md), `scripts/check-ministry-deployment.mjs` 참고. 비밀값은 Git/문서에 저장하지 않는다. 로컬 개발 서버는 3002에 복구했다.
+
 ## 인증 앱 필수 절차 제거 (2026-10-27)
 
 - 사용자 피드백 ‘너무 까다로워’에 따라 일반 로그인은 이메일·비밀번호만. QR 미완료 상태에서도 이용 가능. 기존에 인증 앱 등록을 완료한 계정의 MFA는 유지.

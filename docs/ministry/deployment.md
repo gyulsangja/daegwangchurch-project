@@ -33,18 +33,24 @@ https://daegwangchurch-ministry.vercel.app/auth/callback?flow=recovery
 
 ## 무료 메일 발송 준비
 
-현재 Supabase 내장 발송 서비스만 있으므로 일반 대상에게 초대·복구 메일이 도착하는 것은 아직 검증되지 않았다. 기존 계정 로그인은 메일 발송 없이 가능하다.
+Supabase custom SMTP를 Resend로 연결했다. 발신자는 `대광교회 <root@daegwangchurch.kr>`. 도메인 인증 완료, 발송 전용 키는 해당 교회 도메인으로 범위를 제한했으며 Supabase에만 저장했다. 키는 로컬 파일·Git·문서에 저장하지 않았다. 사용자가 승인한 `gojekal@naver.com`으로 운영 비밀번호 찾기 메일 1통을 요청했고 실제 수신을 확인했다. 비밀번호는 변경하지 않았다. 신규 초대의 수락까지는 실제 초대 대상이 준비될 때 별도 확인한다.
 
-1. Resend 무료 계정을 사용자가 생성한다.
-2. 교회가 소유한 `daegwangchurch.kr`의 발송용 도메인/하위 도메인을 Resend에 등록한다.
-3. Resend에서 제시한 SPF·DKIM DNS 값을 실제 DNS 관리 서비스에 추가하고 인증을 확인한다. 기존 홈페이지 A/CNAME 및 메일 MX 레코드를 임의로 바꾸지 않는다.
-4. 도메인 인증 후 Supabase Authentication → Emails → SMTP Settings에 Resend 공식 SMTP 설정과 발급한 키를 등록한다. 키는 채팅·Git에 남기지 않는다.
+1. Resend 무료 계정을 사용자가 생성했다.
+2. 사용자 지정 발신자는 `root@daegwangchurch.kr`, 발신 이름은 대광교회. Resend에 `daegwangchurch.kr`을 등록했다. 수신함 생성과는 별개다.
+3. Resend에서 제시한 SPF·DKIM DNS 값을 닷홈에 추가하고 인증을 확인했다. 기존 홈페이지 A/CNAME 및 수신용 MX 레코드는 변경하지 않았다.
+4. Supabase Authentication → Emails → SMTP Settings에 host `smtp.resend.com`, port `465`, username `resend`, 도메인 한정 발송 키를 저장했다. 키 이름 `daegwang-supabase-auth`, 권한 Sending access. 메일 링크/열람 추적은 설정하지 않았다. Supabase 저장 후 재조회하여 활성·저장 상태를 확인했다.
 5. 사용자가 지정한 수신 가능한 이메일로 초대·비밀번호 재설정 메일을 각각 확인한다. 인증 요청을 시작한 브라우저에서 링크를 연다.
+
+닷홈에서 TXT `resend._domainkey`, CNAME `rsend`→`rsend-apne1.forge.rmta.net`, CNAME `send`→`send.forge.rmta.net`을 사용자 승인 후 등록했고 권한 네임서버에서 반영을 확인했다. 기존 홈페이지 A/CNAME은 유지했다. `auth.daegwangchurch.kr`은 발신 주소 결정 전에 만든 미사용 미인증 도메인이며 DNS를 등록하지 않았다.
+
+`root@daegwangchurch.kr` 수신 메일함은 이번 작업에서 만들지 않았다. root 계정 자체의 이메일 복구를 사용하려면 별도로 수신함/수신 라우팅을 준비해야 한다. SMTP는 같은 Supabase 프로젝트의 인증 이메일 전체에 적용되며 기존 가입 허용/이메일 확인 정책은 바꾸지 않았다. 기본 인증 메일 제목·본문은 영문 템플릿 상태다.
 
 2026-10-27 확인: Resend 무료 플랜 일 100건 한도. 정책은 설정 시 다시 확인한다. [요금](https://resend.com/pricing), [Supabase SMTP 문서](https://supabase.com/docs/guides/auth/auth-smtp).
 
 ## 배포 검증
 
-`npm run test:ministry`, 목회 타입·lint·build, 운영 로그인 화면 200, 비로그인 교적/API 차단, 다른 Origin 쓰기 차단, 가상자료 API 차단을 확인한다. 실제 운영 로그인은 사용자가 기존 비밀번호로 확인하며 비밀번호를 도구에 전달하지 않는다. 배포 후 교인/상담 데이터를 시험 생성하지 않는다.
+`npm run test:ministry` 32개, 목회 타입·build 통과. lint 오류 0개(인증 화면의 전체 페이지 이동 관련 권고 3개). `node scripts/check-ministry-deployment.mjs`에서 공개 접근 경계 10개 검증을 통과했다. 사용자가 기존 root 비밀번호로 운영 홈과 사용자 권한 화면이 열린다고 확인했다. 전용 transaction pooler 연결/비관리자 DB 역할/RLS 비로그인 명부 차단도 확인했다. 배포 후 교인/상담 데이터를 시험 생성하지 않았다.
+
+배포본 `dpl_GUmhtfZeLkRGfkNP2Y9VKcva9Fdc`, 소스 `0abc02c`. GitHub `gyulsangja/daegwangchurch-project` main에 자동 배포 연결 완료. 최초 운영 승격 전에는 `--prod --skip-domain` 후보의 로그인 응답을 확인한 후 promote했다.
 
 2026-10-27 배포 준비 중 npm audit에서 확인한 Next.js 보안 문제를 16.4.3으로 업데이트했다. 모노레포의 다른 도구/패키지에 남은 audit 항목까지 모두 해결했다고 간주하지 않는다.

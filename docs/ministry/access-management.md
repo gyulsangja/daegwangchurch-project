@@ -51,4 +51,4 @@ http://localhost:3002/auth/callback?flow=recovery
 
 `npm run test:ministry`: 32개 테스트. PostgreSQL 함수/RLS/타 교회 차단/마지막 관리자/무권한 변경/충돌/이메일 확인/초대 재발급·취소·발송 간격/부서 출석·연도 범위/서명 복구 의도 포함. 타입/lint/build/경계 검사 완료. `tests/ministry-access-browser.mjs`는 격리 가상 서버에서 폼과 모바일 화면을 검사하며 POST 응답만 브라우저에서 mock한다. 운영 API에 시험 초대를 만들지 않았다.
 
-실제 root 로그인 후 인증 앱 없이 목회 홈 진입을 확인했다. Supabase에 위 callback 2개 등록 완료. 현재 내장 메일 서비스이며 별도 SMTP가 미설정이다. 실제 초대/복구 이메일 수신은 발송 설정 후 확인해야 한다. 자동 테스트가 실제 이메일 수신을 증명하지는 않는다.
+실제 root 로그인 후 인증 앱 없이 목회 홈 진입을 확인했다. 2026-10-27 운영 배포와 HTTPS callback 2개 추가, 운영 root 로그인/권한 화면을 사용자 확인했다. Resend SMTP를 연결하고 승인된 기존 관리자 이메일로 비밀번호 찾기 메일 실수신을 확인했다. 신규 초대 수락 전체 흐름은 실제 초대 대상이 정해지면 별도 확인한다. 설정과 수신함 제한은 [deployment.md](deployment.md) 참고.
