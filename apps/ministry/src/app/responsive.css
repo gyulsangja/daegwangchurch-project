@@ -1,0 +1,120 @@
+/* Screen adaptations only: preserve the A4 document and desktop table layouts. */
+.sidebar-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.navigation-body{display:flex;flex-direction:column;flex:1;min-height:0}
+.mobile-menu-toggle{display:none}
+.goal-progress>.button{margin-top:12px;white-space:normal}
+.pastoral-filter{margin-bottom:18px;border-bottom:1px solid var(--border)}
+.pastoral-filter>summary{min-height:44px;font-size:14px;color:var(--primary)}
+.pastoral-filter .pastoral-toolbar{padding-top:10px}
+@media screen{
+  main,fieldset,.panel,.detail-body,.form-grid>*{min-width:0}
+  main h1,main h2,main h3,.chip,.family-list li,.plan-link{overflow-wrap:anywhere}
+  textarea:focus-visible,summary:focus-visible{outline:3px solid #2b8068;outline-offset:3px}
+  .pastoral-dialog,.batch-dialog{overscroll-behavior:contain;scroll-padding-top:90px}
+  .pastoral-dialog .section-heading,.batch-dialog .section-heading{position:sticky;top:0;background:white;z-index:2;border-bottom:1px solid var(--border)}
+  .pastoral-dialog .section-heading{padding:16px 24px}
+  .pastoral-dialog .section-heading h2{margin:0}
+  .batch-dialog .section-heading{padding:12px 0}
+  body:has(dialog[open]){overflow:hidden}
+  input,select,textarea{max-width:100%;min-width:0}
+  .org-edit>label,.assignment-form>label{display:grid;gap:8px;min-width:0}
+  .org-edit input,.org-edit select{width:100%;min-width:0}
+}
+@media screen and (max-width:900px){
+  .pastoral-cards,.pastoral-home-grid{grid-template-columns:1fr}
+  .page-heading{flex-wrap:wrap}
+  .page-heading>div{min-width:0}
+}
+@media screen and (max-width:760px){
+  .sidebar{padding:12px 16px;overflow:visible}
+  .sidebar-heading{min-height:44px}
+  .brand{min-width:0;gap:9px}
+  .brand strong{font-size:22px;overflow-wrap:anywhere}
+  .brand small{letter-spacing:0}
+  .brand img{flex-shrink:0}
+  .mobile-menu-toggle{display:inline-flex;flex-shrink:0}
+  .navigation-body{display:none}
+  .navigation-body.is-open{display:flex;padding-top:12px}
+  .sidebar nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:0}
+  .sidebar nav a{flex-direction:row;justify-content:flex-start;gap:8px;padding:12px!important;font-size:14px!important;white-space:normal;border-radius:8px;min-width:0;min-height:48px}
+  .sidebar nav svg{flex-shrink:0;width:18px;height:18px}
+  .directory-menu{margin-top:12px;border-top:1px solid var(--border)}
+  .directory-menu summary{font-size:14px;min-height:44px}
+  .navigation-body>.button{margin-top:12px;align-self:stretch}
+  main{padding:22px 16px 40px}
+  .page-heading{align-items:flex-start}
+  .page-heading h1{font-size:25px}
+  .page-heading .button{font-size:14px}
+  .button{min-height:44px;white-space:normal;line-height:1.4}
+  input:not([type=checkbox]):not([type=radio]),select,textarea,
+  .filters select,.home-search input{font-size:16px!important;min-height:44px}
+  input[type=checkbox],input[type=radio]{width:20px;height:20px;flex-shrink:0;accent-color:var(--primary)}
+  .activity-targets input[type=checkbox]{width:20px}
+  .check,.organization-options label,.role-choices label,.batch-candidates label{min-height:44px}
+  .detail-body,.form-section,.year-toolbar.panel{padding:18px}
+  .section-heading{flex-wrap:wrap;padding:18px}
+  .section-heading .text-link{white-space:normal;min-height:44px;display:inline-flex;align-items:center}
+  .section-switcher{flex-wrap:wrap;overflow:visible;padding:0 8px}
+  .section-switcher button{min-height:44px;flex:1 0 auto;white-space:normal}
+  .pastoral-toolbar{gap:10px;align-items:stretch}
+  .pastoral-toolbar>label,.roster-tools>label,.print-options>label{flex:1 1 140px;min-width:0;max-width:100%}
+  .pastoral-toolbar input,.pastoral-toolbar select,.print-options input,.print-options select{width:100%;min-width:0}
+  .pastoral-toolbar>.chips{width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+  .pastoral-toolbar>.chips .button{padding:10px 4px;font-size:13px}
+  .pastoral-search{max-width:none}
+  .pastoral-card{padding:18px}
+  .pastoral-card-meta,.pastoral-card-footer{flex-wrap:wrap}
+  .pastoral-card-footer .button{margin-left:auto}
+  .plan-link{min-height:44px;line-height:1.6;width:100%}
+  .pastoral-dialog,.batch-dialog{width:calc(100% - 16px);max-width:none;max-height:calc(100dvh - 16px);border-radius:12px}
+  .pastoral-dialog .section-heading{padding:12px 16px;flex-wrap:nowrap}
+  .pastoral-dialog .section-heading .button{flex-shrink:0}
+  .pastoral-fields{padding:16px;gap:18px}
+  .activity-targets{padding:10px}
+  .activity-targets .batch-candidates{grid-template-columns:1fr;padding:8px}
+  .batch-candidates label{overflow-wrap:anywhere}
+  .batch-dialog .detail-body{padding:16px}
+  .batch-dialog .batch-candidates{grid-template-columns:1fr}
+  .batch-selected .roster-person>*{min-width:0;max-width:100%}
+  .roster-person,.family-list li{flex-wrap:wrap;overflow-wrap:anywhere}
+  .roster-person>label,.roster-tools input{min-width:0;max-width:100%}
+  .roster-tools{align-items:stretch}
+  .attendance-person>div{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;gap:8px}
+  .attendance-choice{min-height:44px;font-size:13px;white-space:normal;padding:10px 5px}
+  .attendance-save{padding:14px}
+  .attendance-save .button{justify-self:stretch}
+  .attendance-table{max-width:100%;overscroll-behavior-x:contain}
+  .attendance-table th:first-child{position:sticky;left:0;background:#f8faf7;z-index:1}
+  .member-table table,.member-table tbody{display:block}
+  .member-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+  .member-table tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;padding:18px;border-bottom:1px solid var(--border)}
+  .member-table td,.member-table td:nth-child(3){display:block;padding:0;font-size:14px;border:0;min-width:0;overflow-wrap:anywhere}
+  .member-table td:first-child,.member-table td:last-child{grid-column:1/-1}
+  .member-table td:not(:first-child)::before{content:attr(data-label);display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+  .member-table .person-link{min-height:44px;font-size:16px}
+  .member-table .avatar{display:inline-flex}
+  .member-table .chip{font-size:12px}
+  .info-grid{grid-template-columns:1fr;gap:20px}
+  .stats{grid-template-columns:1fr;gap:10px}
+  .stat{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .stat>strong{font-size:26px;margin:0}
+  .year-toolbar>label{display:grid;gap:8px;width:100%}
+  .year-toolbar select{width:100%;min-width:0}
+  .year-create{padding:12px}
+  .year-create>label{margin:12px 0}
+  .year-create>button{width:100%;margin-top:10px}
+  .catalog{padding:12px}
+  .catalog-row .button{padding:10px}
+  .photo-editor{padding:12px}
+  .photo-editor input[type=file]{width:100%}
+  .print-document{overflow-x:auto;overscroll-behavior-x:contain}
+  .print-document table{min-width:560px}
+}
+@media screen and (max-width:380px){
+  main{padding-left:12px;padding-right:12px}
+  .sidebar{padding-left:12px;padding-right:12px}
+  .brand strong{font-size:20px}
+  .mobile-menu-toggle{padding:10px;font-size:13px}
+  .form-section,.detail-body{padding:14px}
+  .catalog-grid,.annual-organizations{gap:12px}
+}
