@@ -118,3 +118,5 @@
   .form-section,.detail-body{padding:14px}
   .catalog-grid,.annual-organizations{gap:12px}
 }
+
+.mfa-qr{display:block;max-width:100%;height:auto;margin:auto}.locked{padding:20px}.locked .pastoral-fields .check,.pastoral-fields .check{display:flex;align-items:center}.pastoral-fields .check input{width:20px;height:20px;flex-shrink:0}

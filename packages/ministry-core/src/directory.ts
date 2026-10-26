@@ -6,7 +6,7 @@ import { createRecordService } from './records';
 import { createYearService } from './years';
 import { memberInputSchema, memberSearchSchema, memberUpdateSchema, type MemberInput } from '@daegwang/contracts/ministry';
 
-export type Actor = { id: string; churchId: string; role: 'ADMIN' | 'OFFICE' | 'LEADER'; organizationIds: string[]; scopeYear?: number; permissions?: ('CARE')[] };
+export type Actor = { id: string; churchId: string; role: 'ADMIN' | 'OFFICE' | 'LEADER'; organizationIds: string[]; scopeYear?: number; canPrint?:boolean; canDelete?:boolean; permissions?: ('CARE')[] };
 export type Organization = { id: string; churchId: string; name: string; parentId: string | null };
 export type Family = { id: string; churchId: string; name: string; version:number; representativeId:string|null; archived:boolean; links?:{targetId:string;relationship:'PARENT'|'SIBLING'|'RELATIVE'|'OTHER';note:string}[]; members: { memberId: string; relationship: string }[] };
 export type Member = MemberInput & { id: string; churchId: string; version: number; createdAt: string; updatedAt: string };
@@ -27,7 +27,7 @@ export function createDirectory(initial: DirectoryState, id: () => string, now =
   const initialYear = Number(now().slice(0, 4));
   const fail = (code: 'FORBIDDEN' | 'NOT_FOUND' | 'CONFLICT' | 'INVALID', message?: string): never => { throw new DirectoryError(code, message); };
   const years = createYearService(state, now, fail, (actor, before, after) => records.capture(actor, before, after), restored?.years);
-  const records = createRecordService(state, id, now, fail, (actor, member) => years.syncMember(actor, member), actor => years.read(actor, years.activeYear(actor.churchId)).roles, actor => years.read(actor, years.activeYear(actor.churchId)).courses, restored?.records,restored?.attendanceSessions);
+  const records = createRecordService(state, id, now, fail, (actor, member) => years.syncMember(actor, member), actor => years.read(actor, years.activeYear(actor.churchId)).roles, actor => years.read(actor, years.activeYear(actor.churchId)).courses, restored?.records,restored?.attendanceSessions,churchId=>years.activeYear(churchId));
   const pastoral=createPastoralService(state,id,now,fail,restored?.pastoral,actor=>records.careHistory(actor),(actor,year)=>years.read(actor,year??years.activeYear(actor.churchId)));
   const church = (actor: Actor) => {
     if (!actor.id || !['ADMIN', 'OFFICE', 'LEADER'].includes(actor.role)) throw new DirectoryError('FORBIDDEN');

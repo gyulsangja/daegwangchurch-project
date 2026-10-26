@@ -4,14 +4,16 @@ import {attendanceQuery,attendanceBatch} from '@daegwang/contracts/ministry-past
 export type Entry = MinistryRecordInput & { id: string; churchId: string; memberId: string; actorId: string; recordedAt: string; label: string; voided?: boolean; correction?: {reason:string;actorId:string;at:string} };
 type Fail = (code: 'FORBIDDEN' | 'NOT_FOUND' | 'CONFLICT' | 'INVALID', message?: string) => never;
 export type AttendanceSession={churchId:string;date:string;event:string;organizationId:string;savedAt:string;actorId:string;members:{memberId:string;name:string}[]};
-export function createRecordService(state: DirectoryState, id: () => string, now: () => string, fail: Fail, sync: (actor: Actor, member: Member) => void, roles: (actor: Actor) => {code:string;label:string}[], courses: (actor: Actor) => {code:string;label:string}[], restored: Entry[] = [], restoredSessions:AttendanceSession[] = []) {
+export function createRecordService(state: DirectoryState, id: () => string, now: () => string, fail: Fail, sync: (actor: Actor, member: Member) => void, roles: (actor: Actor) => {code:string;label:string}[], courses: (actor: Actor) => {code:string;label:string}[], restored: Entry[] = [], restoredSessions:AttendanceSession[] = [],activeYear:(churchId:string)=>number=()=>Number(now().slice(0,4))) {
   const entries: Entry[] = structuredClone(restored);
   const sessions=structuredClone(restoredSessions);
   const today = () => new Date(now()).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+  const leaderScope=(actor:Actor)=>actor.role==='LEADER'&&actor.scopeYear===activeYear(actor.churchId)&&actor.organizationIds.length>0;
+  const attendanceScope=(actor:Actor,organizationId:string)=>{if(actor.role==='LEADER'&&(!leaderScope(actor)||!organizationId||!actor.organizationIds.includes(organizationId)))fail('FORBIDDEN');};
   const find = (actor: Actor, memberId: string, care = false) => {
-    if (!actor.id || !['ADMIN', 'OFFICE'].includes(actor.role) || (care && !actor.permissions?.includes('CARE'))) return fail('FORBIDDEN');
+    if (!actor.id || (!['ADMIN', 'OFFICE'].includes(actor.role)&&!leaderScope(actor)) || (care && !actor.permissions?.includes('CARE'))) return fail('FORBIDDEN');
     const member = state.members.find(m => m.id === memberId && m.churchId === actor.churchId);
-    if (!member) return fail('NOT_FOUND'); return member;
+    if (!member || (actor.role==='LEADER'&&!member.organizationIds.some(o=>actor.organizationIds.includes(o)))) return fail('NOT_FOUND'); return member;
   };
   const append = (actor: Actor, member: Member, input: MinistryRecordInput, label: string) => {
     const entry: Entry = { ...input, id: id(), churchId: actor.churchId, memberId: member.id, actorId: actor.id, recordedAt: now(), label };
@@ -19,7 +21,7 @@ export function createRecordService(state: DirectoryState, id: () => string, now
   };
   return {
     workspace(actor:Actor,kind:'EDUCATION'|'SERVICE'|'CARE'){
-      if(!['EDUCATION','SERVICE','CARE'].includes(kind)||!actor.id||!['ADMIN','OFFICE'].includes(actor.role)||!state.churches.some(c=>c.id===actor.churchId)||(kind==='CARE'&&!actor.permissions?.includes('CARE')))return fail('FORBIDDEN');
+      if(actor.role==='LEADER'||!['EDUCATION','SERVICE','CARE'].includes(kind)||!actor.id||(!['ADMIN','OFFICE'].includes(actor.role)&&!leaderScope(actor))||!state.churches.some(c=>c.id===actor.churchId)||(kind==='CARE'&&!actor.permissions?.includes('CARE')))return fail('FORBIDDEN');
       const own=entries.filter(e=>e.churchId===actor.churchId);
       state.audits.push({id:id(),churchId:actor.churchId,actorId:actor.id,memberId:'',action:'READ',fields:['recordWorkspace',kind],at:now()});
       return {revision:own.length+own.filter(e=>e.voided).length,entries:structuredClone(own.filter(e=>e.kind===kind&&!e.voided))};
@@ -31,7 +33,7 @@ export function createRecordService(state: DirectoryState, id: () => string, now
       if(this.workspace(actor,kind).revision!==input.revision)return fail('CONFLICT');
       if(new Set(input.rows.map(r=>r.memberId)).size!==input.rows.length)return fail('INVALID','같은 교인을 중복 선택할 수 없습니다.');
       // Validate and apply on an isolated copy. No partial writes, including audit, on failure.
-      const draftState=structuredClone(state);const draft=createRecordService(draftState,id,now,fail,()=>{},roles,courses,entries,sessions);
+      const draftState=structuredClone(state);const draft=createRecordService(draftState,id,now,fail,()=>{},roles,courses,entries,sessions,activeYear);
       for(const row of input.rows){
         if(row.recordId){const old=entries.find(e=>e.id===row.recordId&&e.churchId===actor.churchId&&e.memberId===row.memberId&&e.kind===kind&&!e.voided);if(!old)return fail('CONFLICT');draft.correct(actor,row.memberId,row.recordId,input.reason);}
         draft.add(actor,row.memberId,row.input);
@@ -47,13 +49,13 @@ export function createRecordService(state: DirectoryState, id: () => string, now
       return structuredClone(entries.filter(e=>e.churchId===actor.churchId&&e.kind==='CARE'&&!e.voided).sort((a,b)=>b.date.localeCompare(a.date)));
     },
     attendanceRoster(actor:Actor,raw:unknown){
-      if(!actor.id||!['ADMIN','OFFICE'].includes(actor.role)||!state.churches.some(c=>c.id===actor.churchId))return fail('FORBIDDEN');
-      const query=attendanceQuery.parse(raw);
+      if(!actor.id||(!['ADMIN','OFFICE'].includes(actor.role)&&!leaderScope(actor))||!state.churches.some(c=>c.id===actor.churchId))return fail('FORBIDDEN');
+      const query=attendanceQuery.parse(raw);attendanceScope(actor,query.organizationId);
       const saved=sessions.find(s=>s.churchId===actor.churchId&&s.date===query.date&&s.event===query.event&&s.organizationId===query.organizationId);
       if(!saved&&query.organizationId&&!state.organizations.some(o=>o.id===query.organizationId&&o.churchId===actor.churchId))return fail('NOT_FOUND');
       const session=entries.filter(e=>e.churchId===actor.churchId&&e.kind==='ATTENDANCE'&&e.date===query.date&&e.event===query.event&&e.organizationId===query.organizationId);
       const members=state.members.filter(m=>m.churchId===actor.churchId&&((!['DECEASED','TRANSFERRED'].includes(m.status)&&(!query.organizationId||m.organizationIds.includes(query.organizationId)))||session.some(e=>e.memberId===m.id)));
-      const roster=saved?.members??members.map(m=>({memberId:m.id,name:m.name}));
+      const roster=(saved?.members??members.map(m=>({memberId:m.id,name:m.name}))).filter(m=>actor.role!=='LEADER'||state.members.some(p=>p.id===m.memberId&&p.churchId===actor.churchId&&p.organizationIds.includes(query.organizationId)));
       return {savedAt:saved?.savedAt??null,revision:session.reduce((n,e)=>n+1+(e.voided?1:0),saved?1:0),rows:[...roster].sort((a,b)=>a.name.localeCompare(b.name,'ko')).map(m=>{const entry=session.find(e=>e.memberId===m.memberId&&!e.voided);return {memberId:m.memberId,name:m.name,value:entry?.kind==='ATTENDANCE'?entry.value:'UNKNOWN' as const};})};
     },
     saveAttendance(actor:Actor,raw:unknown){
@@ -74,15 +76,15 @@ export function createRecordService(state: DirectoryState, id: () => string, now
       return {changed:changed.length};
     },
     attendanceHistory(actor:Actor,memberId?:string){
-      if(!actor.id||!['ADMIN','OFFICE'].includes(actor.role)||!state.churches.some(c=>c.id===actor.churchId))return fail('FORBIDDEN');
+      if(!actor.id||(!['ADMIN','OFFICE'].includes(actor.role)&&!leaderScope(actor))||!state.churches.some(c=>c.id===actor.churchId))return fail('FORBIDDEN');
       if(memberId)find(actor,memberId);
-      return structuredClone(entries.filter((e):e is Entry & {kind:'ATTENDANCE'}=>e.kind==='ATTENDANCE'&&!e.voided&&e.churchId===actor.churchId&&(!memberId||e.memberId===memberId)));
+      return structuredClone(entries.filter((e):e is Entry & {kind:'ATTENDANCE'}=>e.kind==='ATTENDANCE'&&!e.voided&&e.churchId===actor.churchId&&(!memberId||e.memberId===memberId)&&(actor.role!=='LEADER'||actor.organizationIds.includes(e.organizationId))));
     },
     correct(actor: Actor, memberId: string, entryId: string, reason: unknown) {
       find(actor, memberId);
       const entry = entries.find(e => e.churchId === actor.churchId && e.memberId === memberId && e.id === entryId);
       if (!entry) return fail('NOT_FOUND');
-      find(actor, memberId, entry.kind === 'CARE');
+      find(actor, memberId, entry.kind === 'CARE');if(actor.role==='LEADER'){if(entry.kind!=='ATTENDANCE')return fail('FORBIDDEN');attendanceScope(actor,entry.organizationId);}
       if (!['SERVICE', 'ATTENDANCE', 'CARE', 'EDUCATION'].includes(entry.kind)) return fail('INVALID', '직분·상태는 올바른 발생일로 변경 기록을 추가해 주세요.');
       if (entry.voided) return fail('CONFLICT');
       if (typeof reason !== 'string' || !reason.trim() || reason.length > 300) return fail('INVALID', '정정 사유를 입력해 주세요.');
@@ -90,7 +92,7 @@ export function createRecordService(state: DirectoryState, id: () => string, now
       state.audits.push({id:id(),churchId:actor.churchId,actorId:actor.id,memberId,action:'UPDATE',fields:['recordCorrection'],at:now()});
       return {id:entry.id};
     },
-    list(actor: Actor, memberId: string) {
+    list(actor: Actor, memberId: string) {if(actor.role==='LEADER')return fail('FORBIDDEN');
       find(actor, memberId);
       state.audits.push({id:id(),churchId:actor.churchId,actorId:actor.id,memberId,action:'READ',fields:['ministryRecords'],at:now()});
       return structuredClone(entries.filter(e => e.churchId === actor.churchId && e.memberId === memberId && (e.kind !== 'CARE' || actor.permissions?.includes('CARE'))).sort((a,b) => b.date.localeCompare(a.date) || b.recordedAt.localeCompare(a.recordedAt)));
@@ -102,7 +104,7 @@ export function createRecordService(state: DirectoryState, id: () => string, now
       }
     },
     add(actor: Actor, memberId: string, raw: unknown) {
-      const input = ministryRecordSchema.parse(raw); const member = find(actor, memberId, input.kind === 'CARE');
+      const input = ministryRecordSchema.parse(raw);if(actor.role==='LEADER'){if(input.kind!=='ATTENDANCE')return fail('FORBIDDEN');attendanceScope(actor,input.organizationId);} const member = find(actor, memberId, input.kind === 'CARE');
       if(input.kind==='ATTENDANCE'){
         const saved=sessions.find(s=>s.churchId===actor.churchId&&s.date===input.date&&s.event===input.event&&s.organizationId===input.organizationId);
         if(saved&&!saved.members.some(m=>m.memberId===memberId))return fail('INVALID','이 교인은 저장된 회차 명단에 없습니다. 명단 밖 출석 추가는 아직 지원하지 않습니다.');

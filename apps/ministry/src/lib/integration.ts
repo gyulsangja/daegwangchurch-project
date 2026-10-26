@@ -1,4 +1,5 @@
 import 'server-only';
+import {authenticatedSession} from './auth-security';
 import {randomUUID} from 'node:crypto';
 import {z} from 'zod';
 import {createDirectory,DirectoryError,type Actor} from '@daegwang/ministry-core/directory';
@@ -10,14 +11,14 @@ import {operationalEnabled} from './operational-config';
 export async function integrationInbox(actor:Actor){
  if(!operationalEnabled()||!bridgeEnabled())return {configured:false,accounts:[],care:[],links:[],intakes:[]};
  if(actor.role!=='ADMIN')throw new MinistryAccessError();
- const source=await readCmsInbox(actor.id,!!actor.permissions?.includes('CARE'));
+ const {aal}=await authenticatedSession();const source=await readCmsInbox(actor.id,!!actor.permissions?.includes('CARE'));
  return ministryTransaction(ministryPool(),actor.id,actor.churchId,async(db,grant)=>{
   if(grant.role!=='ADMIN')throw new MinistryAccessError();
   const links=(await db.query('SELECT member_id,user_id FROM ministry.account_links WHERE church_id=$1',[actor.churchId])).rows as {member_id:string;user_id:string}[];
   const intakes=grant.care?(await db.query('SELECT source_id,pastoral_id FROM ministry.care_intakes WHERE church_id=$1',[actor.churchId])).rows as {source_id:string;pastoral_id:string}[]:[];
   const auditId=randomUUID();await db.query('INSERT INTO ministry.audits(church_id,id,payload) VALUES($1,$2,$3)',[actor.churchId,auditId,{id:auditId,churchId:actor.churchId,actorId:actor.id,memberId:'',action:'READ',fields:['integrationInbox'],at:new Date().toISOString()}]);
   return {...source,care:grant.care?source.care:[],links,intakes};
- });
+ },{aal,enforceMfa:false});
 }
 const command=z.discriminatedUnion('action',[
  z.object({action:z.literal('LINK'),userId:z.uuid(),memberId:z.string().min(1).max(100),sourceVersion:z.number().int().positive(),memberVersion:z.number().int().positive(),confirmed:z.literal(true)}).strict(),
@@ -25,7 +26,7 @@ const command=z.discriminatedUnion('action',[
 ]);
 export async function applyIntegration(actor:Actor,raw:unknown){
  if(!operationalEnabled()||!bridgeEnabled()||actor.role!=='ADMIN')throw new MinistryAccessError();
- const input=command.parse(raw);const source=await readCmsInbox(actor.id,input.action==='INTAKE'&&!!actor.permissions?.includes('CARE'));
+ const input=command.parse(raw);const {aal}=await authenticatedSession();const source=await readCmsInbox(actor.id,input.action==='INTAKE'&&!!actor.permissions?.includes('CARE'));
  return ministryTransaction(ministryPool(),actor.id,actor.churchId,async(db,grant)=>{
   if(grant.role!=='ADMIN')throw new MinistryAccessError();
   const before=await readMinistryRows(db,actor.churchId);const saved=snapshot(before);const current={...actor,permissions:grant.care?['CARE' as const]:[]};const domain=createDirectory(saved.state,randomUUID,undefined,saved);
@@ -47,5 +48,5 @@ export async function applyIntegration(actor:Actor,raw:unknown){
   }
   const auditId=randomUUID();await db.query('INSERT INTO ministry.audits(church_id,id,payload) VALUES($1,$2,$3)',[actor.churchId,auditId,{id:auditId,churchId:actor.churchId,actorId:actor.id,memberId:input.action==='LINK'?input.memberId:'',action:'UPDATE',fields:[input.action==='LINK'?'accountLink':'careIntake'],at:new Date().toISOString()}]);
   return result;
- });
+ },{aal,enforceMfa:false});
 }

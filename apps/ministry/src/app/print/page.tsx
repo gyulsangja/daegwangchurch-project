@@ -8,7 +8,7 @@ const statusLabels:Record<string,string>={OPEN:'진행 중',DONE:'마무리',ARC
 export default async function Page({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
  const q=await searchParams;const get=(key:string)=>typeof q[key]==='string'?q[key] as string:'';
  const type=(Object.hasOwn(types,get('type'))?get('type'):'directory') as keyof typeof types;
- const {service,actor,config}=await workspace();if(!['ADMIN','OFFICE'].includes(actor.role))redirect('/access-denied');
+ const {service,actor,config}=await workspace();if(actor.canPrint===false||!['ADMIN','OFFICE'].includes(actor.role))redirect('/access-denied');
  const sensitive=['care','prayer','plans'].includes(type);if(sensitive&&!actor.permissions?.includes('CARE'))redirect('/access-denied');
  const today=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'});const from=get('from')||`${today.slice(0,4)}-01-01`;const to=get('to')||today;const date=get('date')||today;const event=get('event')||'주일오전예배';const org=get('organizationId');const memberId=get('memberId');const blank=get('blank')==='1';
  if(![from,to,date].every(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)&&!Number.isNaN(Date.parse(d))&&new Date(d).toISOString().slice(0,10)===d)||date>today||event.length>100)return <p>날짜·기간·예배 이름을 확인한 뒤 문서 출력을 다시 열어 주세요.</p>;

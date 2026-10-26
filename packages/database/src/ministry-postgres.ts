@@ -2,23 +2,26 @@ import type {Pool,PoolClient} from 'pg';
 // Structural interfaces allow the same transaction implementation to run in PostgreSQL integration tests.
 export type MinistryConnection=Pick<PoolClient,'query'>;
 export class MinistryAccessError extends Error {constructor(){super('MINISTRY_ACCESS_DENIED');this.name='MinistryAccessError';}}
-export type MinistryGrant={churchId:string;userId:string;role:'ADMIN'|'OFFICE';care:boolean};
+export type MinistryGrant={churchId:string;userId:string;role:'ADMIN'|'OFFICE'|'LEADER';care:boolean;organizationIds:string[];scopeYear?:number;canPrint:boolean;canDelete:boolean};
 type Row={id:string;payload:unknown};
 export type MinistryRows={church:unknown;members:Row[];organizations:Row[];families:Row[];years:Row[];records:Row[];pastoral:Row[];attendance_sessions:Row[];audits:Row[]};
 const tables=['members','organizations','families','years','records','pastoral','attendance_sessions','audits'] as const;
-export async function ministryTransaction<T>(pool:Pick<Pool,'connect'>,userId:string,churchId:string,work:(db:MinistryConnection,grant:MinistryGrant)=>Promise<T>):Promise<T>{
+export async function ministryTransaction<T>(pool:Pick<Pool,'connect'>,userId:string,churchId:string,work:(db:MinistryConnection,grant:MinistryGrant)=>Promise<T>,security?:{aal:string;enforceMfa:boolean}):Promise<T>{
  const db=await pool.connect();
  try{
   await db.query('BEGIN');
   await db.query("SELECT set_config('ministry.user_id',$1,true),set_config('ministry.church_id',$2,true),set_config('statement_timeout','10000',true)",[userId,churchId]);
   const role=await db.query('SELECT rolsuper,rolbypassrls FROM pg_roles WHERE rolname=current_user');
   if(role.rows[0]?.rolsuper||role.rows[0]?.rolbypassrls)throw new MinistryAccessError();
-  const result=await db.query('SELECT role,care FROM ministry.access_grants WHERE user_id=$1::uuid AND church_id=$2 AND active FOR SHARE',[userId,churchId]);
-  if(result.rows.length!==1)throw new MinistryAccessError();
+
   // Serialize writes per church. Revocation waits for this short transaction, and affects the next call.
   const church=await db.query('SELECT id FROM ministry.churches WHERE id=$1 FOR UPDATE',[churchId]);
   if(church.rows.length!==1)throw new MinistryAccessError();
-  const value=await work(db,{churchId,userId,role:result.rows[0].role,care:result.rows[0].care});
+  const result=await db.query('SELECT to_jsonb(g) AS grant FROM ministry.access_grants g WHERE user_id=$1::uuid AND church_id=$2 AND active FOR SHARE',[userId,churchId]);
+  if(result.rows.length!==1)throw new MinistryAccessError();
+  const g=result.rows[0].grant;
+  if(security?.enforceMfa&&(g.role==='ADMIN'||g.care)&&security.aal!=='aal2')throw new Error('MINISTRY_MFA_REQUIRED');
+  const value=await work(db,{churchId,userId,role:g.role,care:g.care,organizationIds:g.organization_ids??[],scopeYear:g.scope_year??undefined,canPrint:g.can_print??true,canDelete:g.can_delete??true});
   await db.query('COMMIT');return value;
  }catch(error){await db.query('ROLLBACK');throw error;}finally{db.release();}
 }

@@ -1,0 +1,20 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+import {createDirectory,type Actor} from '../packages/ministry-core/src/directory';
+import {createFixture} from '../packages/ministry-core/src/fixture';
+test('department staff can only record current-year assigned organization attendance and cannot read private records',()=>{
+ const d=createDirectory(createFixture(),randomUUID,()=> '2026-10-27T00:00:00Z');const leader:Actor={id:'staff',churchId:'demo-daegwang',role:'LEADER',organizationIds:['org-youth'],scopeYear:2026};const admin:Actor={...leader,id:'admin',role:'ADMIN',permissions:['CARE']};
+ const query={date:'2026-10-27',event:'Department worship',organizationId:'org-youth'};const roster=d.records.attendanceRoster(leader,query);assert.ok(roster.rows.length);
+ const rows=roster.rows.map(r=>({memberId:r.memberId,value:'PRESENT'}));d.records.saveAttendance(leader,{...query,revision:roster.revision,reason:'',rows});assert.equal(d.records.attendanceHistory(leader).length,rows.length);
+ assert.throws(()=>d.records.attendanceRoster(leader,{...query,organizationId:''}));assert.throws(()=>d.records.attendanceRoster(leader,{...query,organizationId:'org-adults'}));
+ assert.throws(()=>d.records.list(leader,rows[0].memberId));assert.throws(()=>d.records.careHistory(leader));assert.throws(()=>d.families.list(leader));
+ assert.throws(()=>d.records.add(leader,rows[0].memberId,{kind:'CARE',date:query.date,category:'VISIT',content:'not allowed',nextDate:''}));
+ assert.throws(()=>d.records.add(leader,rows[0].memberId,{kind:'ATTENDANCE',...query,organizationId:'org-adults',value:'PRESENT',note:''}));
+ assert.throws(()=>d.records.attendanceRoster({...leader,scopeYear:2025},query));
+ const next=d.years.create(admin,{year:2027,sourceYear:2026,sourceVersion:d.years.read(admin,2026).version,copyMembers:true,copyRoles:true});
+ const period=d.years.read(admin,2027);d.years.activate(admin,2027,{version:period.version,activeVersion:d.years.read(admin,2026).version,confirmed:true});assert.ok(next);assert.throws(()=>d.records.attendanceHistory(leader));
+ const family=d.families.list(admin)[0];assert.throws(()=>d.families.archive({...admin,canDelete:false},family.id,{version:family.version}));
+ const p=d.pastoral.create(admin,{kind:'PRAYER',title:'Private prayer',date:query.date,body:'',status:'OPEN'});
+ assert.throws(()=>d.pastoral.update({...admin,canDelete:false},{kind:'PRAYER',title:'Private prayer',date:query.date,body:'',id:p.id,version:1,status:'ARCHIVED',reflection:'Not authorized'}));
+});

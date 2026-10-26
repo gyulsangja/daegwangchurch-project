@@ -1,0 +1,48 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {PGlite} from '@electric-sql/pglite';
+const admin='11111111-1111-4111-8111-111111111111',member='22222222-2222-4222-8222-222222222222';
+test('access management denies escalation, preserves last admin, scopes invitations and records changes',async()=>{
+ const db=new PGlite();
+ try{
+  await db.exec('CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY,email text,email_confirmed_at timestamptz); CREATE ROLE daegwang_ministry_runtime;');
+  await db.exec(readFileSync('packages/database/ministry/001_workspace.sql','utf8'));
+  await db.exec(readFileSync('packages/database/ministry/002_access_management.sql','utf8'));
+  await db.exec(readFileSync('packages/database/ministry/003_optional_mfa.sql','utf8'));
+  await db.exec('GRANT USAGE ON SCHEMA ministry TO daegwang_ministry_runtime; GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA ministry TO daegwang_ministry_runtime;');
+  await db.query('INSERT INTO auth.users VALUES($1,$2,now()),($3,$4,NULL)',[admin,'owner@example.test',member,'office@example.test']);
+  await db.exec("INSERT INTO ministry.churches VALUES('one','{}'),('two','{}'); INSERT INTO ministry.years VALUES('one','2026','{\"year\":2026,\"state\":\"ACTIVE\"}'); INSERT INTO ministry.organizations VALUES('one','youth','{}');");
+  await db.query("INSERT INTO ministry.access_grants(church_id,user_id,role,care) VALUES('one',$1,'ADMIN',true)",[admin]);
+  await db.exec('SET ROLE daegwang_ministry_runtime');
+  const ctx=async(u:string,c='one',aal='aal2')=>db.query("SELECT set_config('ministry.user_id',$1,false),set_config('ministry.church_id',$2,false),set_config('ministry.aal',$3,false)",[u,c,aal]);
+  const change=async(p:unknown)=>db.query('SELECT ministry.access_change($1::jsonb)',[JSON.stringify(p)]);
+  const fields={name:'Office',role:'OFFICE',care:false,print:false,delete:false,organizations:[],year:null,reason:'Test change'};
+  await ctx(admin);assert.equal((await db.query<{v:{users:unknown[]}}>('SELECT ministry.access_list() AS v')).rows[0].v.users.length,1);
+  await assert.rejects(db.query("UPDATE ministry.access_grants SET role='OFFICE'"));
+  await assert.rejects(change({...fields,action:'UPDATE',id:admin,version:1,active:false}),/ACCESS_LAST_ADMIN/);
+  await ctx(admin,'two');await assert.rejects(db.query('SELECT ministry.access_list()'),/ACCESS_FORBIDDEN/);
+  await ctx(admin,'one','aal1');await db.query('SELECT ministry.access_list()');
+  await assert.rejects(change({...fields,action:'UPDATE',id:admin,version:1,active:false}),/ACCESS_REAUTH/);
+  await assert.rejects(db.query("SELECT ministry.access_change_verified('{}')"),/permission denied/);
+  await db.query("SELECT set_config('ministry.reauthenticated','true',false)");
+  await assert.rejects(change({...fields,action:'UPDATE',id:admin,version:1,active:false}),/ACCESS_LAST_ADMIN/);
+  await db.query("SELECT set_config('ministry.reauthenticated','false',false)");
+  await ctx(admin);const invite={...fields,action:'INVITE',id:'33333333-3333-4333-8333-333333333333',email:'office@example.test',hash:'a'.repeat(64)};await change(invite);
+  const accept=(hash='a'.repeat(64),email='office@example.test',send=false,accept=true)=>db.query('SELECT ministry.invitation_action($1,$2,$3,$4)',[hash,email,send,accept]);
+  await ctx(member);await assert.rejects(db.query('SELECT ministry.access_list()'),/ACCESS_FORBIDDEN/);await assert.rejects(accept(),/INVITATION_IDENTITY/);await assert.rejects(accept('a'.repeat(64),'wrong@example.test'),/INVITATION_INVALID/);
+  await accept('a'.repeat(64),'office@example.test',true,false);await assert.rejects(accept('a'.repeat(64),'office@example.test',true,false),/INVITATION_RATE/);
+  await db.exec('RESET ROLE');await db.query('UPDATE auth.users SET email_confirmed_at=now() WHERE id=$1',[member]);await db.exec('SET ROLE daegwang_ministry_runtime');
+  await accept();await assert.rejects(accept(),/INVITATION_INVALID/);await assert.rejects(change({...fields,action:'UPDATE',id:member,version:1,active:true,role:'ADMIN'}),/ACCESS_FORBIDDEN/);
+  await ctx(admin);await assert.rejects(change({...fields,action:'UPDATE',id:member,version:3,active:true}),/ACCESS_CONFLICT/);
+  await change({...fields,action:'UPDATE',id:member,version:1,active:false});
+  const result=(await db.query<{v:{users:{id:string;active:boolean;version:number}[];events:unknown[]}}>('SELECT ministry.access_list() AS v')).rows[0].v;
+  assert.equal(result.users.find(x=>x.id===member)?.active,false);assert.equal(result.events.length,3);assert.ok(!JSON.stringify(result).includes('a'.repeat(64)));
+  await assert.rejects(change({...invite,id:'44444444-4444-4444-8444-444444444444',email:'leader@example.test',hash:'b'.repeat(64),role:'LEADER',organizations:['other'],year:2026}),/ACCESS_INVALID/);
+  await change({...invite,id:'44444444-4444-4444-8444-444444444444',email:'leader@example.test',hash:'b'.repeat(64),role:'LEADER',organizations:['youth'],year:2026});
+  await change({action:'REISSUE',id:'44444444-4444-4444-8444-444444444444',version:1,hash:'c'.repeat(64),reason:'Rotate invitation'});
+  await assert.rejects(accept('b'.repeat(64),'leader@example.test',false,false),/INVITATION_INVALID/);
+  await change({action:'CANCEL',id:'44444444-4444-4444-8444-444444444444',version:2,reason:'Cancel invitation'});
+  await assert.rejects(accept('c'.repeat(64),'leader@example.test',false,false),/INVITATION_INVALID/);
+ }finally{await db.close();}
+});

@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {chromium} from '@playwright/test';
+import {mkdirSync} from 'node:fs';
+import {requireIsolatedMinistryServer} from './ministry-browser-guard.mjs';
+const base='http://127.0.0.1:3002';await requireIsolatedMinistryServer(base);const browser=await chromium.launch({channel:'msedge',headless:true});mkdirSync('test-results/ministry',{recursive:true});
+try{
+ const page=await browser.newPage({viewport:{width:390,height:844}});page.setDefaultTimeout(15000);const errors=[];page.on('pageerror',e=>errors.push(e.message));const bodies=[];
+ // Only the UI is mocked. Real SQL authorization/mutations are covered by ministry-access.test.ts.
+ await page.route('**/api/v1/access',async route=>{const body=route.request().postDataJSON();bodies.push(body);await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,...(body.action==='INVITE'?{invitationUrl:base+'/invite#'+'a'.repeat(64)}:{})})});});
+ await page.goto(base+'/users');await page.getByRole('heading',{name:'사용자 및 권한'}).waitFor();await page.getByRole('button',{name:'사용자 초대',exact:true}).click();const dialog=page.getByRole('dialog');
+ await dialog.getByLabel('이름',{exact:true}).fill('가상 청년 담당');await dialog.getByLabel('이메일',{exact:true}).fill('leader@example.test');await dialog.locator('select').first().selectOption('LEADER');await dialog.getByRole('checkbox',{name:/청년 모임/}).check();await dialog.getByLabel('변경 사유').fill('청년부 출석 담당 배정');await dialog.getByLabel('내 현재 비밀번호').fill('synthetic-test-password');await dialog.getByRole('button',{name:'저장',exact:true}).click();await dialog.waitFor({state:'hidden'});
+ assert.equal(bodies[0].role,'LEADER');assert.deepEqual(bodies[0].organizations,['org-youth']);assert.equal(bodies[0].care,false);assert.equal(bodies[0].print,false);await page.getByRole('heading',{name:'초대 링크',exact:true}).waitFor();
+ const card=page.getByRole('article').filter({has:page.getByRole('heading',{name:'가상 사무 담당자',exact:true})});await card.getByRole('button',{name:'권한·이용 상태 변경'}).click();await dialog.getByRole('checkbox',{name:'상담·심방·목회 기도·계획 열람 및 작성'}).check();await dialog.getByRole('checkbox',{name:'문서 출력 허용'}).check();await dialog.getByLabel('변경 사유').fill('목회 돌봄 담당 추가');await dialog.getByLabel('내 현재 비밀번호').fill('synthetic-test-password');await dialog.getByRole('button',{name:'저장',exact:true}).click();await dialog.waitFor({state:'hidden'});assert.equal(bodies[1].care,true);assert.equal(bodies[1].print,true);assert.equal(bodies[1].version,1);
+ await page.setViewportSize({width:320,height:500});await card.getByRole('button',{name:'권한·이용 상태 변경'}).click();assert.ok(await dialog.evaluate(e=>e.scrollWidth<=e.clientWidth+1));await page.screenshot({path:'test-results/ministry/access-mobile-dialog.png',fullPage:true});await dialog.getByRole('button',{name:'닫기',exact:true}).click();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+ await page.setViewportSize({width:1280,height:900});await page.screenshot({path:'test-results/ministry/access-desktop.png',fullPage:true});assert.deepEqual(errors,[]);
+ const denied=await page.request.post(base+'/api/v1/access',{headers:{Origin:base},data:{action:'INVITE'}});assert.equal(denied.status(),403);console.log('PASS: access management form, scoped invitation payload, privilege edit, 320px dialog, desktop, local writes rejected');
+}finally{await browser.close();}

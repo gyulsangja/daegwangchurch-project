@@ -18,18 +18,20 @@ export function rows(snapshot:DirectorySnapshot):MinistryRows{
  const entities=(values:{id:string}[])=>values.map(v=>({id:v.id,payload:v}));
  return {church:snapshot.state.churches[0],members:entities(snapshot.state.members),organizations:entities(snapshot.state.organizations),families:entities(snapshot.state.families),audits:entities(snapshot.state.audits),records:entities(snapshot.records),pastoral:entities(snapshot.pastoral??[]),years:snapshot.years.map(v=>({id:String(v.year),payload:v})),attendance_sessions:(snapshot.attendanceSessions??[]).map(v=>({id:createHash('sha256').update(JSON.stringify([v.date,v.event,v.organizationId])).digest('hex'),payload:v}))};
 }
-export async function operationalDirectory(userId:string,churchId:string){
- const actor=await ministryTransaction(ministryPool(),userId,churchId,async(_db,grant):Promise<Actor>=>({id:userId,churchId,role:grant.role,organizationIds:[],permissions:grant.care?['CARE']:[]}));
+export async function operationalDirectory(userId:string,churchId:string,aal='aal1'){
+ const security={aal,enforceMfa:false};
+ const actor=await ministryTransaction(ministryPool(),userId,churchId,async(_db,grant):Promise<Actor>=>({id:userId,churchId,role:grant.role,organizationIds:grant.organizationIds,scopeYear:grant.scopeYear,canPrint:grant.canPrint,canDelete:grant.canDelete,permissions:grant.care?['CARE']:[]}),security);
  const service=asyncDirectory(async(group,method,args)=>{
   if(['snapshot','sessionSnapshot','capture','syncMember','activeYear'].includes(method))throw new Error('INTERNAL_METHOD');
   return ministryTransaction(ministryPool(),userId,churchId,async(db,grant)=>{
    const before=await readMinistryRows(db,churchId);const saved=snapshot(before);
    if(saved.years.length===0)throw new Error('MINISTRY_NOT_INITIALIZED');
    const domain=createDirectory(saved.state,randomUUID,undefined,saved);
-   const current:Actor={...actor,role:grant.role,permissions:grant.care?['CARE']:[]};
+   const current:Actor={...actor,role:grant.role,organizationIds:grant.organizationIds,scopeYear:grant.scopeYear,canPrint:grant.canPrint,canDelete:grant.canDelete,permissions:grant.care?['CARE']:[]};
+   if(current.role==='LEADER'&&current.scopeYear!==domain.config(current).activeYear)throw new Error('MINISTRY_ACCESS_DENIED');
    const result=invokeDirectory(domain,group,method,[current,...args.slice(1)]);
    await writeMinistryRows(db,churchId,before,rows(domain.snapshot()));return result;
-  });
+  },security);
  });
  return {service,actor};
 }

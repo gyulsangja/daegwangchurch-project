@@ -9,6 +9,7 @@ export async function handle(request: Request, action: (service: ReturnType<type
   if (request.method !== 'GET' && !(operationalEnabled()?request.headers.get('origin')===operationalOrigin():isLocalMutationOrigin(request.headers.get('host'), request.headers.get('origin')))) return Response.json({ message: '허용되지 않은 요청입니다.' }, { status: 403 });
   try { const {service,actor}=await requestWorkspace(request.headers.get('host'));return Response.json(await action(service, actor), { headers: { 'Cache-Control': 'no-store' } }); }
   catch (error) {
+    if(error instanceof Error&&error.message==='MINISTRY_MFA_REQUIRED')return Response.json({message:'2단계 인증을 완료하세요.',next:'/account/security'},{status:403});
     if(error instanceof Error&&error.message==='MINISTRY_LOGIN_REQUIRED')return Response.json({message:'로그인이 필요합니다.'},{status:401});
     if(error instanceof Error&&(error.name==='MinistryAccessError'||error.message==='MINISTRY_INVALID_HOST'))return Response.json({message:'목회 접근 권한이 없습니다.'},{status:403});
     if (error instanceof ZodError) return Response.json({ message: '입력값을 확인해 주세요.', errors: error.flatten().fieldErrors }, { status: 422 });
