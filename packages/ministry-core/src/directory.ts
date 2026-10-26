@@ -79,7 +79,7 @@ export function createDirectory(initial: DirectoryState, id: () => string, now =
       if (actor.role === 'LEADER') return { ...basic, privateProfile: null, family: null, history: [], annualHistory: [] };
       const family = state.families.find(f => f.churchId === actor.churchId && !f.archived && f.members.some(m => m.memberId === memberId));
       return {
-        ...basic, annualHistory: years.memberHistory(actor, memberId), privateProfile: { phone: member.phone, address: member.address },
+        ...basic, annualHistory: years.memberHistory(actor, memberId), privateProfile: { phone: member.phone, address: member.address, photo: member.photo ?? '' },
         family: family ? { id:family.id, name: family.name, members: family.members.flatMap(link => { const related = state.members.find(m => m.id === link.memberId && m.churchId === actor.churchId); return related ? [{ id: related.id, name: related.name, relationship: link.relationship }] : []; }) } : null,
         history: structuredClone(state.audits.filter(a => a.churchId === actor.churchId && a.memberId === memberId && a.action !== 'READ').slice(-30).reverse()),
       };

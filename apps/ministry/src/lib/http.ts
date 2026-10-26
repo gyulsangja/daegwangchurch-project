@@ -22,11 +22,11 @@ export async function handle(request: Request, action: (service: ReturnType<type
     return Response.json({ message: '처리하지 못했습니다. 잠시 후 다시 시도해 주세요.' }, { status: 500 });
   }
 }
-export async function readInput(request: Request) {
+export async function readInput(request: Request, limit = 16384) {
   if (!request.headers.get('content-type')?.startsWith('application/json')) throw new SyntaxError();
   const reader = request.body?.getReader();
   if (!reader) throw new SyntaxError();
   const chunks: Uint8Array[] = []; let length = 0;
-  for (;;) { const { done, value } = await reader.read(); if (done) break; length += value.length; if (length > 16384) { await reader.cancel(); throw new Error('BODY_LIMIT'); } chunks.push(value); }
+  for (;;) { const { done, value } = await reader.read(); if (done) break; length += value.length; if (length > limit) { await reader.cancel(); throw new Error('BODY_LIMIT'); } chunks.push(value); }
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }

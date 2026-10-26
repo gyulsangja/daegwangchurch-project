@@ -5,6 +5,7 @@ export const memberInputSchema = z.object({
   position: z.string().max(40).default(''),
   phone: z.string().trim().max(25).regex(/^[\d+()\s-]*$/, '연락처 형식을 확인해 주세요.').default(''),
   address: z.string().trim().max(240).default(''),
+  photo: z.string().max(180000).regex(/^(?:data:image\/jpeg;base64,\/9j\/[A-Za-z0-9+/]*={0,2})?$/, '사진을 다시 선택해 주세요.').optional(),
   organizationIds: z.array(z.string().max(100)).max(30).default([]),
 }).strict();
 export const memberUpdateSchema = memberInputSchema.extend({ version: z.number().int().positive() }).strict();

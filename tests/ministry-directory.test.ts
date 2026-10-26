@@ -11,6 +11,18 @@ const input = { name: '가상 등록', status: 'ACTIVE', position: '', phone: ''
 const make = () => createDirectory(createFixture(), randomUUID, () => '2026-10-21T00:00:00.000Z');
 const code = (expected: string) => (error: unknown) => error instanceof DirectoryError && error.code === expected;
 
+test('member photo stays private, survives omitted updates, and can be removed without logging bytes',()=>{
+ const d=make();const photo='data:image/jpeg;base64,/9j/AA==';const saved=d.create(admin,{...input,photo});
+ assert.equal(d.detail(admin,saved.id).privateProfile?.photo,photo);
+ assert.equal(d.detail(leader,saved.id).privateProfile,null);
+ assert.ok(!JSON.stringify(d.list(admin)).includes(photo));
+ d.update(admin,saved.id,{...input,version:1});assert.equal(d.detail(admin,saved.id).privateProfile?.photo,photo);
+ d.update(admin,saved.id,{...input,photo:'',version:2});assert.equal(d.detail(admin,saved.id).privateProfile?.photo,'');
+ assert.ok(!JSON.stringify(d.detail(admin,saved.id).history).includes(photo));
+ assert.throws(()=>d.create(admin,{...input,photo:'data:image/svg+xml;base64,AAAA'}));
+ assert.throws(()=>d.create(admin,{...input,photo:'data:image/jpeg;base64,/9j/'+ 'A'.repeat(180000)}));
+});
+
 test('saved attendance roster survives member and organization changes, including unknowns',()=>{
  const d=make();const query={date:'2026-10-21',event:'School worship',organizationId:'org-youth'};
  const before=d.records.attendanceRoster(admin,query);
