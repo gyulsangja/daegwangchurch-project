@@ -1,4 +1,11 @@
 # 작업 인수인계
+## 권한 없음 화면 로그아웃 403 재현·해결 (2026-10-26)
+
+- 실제 `/access-denied`의 native form을 클릭해 Origin:null → logout403 → Chrome 접근 거부 화면을 재현. 원인은 전역 Referrer-Policy:no-referrer와 엄격한 Origin 검사 조합, 해당 페이지에 이전 native 버튼이 남은 점. 이전 쿠키 정리만으로 이 경로를 해결하지 못했음.
+- 권한 없음 화면에도 공통 LogoutButton 적용. Referrer-Policy:same-origin으로 내부 폼 출처 유지, 외부 사이트에 Referer 미전달. Origin:null/외부Origin 차단을 완화하지 않음.
+- tests/ministry-logout-browser.mjs: JS 활성/비활성 두 환경에서 권한 없음 화면 버튼 실제 클릭→Origin 정상→로그인 화면→목회 쿠키 삭제/다른 앱 쿠키 유지, 외부/null403 및 보호API401 검증. 타입/lint 통과.
+- 사용자 권한 설정 위치 문의: 현재 권한 관리 UI 없음, 최초 지정 계정만 private access_grants에 승인됨. 지금은 DB 운영 담당자가 별도로 관리하며 기존 CMS 관리자/직분과 독립. 최고관리자용 권한 부여·회수 화면 필요성을 설명했으나 아직 구현/DB 권한 확장하지 않음.
+
 ## 로그아웃 보완 (2026-10-26)
 
 - 사용자 로그아웃 불동작 제보. 기존 signOut 결과만 의존하던 처리에서 명시적 ministry-auth/분할 쿠키/PKCE 쿠키 만료 응답으로 보완. Supabase 실패 시에도 이 브라우저의 목회 쿠키는 삭제, 다른 앱 쿠키는 유지. 외부 Origin/다른 Host 차단 유지. provider 요청 timeout8초 적용(원격 refresh token 폐기가 항상 성공한다는 뜻은 아님).
