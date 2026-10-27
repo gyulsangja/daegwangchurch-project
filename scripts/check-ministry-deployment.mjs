@@ -9,7 +9,7 @@ for(const path of ['/login','/forgot-password']){
  assert.match(r.headers.get('cache-control')||'',/no-store/);
  console.log(`PASS ${path}: 200, noindex, no-store`);
 }
-for(const path of ['/','/members','/users','/print']){
+for(const path of ['/','/members','/users','/print','/church']){
  const r=await fetch(origin+path,{redirect:'manual'});assert.ok([303,307].includes(r.status),`${path}: ${r.status}`);
  assert.equal(new URL(r.headers.get('location'),origin).pathname,'/login');console.log(`PASS ${path}: login required`);
 }
