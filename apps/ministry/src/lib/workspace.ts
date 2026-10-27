@@ -32,6 +32,6 @@ export async function requestWorkspace(host:string|null){
 export const workspace=cache(async function workspace() {
   const host = (await headers()).get('host');
   if (!operationalEnabled()&&!enabled(host)) notFound();
-  try{const {service,actor}=await requestWorkspace(host);const path=(await headers()).get('x-ministry-path')??'/';if(actor.role==='LEADER'&&!(path==='/members'||(/^\/members\/[^/]+$/.test(path)&&path!=='/members/new')||path==='/attendance'))redirect('/members');return {service,actor,config:await service.config(actor)};}
+  try{const {service,actor}=await requestWorkspace(host);const path=(await headers()).get('x-ministry-path')??'/';if(actor.role==='LEADER'&&!(path==='/members'||(/^\/members\/[^/]+$/.test(path)&&path!=='/members/new')||path==='/attendance'||path==='/church'))redirect('/members');return {service,actor,config:await service.config(actor)};}
   catch(error){if(error instanceof Error&&error.message==='MINISTRY_MFA_REQUIRED')redirect('/account/security');if(error instanceof Error&&error.message==='MINISTRY_ACCESS_DENIED')redirect('/access-denied');if(error instanceof Error&&error.message==='MINISTRY_LOGIN_REQUIRED')redirect('/login');if(error instanceof Error&&error.name==='MinistryAccessError')redirect('/access-denied');throw error;}
 });

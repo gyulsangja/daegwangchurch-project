@@ -2,6 +2,8 @@ import {pastoralInput,pastoralChange,pastoralCreate,type PastoralInput} from '@d
 import type {Actor,DirectoryState} from './directory';
 import type {Entry} from './records';
 import type {MinistryYear} from './years';
+import {monthDates} from '@daegwang/contracts/features/calendar';
+import {canReadPastoralCalendar} from './calendar-access';
 export type PastoralTargets={families:{id:string;name:string;memberIds:string[]}[];organizations:{id:string;name:string;year:number;memberIds:string[]}[]};
 export type PastoralItem=PastoralInput & {id:string;churchId:string;version:number;sourceRecordId?:string;targets?:PastoralTargets;history:{at:string;date?:string;actorId:string;status:string;note:string;before?:PastoralInput & {targets?:PastoralTargets}}[]};
 export const scopeLabels={ONCE:'단건',YEAR:'연간',MONTH:'월간',ONGOING:'상시',SPECIAL:'특별'};
@@ -42,6 +44,16 @@ export function createPastoralService(state:DirectoryState,id:()=>string,now:()=
   };
   return {
     snapshot(){return structuredClone(items);},
+    calendar(actor:Actor,month:string){
+      authorize(actor);
+      if(!canReadPastoralCalendar(actor))return fail('FORBIDDEN');
+      const dates=monthDates(month);
+      audit(actor,'','READ');
+      // Deliberately exclude bodies, participants, family links and history.
+      return items.filter(i=>i.churchId===actor.churchId&&i.status!=='ARCHIVED'&&pastoralInRange(i,dates[0],dates[dates.length-1]))
+        .sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id))
+        .map(({id,kind,title,date,status,scope,period})=>({id,kind,title,date,status,scope,period}));
+    },
     followUp(actor:Actor,recordId:unknown){
       authorize(actor);
       if(typeof recordId!=='string'||!recordId||recordId.length>100)return fail('INVALID');

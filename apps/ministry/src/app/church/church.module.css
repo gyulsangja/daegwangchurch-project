@@ -1,0 +1,7 @@
+.content { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; margin-top: 20px; }
+.content > section { min-width: 0; margin: 0; }
+.content :global(.empty) { padding: 24px 8px; }
+.content li { overflow-wrap: anywhere; }
+.management { margin: 16px 0; }
+.management summary { cursor: pointer; font-weight: 600; padding: 12px 0; }
+@media (max-width: 900px) { .content { grid-template-columns: 1fr; } }
