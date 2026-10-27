@@ -3,6 +3,7 @@
 const plans:Record<string,readonly string[]>={
  'root.config':['years','organizations'],
  'root.list':['years','members'],
+ 'root.linkCandidates':['years','members'],
  'root.options':['years','members'],
  'root.overview':['years','members'],
  'root.detail':['years','members','families','audits'],

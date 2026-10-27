@@ -2,7 +2,7 @@ import {DirectoryError} from './directory';
 import {contentOnlyOperationAllowed} from './content-access';
 // A proxy must not invent Promise/React/JSON methods (then, toJSON, $$typeof...).
 export const directoryMethods={
- root:['snapshot','config','list','options','overview','detail','create','update'],
+ root:['snapshot','config','list','linkCandidates','options','overview','detail','create','update'],
  years:['snapshot','roster','activeYear','syncMember','list','targets','read','memberHistory','create','configure','assign','activate'],
  records:['workspace','batch','snapshot','sessionSnapshot','careHistory','attendanceRoster','saveAttendance','attendanceHistory','correct','list','capture','add'],
  families:['link','list','candidates','read','create','update','archive'],

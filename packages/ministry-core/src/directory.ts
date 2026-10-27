@@ -72,6 +72,13 @@ export function createDirectory(initial: DirectoryState, id: () => string, now =
       const pageSize = 12;
       return { items: rows.slice((query.page - 1) * pageSize, query.page * pageSize).map(summary), total: rows.length, page: query.page, pageSize };
     },
+    linkCandidates(actor:Actor){
+      church(actor);if(actor.role!=='ADMIN')throw new DirectoryError('FORBIDDEN');
+      record(actor,'','READ',['accountLinkCandidates']);
+      return state.members.filter(member=>member.churchId===actor.churchId)
+        .sort((a,b)=>a.name.localeCompare(b.name,'ko')||a.id.localeCompare(b.id))
+        .map(({id,name,phone,version})=>({id,name,phone,version}));
+    },
     options(actor: Actor) {
       church(actor);
       return state.members.filter(member=>visible(actor,member)).sort((a,b)=>a.name.localeCompare(b.name,'ko')||a.id.localeCompare(b.id)).map(summary);

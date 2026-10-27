@@ -18,6 +18,14 @@ test('content-only actor cannot dispatch any pastoral domain operation or see or
  for(const path of ['/','/members','/care','/users','/statistics','/print','/church/manage/other'])assert.equal(contentOnlyPathAllowed(path),false);
  assert.ok(contentOnlyPathAllowed('/church'));assert.ok(contentOnlyPathAllowed('/church/manage'));
 });
+test('account linking candidates use one scoped summary without private histories',()=>{
+ const service=createDirectory(createFixture(),randomUUID);const actor:Actor={id:'root',churchId:'demo-daegwang',role:'ADMIN',organizationIds:[]};
+ const rows=service.linkCandidates(actor);assert.ok(rows.length>0);
+ for(const row of rows)assert.deepEqual(Object.keys(row).sort(),['id','name','phone','version']);
+ assert.equal(service.snapshot().state.audits.filter(a=>a.fields.includes('accountLinkCandidates')).length,1);
+ for(const role of ['OFFICE','LEADER','CONTENT'] as const)assert.throws(()=>service.linkCandidates({...actor,role}));
+ assert.throws(()=>service.linkCandidates({...actor,churchId:'other'}));
+});
 test('content role migration enforces no care, print, organization or access management privileges',async()=>{
  const db=new PGlite();const admin='11111111-1111-4111-8111-111111111111',operator='22222222-2222-4222-8222-222222222222';
  try{
