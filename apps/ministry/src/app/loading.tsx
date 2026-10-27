@@ -1,1 +1,2 @@
-export default function Loading() { return <div className="panel empty" role="status" aria-live="polite">화면을 준비하고 있습니다.</div>; }
+import {PageLoading} from '@/components/page-loading';
+export default function Loading(){return <PageLoading title="오늘의 목회" cards/>;}

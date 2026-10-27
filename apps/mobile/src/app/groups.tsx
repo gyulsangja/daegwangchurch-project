@@ -1,5 +1,6 @@
+import {DataLoading} from '../components/data-loading';
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Text, View } from 'react-native';
+import { Image, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import type { GroupSnapshot } from '@daegwang/contracts/features/member/groups';
 import { createPublicGroupClient } from '@daegwang/api-client/groups';
@@ -15,7 +16,7 @@ function GuestGroups() {
   const resource = useNoticeResource(useCallback(signal => publicGroups(signal), []));
   return <AppScreen title="우리 모임 소식" onBack={() => router.canGoBack() ? router.back() : router.replace('/news')}><IntroCard title="함께하는 모임">공개 모임 소식은 로그인 없이 읽을 수 있습니다. 관심 모임 저장과 확인된 소속 안내는 로그인 후 이용하세요.</IntroCard>
     <Action title="로그인" onPress={() => router.push({ pathname: '/login', params: { returnTo: '/groups' } })} />
-    {resource.loading && <ActivityIndicator accessibilityLabel="공개 모임 소식을 불러오는 중" />}{!!resource.error && <Failure message={resource.error} retry={resource.reload} />}
+    {resource.loading && <DataLoading label="공개 모임 소식을 불러오는 중"/>}{!!resource.error && <Failure message={resource.error} retry={resource.reload} />}
     {resource.data?.notices.map(row => <Card key={row.id} title={`공개 소식 · ${row.title}`}>{row.body}</Card>)}
     {resource.data && !resource.data.notices.length && <Card title="공개 모임 소식이 없습니다">새로운 안내가 등록되면 이곳에서 확인할 수 있습니다.</Card>}
     <Action secondary title="교회 전체 공지 보기" onPress={() => router.push('/notices')} />
@@ -26,7 +27,7 @@ function GroupLoader() {
   return <AppScreen title="우리 모임 소식" onBack={() => router.canGoBack() ? router.back() : router.replace('/news')}>
     <IntroCard title="함께 믿음으로 자라가는 우리">전도회와 소속의 공개 소식을 모아보세요. 관심 선택은 소속 가입이나 승인이 아닙니다.</IntroCard>
     {process.env.EXPO_PUBLIC_DEMO_MODE === 'true' && <Text style={styles.caption}>예시 모임으로 체험합니다. 실제 모임명과 소속 확인은 운영 연결 후 관리합니다.</Text>}
-    {resource.loading && <ActivityIndicator accessibilityLabel="모임 소식을 불러오는 중" />}
+    {resource.loading && <DataLoading label="모임 소식을 불러오는 중"/>}
     {!!resource.error && <Failure message="모임 소식 연결을 준비하고 있습니다. 지금은 교회 전체 공지를 이용해 주세요." retry={resource.reload} />}
     {resource.data && <GroupContent key={resource.data.version} initial={resource.data} />}
     <Action secondary title="교회 전체 공지 보기" onPress={() => router.push('/notices')} />

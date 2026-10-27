@@ -1,3 +1,4 @@
+import {cache} from "react";
 import { decodeContentSlug } from "@daegwang/contracts/content-slug";
 import "server-only";
 
@@ -48,7 +49,7 @@ export async function getPublishedBulletins(query = "", take = 30) {
   }
 }
 
-export async function getPublishedBulletinBySlug(slug: string) {
+async function readgetPublishedBulletinBySlug(slug: string) {
   if (!hasDatabaseConfig()) return null;
   try {
     return await getPrisma().bulletin.findFirst({
@@ -61,3 +62,6 @@ export async function getPublishedBulletinBySlug(slug: string) {
   }
 }
 
+
+// Metadata and page render share only this request; publication changes stay fresh.
+export const getPublishedBulletinBySlug=cache(readgetPublishedBulletinBySlug);

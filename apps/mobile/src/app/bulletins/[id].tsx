@@ -1,7 +1,8 @@
-import { ActivityIndicator, Linking } from 'react-native';
+import {DataLoading} from '../../components/data-loading';
+import { Linking } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { AppScreen, MenuCard, useFeatureNotice } from '../../components/app-screen';
-import { Card, Failure, colors } from '../../components/ui';
+import { Card, Failure } from '../../components/ui';
 import { BulletinDocument } from '../../components/bulletin-document';
 import { useBulletin } from '../../hooks/use-bulletins';
 import { noticeDate } from '../../hooks/use-notices';
@@ -10,7 +11,7 @@ export default function BulletinDetail() {
   const { data, loading, error, reload } = useBulletin(typeof id === 'string' ? id : '');
   const notice = useFeatureNotice();
   return <AppScreen title="주보 상세" onBack={() => router.canGoBack() ? router.back() : router.replace('/bulletins')}>
-    {loading && <ActivityIndicator color={colors.primary} accessibilityLabel="주보를 불러오는 중" />}
+    {loading && <DataLoading label="주보를 불러오는 중"/>}
     {!!error && <Failure message={error} retry={reload} />}
     {data && <>
       <Card title={data.title}>{noticeDate(data.worshipDate)}{data.summary ? `\n${data.summary}` : ''}</Card>

@@ -1,5 +1,6 @@
+import {DataLoading} from '../../components/data-loading';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { AppScreen, MenuCard } from '../../components/app-screen';
 import { Action, Card, Failure, colors, styles } from '../../components/ui';
@@ -12,7 +13,7 @@ export default function EventList() {
     <View style={{ backgroundColor: colors.soft, borderRadius: 12, flexDirection: 'row', paddingHorizontal: 10 }}>
       {(['upcoming', 'past'] as const).map(value => <Pressable key={value} accessibilityRole="tab" aria-selected={value === period} accessibilityState={{ selected: value === period }} onPress={() => { setPeriod(value); setPage(0); }} style={{ minHeight: 48, paddingHorizontal: 10, justifyContent: 'center' }}><Text style={value === period ? styles.title : styles.caption}>{value === 'upcoming' ? '예정' : '지난 행사'}</Text></Pressable>)}
     </View>
-    {loading && <ActivityIndicator color={colors.primary} accessibilityLabel="행사를 불러오는 중" />}
+    {loading && <DataLoading label="행사를 불러오는 중"/>}
     {!!error && <Failure message={error} retry={reload} />}
     {data && <>
       {!data.data.length && <Card title="등록된 행사가 없습니다">공개된 행사 안내가 등록되면 확인할 수 있어요.</Card>}

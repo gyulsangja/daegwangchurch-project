@@ -1,5 +1,6 @@
+import {DataLoading} from '../../components/data-loading';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator } from 'react-native';
+import { } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { MemberGate, useMemberSession } from '../../components/member-session';
 import { AppScreen, IntroCard, MenuCard } from '../../components/app-screen';
@@ -19,7 +20,7 @@ function RecordDetail({ id }: { id: string }) {
     finally { setBusy(false); }
   }
   return <AppScreen title={content?.kind === 'REFLECTION' ? '묵상 상세' : '기도 상세'} onBack={() => router.replace({ pathname: '/records', params: { kind: content?.kind ?? 'REFLECTION' } })}>
-    {resource.loading && <ActivityIndicator accessibilityLabel="기록을 불러오는 중" />}
+    {resource.loading && <DataLoading label="기록을 불러오는 중"/>}
     {!!resource.error && <Failure message={resource.error} retry={() => void resource.reload()} />}
     {content && <><IntroCard title="나만 보는 기록">교회 관리자 화면에 공유되지 않습니다.</IntroCard>
       <MenuCard title="이날의 말씀 · 묵상 · 기도" description={content.date ?? '하루 기록 캘린더'} onPress={() => router.push({ pathname: '/records', params: content.date ? { date: content.date } : {} })} />

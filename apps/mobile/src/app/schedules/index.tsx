@@ -1,5 +1,6 @@
+import {DataLoading} from '../../components/data-loading';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { createEventClient } from '@daegwang/api-client/events';
 import { MemberGate, useMemberSession } from '../../components/member-session';
@@ -37,7 +38,7 @@ function ScheduleList() {
   return <AppScreen title="나의 일정" onBack={() => router.dismissTo('/my')}>
     {calendar && <DayCalendar selected={selected} onSelect={setSelected} marked={marked} />}<MenuCard title={calendar ? '목록 보기' : '캘린더로 보기'} description={selected} onPress={() => setCalendar(!calendar)} />
     <View accessibilityRole="tablist" accessibilityLabel="일정 종류" style={{ flexDirection: 'row', flexWrap: 'wrap', backgroundColor: colors.soft, borderRadius: 12, paddingHorizontal: 10 }}>{[['all', '전체'], ['church', '교회'], ['saved', '저장'], ['personal', '개인']].map(([value, title]) => <Pressable key={value} accessibilityRole="tab" aria-selected={group === value} accessibilityState={{ selected: group === value }} onPress={() => setGroup(value)} style={{ padding: 10, minHeight: 48 }}><Text style={group === value ? styles.title : styles.caption}>{title}</Text></Pressable>)}</View>
-    {loading && <ActivityIndicator accessibilityLabel="일정을 불러오는 중" />}{!!church.error && group !== 'personal' && <Failure message={church.error} retry={church.reload} />}{!!personal.error && <Failure message={personal.error} retry={personal.reload} />}
+    {loading && <DataLoading label="일정을 불러오는 중"/>}{!!church.error && group !== 'personal' && <Failure message={church.error} retry={church.reload} />}{!!personal.error && <Failure message={personal.error} retry={personal.reload} />}
     {publicRows.map(event => <MenuCard key={event.id} title={event.title} description={`교회${savedById.has(event.id) ? ' · 저장됨' : ''}\n${eventDate(event)}`} onPress={() => router.push({ pathname: '/events/[id]', params: { id: event.id } })} />)}
     {privateRows.map(row => <MenuCard key={row.id} title={row.content!.title} description={`개인 · ${row.content!.allDay ? '종일' : `${row.content!.startTime} ~ ${row.content!.endTime}`} · ${row.content!.location}`} onPress={() => router.push({ pathname: '/schedules/[id]', params: { id: row.id } })} />)}
     {!loading && !personal.error && (group === 'personal' || !church.error) && !publicRows.length && !privateRows.length && <Card title="등록된 일정이 없습니다">선택한 날짜에 일정이 없습니다.</Card>}

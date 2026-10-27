@@ -13,7 +13,7 @@ async function main() {
     version: build.appVersion,
     build: Number(build.appBuildVersion),
     downloadUrl: build.artifacts?.buildUrl,
-    notes: '공지 첨부 이미지를 바로 볼 수 있고, 새 버전이 나오면 앱에서 업데이트를 안내합니다.',
+    notes: '화면 틀을 먼저 보여주고 데이터 영역에 로딩을 표시합니다. 앱 시작 대기와 중복 조회를 줄였습니다.',
   });
   const response = await fetch(release.downloadUrl, { method: 'HEAD', signal: AbortSignal.timeout(30_000) });
   if (!response.ok || Number(response.headers.get('content-length')) < 1_000_000) throw new Error('APK is not downloadable.');

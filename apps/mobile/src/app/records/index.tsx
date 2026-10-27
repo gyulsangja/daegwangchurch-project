@@ -1,6 +1,7 @@
+import {DataLoading} from '../../components/data-loading';
 import { MonthPicker } from '../../components/date-picker';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator } from 'react-native';
+import { } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { memberRecordKindSchema } from '@daegwang/contracts/features/member/records';
 import { MemberGate, useMemberSession } from '../../components/member-session';
@@ -27,7 +28,7 @@ function RecordRows({ kind, reflectionId, onCalendar }: { kind?: 'REFLECTION' | 
     <MenuCard title="하루 기록 · 캘린더" onPress={onCalendar} />
     <IntroCard title="나만 보는 기록">개인 기록은 교회 관리자 화면에 공유되지 않습니다.</IntroCard>
     <MonthPicker label="기록 조회 연월" value={month} onChange={value => { setMonth(value); setPage(0); }} />
-    {resource.loading && <ActivityIndicator accessibilityLabel="기록을 불러오는 중" />}
+    {resource.loading && <DataLoading label="기록을 불러오는 중"/>}
     {!!resource.error && <Failure message={resource.error} retry={() => void resource.reload()} />}
     {resource.data?.data.map(record => <MenuCard key={record.id} title={`${record.content.date ?? '시작일 미정'} · ${record.content.title || label}`} description={record.content.body.slice(0, 100)} onPress={() => router.push({ pathname: '/records/[id]', params: { id: record.id } })} />)}
     {resource.data && !resource.data.data.length && <Card title="저장된 기록이 없습니다">마음에 남은 내용을 기록해 보세요.</Card>}

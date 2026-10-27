@@ -1,3 +1,4 @@
+import {Suspense} from 'react';
 import type { Metadata } from "next";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
@@ -24,17 +25,11 @@ export async function generateMetadata(): Promise<Metadata> {
   } };
 }
 
-export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const settings = await getSiteSettings();
-  const baseUrl = (settings.canonicalUrl || publicEnv.NEXT_PUBLIC_SITE_URL).replace(/\/$/, '');
-  const structuredData = { "@context": "https://schema.org", "@graph": [
-    { "@type": "Church", "@id": `${baseUrl}/#church`, name: settings.siteName, alternateName: ['대한예수교장로회 대광교회', '독산동 대광교회'], url: baseUrl, description: settings.description, ...(settings.address ? { address: { "@type": "PostalAddress", streetAddress: [settings.address, settings.addressDetail].filter(Boolean).join(" "), addressCountry: "KR" } } : {}), ...(settings.phone ? { telephone: settings.phone } : {}), ...(settings.email ? { email: settings.email } : {}), ...(settings.mapLatitude !== undefined && settings.mapLongitude !== undefined ? { geo: { '@type': 'GeoCoordinates', latitude: settings.mapLatitude, longitude: settings.mapLongitude } } : {}), ...(settings.youtubeUrl ? { sameAs: [settings.youtubeUrl] } : {}) },
-    { '@type': 'WebSite', '@id': `${baseUrl}/#website`, url: baseUrl, name: settings.siteName, alternateName: '독산동 대광교회', inLanguage: 'ko-KR', about: { '@id': `${baseUrl}/#church` } },
-  ] };
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ko">
       <body>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} />
+        <Suspense fallback={null}><StructuredData/></Suspense>
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
           <ThemeProvider theme={theme}>
             <CssBaseline />
@@ -48,3 +43,13 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
 
 // CMS runs separately; public database content is read on each request.
 export const dynamic = "force-dynamic";
+
+async function StructuredData(){
+  const settings = await getSiteSettings();
+  const baseUrl = (settings.canonicalUrl || publicEnv.NEXT_PUBLIC_SITE_URL).replace(/\/$/, '');
+  const structuredData = { "@context": "https://schema.org", "@graph": [
+    { "@type": "Church", "@id": `${baseUrl}/#church`, name: settings.siteName, alternateName: ['대한예수교장로회 대광교회', '독산동 대광교회'], url: baseUrl, description: settings.description, ...(settings.address ? { address: { "@type": "PostalAddress", streetAddress: [settings.address, settings.addressDetail].filter(Boolean).join(" "), addressCountry: "KR" } } : {}), ...(settings.phone ? { telephone: settings.phone } : {}), ...(settings.email ? { email: settings.email } : {}), ...(settings.mapLatitude !== undefined && settings.mapLongitude !== undefined ? { geo: { '@type': 'GeoCoordinates', latitude: settings.mapLatitude, longitude: settings.mapLongitude } } : {}), ...(settings.youtubeUrl ? { sameAs: [settings.youtubeUrl] } : {}) },
+    { '@type': 'WebSite', '@id': `${baseUrl}/#website`, url: baseUrl, name: settings.siteName, alternateName: '독산동 대광교회', inLanguage: 'ko-KR', about: { '@id': `${baseUrl}/#church` } },
+  ] };
+ return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} />;
+}

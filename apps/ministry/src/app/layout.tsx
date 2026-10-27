@@ -10,6 +10,7 @@ import {PrintLink} from '@/components/print-link';
 import './globals.css';
 import './print/print.css';
 import './responsive.css';
+import './loading.css';
 export const metadata: Metadata = { title: { default: '대광교회 목회시스템', template: '%s · 대광교회 목회시스템' }, robots: { index: false, follow: false } };
 export const dynamic = 'force-dynamic';
 export default async function Layout({ children }: { children: React.ReactNode }) {

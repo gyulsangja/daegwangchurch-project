@@ -1,12 +1,13 @@
-import { ActivityIndicator, Text, View } from 'react-native';
+import {DataLoading} from '../../components/data-loading';
+import { Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { AppScreen, MenuCard } from '../../components/app-screen';
-import { Failure, colors, styles } from '../../components/ui';
+import { Failure, styles } from '../../components/ui';
 import { useChurchAbout } from '../../hooks/use-church';
 export default function ChurchAbout() {
   const { data, loading, error, reload } = useChurchAbout();
   return <AppScreen title="교회소개" onBack={() => router.canGoBack() ? router.back() : router.replace('/church')}>
-    {loading && <ActivityIndicator color={colors.primary} accessibilityLabel="교회 안내를 불러오는 중" />}
+    {loading && <DataLoading label="교회 안내를 불러오는 중"/>}
     {!!error && <Failure message={error} retry={reload} />}
     {data && <View style={styles.card}>
       <Text style={styles.title}>{data.title}</Text>

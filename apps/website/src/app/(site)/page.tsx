@@ -1,3 +1,5 @@
+import {Suspense,cache} from 'react';
+import {PageLoading} from '../../components/site/page-loading';
 import Image from 'next/image';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -23,16 +25,19 @@ export async function generateMetadata(): Promise<Metadata> {
 function More({ href, children }: { href: string; children: React.ReactNode }) {
   return <Link href={href} className="home-more">{children}<ArrowRight aria-hidden="true" className="size-4" /></Link>;
 }
-export default async function HomePage() {
-  const [sunday, firstHour, schedules, homePage, notices, bulletins, events] = await Promise.all([
-    getPublishedWorshipContents('SUNDAY_MORNING', 1), getPublishedWorshipContents('FIRST_HOUR', 1), getPublicSchedules(), getHomePageContent(),
-    getPublishedNotices('', 3), getPublishedBulletins('', 1), getPublishedEvents('', 2),
-  ]);
-  const content = homePage.content;
-  const sermon = sunday[0]; const devotional = firstHour[0]; const bulletin = bulletins[0];
-  return <>
-    <HomeLive />
-    <HomeHero content={content} schedules={schedules.slice(0, 3)} />
+const homeContent=cache(getHomePageContent);
+export default function HomePage(){return <>
+ <HomeLive/>
+ <Suspense fallback={<PageLoading title="대광교회에 오신 것을 환영합니다"/>}><HomeIntro/></Suspense>
+ <Suspense fallback={<PageLoading title="말씀이 머무는 시간" section/>}><HomeWord/></Suspense>
+ <Suspense fallback={<PageLoading title="우리 공동체의 소식" section/>}><HomeNews/></Suspense>
+ <Suspense fallback={<PageLoading title="대광교회 이야기" section/>}><HomeChurch/></Suspense>
+</>;}
+async function HomeIntro(){const [home,schedules]=await Promise.all([homeContent(),getPublicSchedules()]);return <HomeHero content={home.content} schedules={schedules.slice(0,3)}/>;}
+async function HomeWord(){
+ const {content}=await homeContent();if(!content.showWorship)return null;
+ const [sunday,firstHour]=await Promise.all([getPublishedWorshipContents('SUNDAY_MORNING',1),getPublishedWorshipContents('FIRST_HOUR',1)]);
+ const sermon=sunday[0],devotional=firstHour[0];return <>
     {content.showWorship && <section aria-labelledby="home-word" className="home-word-section">
       <div className="container-site">
         <div className="home-section-heading"><div><p className="church-eyebrow">예배에서 일상으로</p><h2 id="home-word" className="home-section-title">말씀이 머무는 시간</h2></div><p className="max-w-sm text-sm leading-7 text-text-secondary">주일에 들은 말씀을 되새기고,<br className="hidden md:block" /> 매일의 첫시간을 하나님과 함께 엽니다.</p></div>
@@ -51,6 +56,11 @@ export default async function HomePage() {
         </div>
       </div>
     </section>}
+</>;}
+async function HomeNews(){
+ const {content}=await homeContent();if(!content.showNews)return null;
+ const [notices,bulletins,events]=await Promise.all([getPublishedNotices('',3),getPublishedBulletins('',1),getPublishedEvents('',2)]);
+ const bulletin=bulletins[0];return <>
     {content.showNews && <section aria-labelledby="home-community" className="home-community-section"><div className="container-site">
       <div className="home-section-heading"><div><p className="church-eyebrow">함께 살아가는 교회</p><h2 id="home-community" className="home-section-title">우리 공동체의 소식</h2></div><More href="/news/notices">소식 더보기</More></div>
       <div className="home-community-grid">
@@ -61,10 +71,11 @@ export default async function HomePage() {
         </div>
       </div>
     </div></section>}
+</>;}
+async function HomeChurch(){const {content}=await homeContent();return <>
     {(content.showChurch || content.showWelcome) && <section aria-labelledby="home-belong" className="home-belong-section"><div className="container-site home-belong-grid">
       <div>{content.showChurch ? <><p className="church-eyebrow">대광교회라는 공동체</p><h2 id="home-belong" className="home-section-title max-w-lg">{content.churchTitle}</h2><p className="mt-6 max-w-lg leading-8 text-text-secondary">{content.churchDescription}</p><More href="/about/church">우리 교회 이야기</More></> : <><p className="church-eyebrow">당신의 첫 방문을 기다립니다</p><h2 id="home-belong" className="home-section-title">대광교회에 오신 것을 환영합니다</h2></>}</div>
       {content.showWelcome ? <div className="home-welcome-note"><HeartHandshake aria-hidden="true" className="size-8 stroke-[1.3] text-primary-700" /><h3 className="mt-5 text-2xl font-semibold leading-relaxed">{content.welcomeTitle}</h3><p className="mt-4 text-sm leading-7 text-text-secondary">{content.welcomeDescription}</p><More href="/newcomer/guide">처음 오신 분을 위한 안내</More><Link href="/location" className="mt-5 flex min-h-11 items-center gap-2 border-t border-border pt-5 text-sm font-semibold text-primary-700"><MapPin aria-hidden="true" className="size-4" />교회로 오시는 길<ArrowRight aria-hidden="true" className="ml-auto size-4" /></Link></div> : <div className="home-church-values"><BookOpenText aria-hidden="true" className="size-8 stroke-1" /><p className="mt-5 text-2xl font-semibold leading-relaxed">말씀으로 만나고,<br />삶으로 함께합니다.</p><More href="/about/vision">비전과 사명</More></div>}
     </div></section>}
-  </>;
-}
+</>;}
 export const dynamic = 'force-dynamic';

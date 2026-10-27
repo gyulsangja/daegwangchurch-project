@@ -17,7 +17,7 @@ import { sessionStorage } from '../lib/session-storage';
 
 const sessionKey = 'daegwang-member-session-v1';
 const auth = createMemberAuth(process.env.EXPO_PUBLIC_SUPABASE_URL, process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY, { storage: sessionStorage, storageKey: sessionKey, useProcessLock: Platform.OS !== 'web' });
-type SessionContext = { session: Session | null; configured: boolean; client: ReturnType<typeof createMemberClient>; bookmarks: ReturnType<typeof createBookmarkClient>; schedules: ReturnType<typeof createScheduleClient>; extras: ReturnType<typeof createMemberExtrasClient>; push: ReturnType<typeof createPushClient>; signIn: (email: string, password: string) => Promise<void>; signInSocial: (provider: 'google' | 'kakao', input: { displayName: string; consent: true; ageConfirmed: true; policyVersion: string; churchRequest?: ChurchDetails }) => Promise<boolean>; signOut: () => Promise<void> };
+type SessionContext = { restoring:boolean; session: Session | null; configured: boolean; client: ReturnType<typeof createMemberClient>; bookmarks: ReturnType<typeof createBookmarkClient>; schedules: ReturnType<typeof createScheduleClient>; extras: ReturnType<typeof createMemberExtrasClient>; push: ReturnType<typeof createPushClient>; signIn: (email: string, password: string) => Promise<void>; signInSocial: (provider: 'google' | 'kakao', input: { displayName: string; consent: true; ageConfirmed: true; policyVersion: string; churchRequest?: ChurchDetails }) => Promise<boolean>; signOut: () => Promise<void> };
 const Context = createContext<SessionContext | null>(null);
 export function MemberSessionProvider({ children }: PropsWithChildren) {
   const [restoring, setRestoring] = useState(!!auth);
@@ -58,7 +58,7 @@ export function MemberSessionProvider({ children }: PropsWithChildren) {
   // Factory keeps the token callback for later HTTP requests.
   // eslint-disable-next-line react-hooks/refs
   const push = useMemo(() => createPushClient(process.env.EXPO_PUBLIC_API_BASE_URL, getToken), [getToken]);
-  const value: SessionContext = { session, client, bookmarks, schedules, extras, push, configured: !!auth,
+  const value: SessionContext = { restoring, session, client, bookmarks, schedules, extras, push, configured: !!auth,
     async signInSocial(provider, input) {
       if (!auth) throw new Error('로그인 연결을 준비하고 있습니다.');
       const next = await authenticateSocial(provider, input);
@@ -88,7 +88,7 @@ export function MemberSessionProvider({ children }: PropsWithChildren) {
       }
     },
   };
-  return <Context.Provider value={value}>{restoring ? <AppScreen title="로그인 확인"><ActivityIndicator accessibilityLabel="저장된 로그인 확인 중" /></AppScreen> : children}</Context.Provider>;
+  return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 export function useMemberSession() { const value = useContext(Context); if (!value) throw new Error('MemberSessionProvider required'); return value; }
 export function safeMemberReturn(value?: string): Href {
@@ -105,7 +105,8 @@ export function safeMemberReturn(value?: string): Href {
   return value && /^\/(my|records(?:\/[a-zA-Z0-9_-]+)?)(?:\?(?:kind=(?:REFLECTION|PRAYER|SPECIAL_PRAYER)|worshipId=[a-zA-Z0-9_-]+|reflectionId=[a-zA-Z0-9_-]+)(?:&(?:kind=(?:REFLECTION|PRAYER|SPECIAL_PRAYER)|worshipId=[a-zA-Z0-9_-]+|reflectionId=[a-zA-Z0-9_-]+))*)?$/.test(value) ? value as Href : '/my';
 }
 export function MemberGate({ children, returnTo = '/my' }: PropsWithChildren<{ returnTo?: string }>) {
-  const { session } = useMemberSession();
+  const { session, restoring } = useMemberSession();
+  if (restoring) return <AppScreen title="나의 교회생활"><ActivityIndicator accessibilityLabel="저장된 로그인 확인 중" /></AppScreen>;
   if (!session) return <AppScreen title="회원 기능" onBack={() => router.replace('/my')}><IntroCard title="나만의 기록을 남겨보세요">개인 묵상과 기도를 이용하려면 로그인해 주세요.</IntroCard><Action title="로그인" onPress={() => router.push({ pathname: '/login', params: { returnTo: safeMemberReturn(returnTo) as string } })} /></AppScreen>;
   return <PrivateContent key={session.user.id}>{children}</PrivateContent>;
 }

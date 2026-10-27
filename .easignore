@@ -1,0 +1,73 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# local environment files
+.env
+.env.local
+.env.*.local
+
+# vercel
+.vercel
+
+# generated
+/src/generated/prisma
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+.vercel
+
+# npm workspaces
+**/node_modules/
+**/.next/
+**/dist/
+/packages/database/src/generated/
+
+# Secrets and machine-specific outputs
+.env.*
+!.env.example
+*.log
+**/test-results/
+**/playwright-report/
+/apps/mobile/dist-release-check/
+google-services.json
+GoogleService-Info.plist
+*.p8
+*service-account*.json
+*firebase-adminsdk*.json
+/.local/
+
+# Android source upload: exclude machine state and credentials.
+.git/
+/app.json
+**/.expo/
+**/dist-release-check/
+**/web-build/
+**/*.jks
+**/*.p12
+**/*.key
+**/*.mobileprovision
+**/credentials.json
+/apps/mobile/android/
+/apps/mobile/ios/

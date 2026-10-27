@@ -1,3 +1,4 @@
+import {cache} from "react";
 import "server-only";
 
 import type { WorshipContentType } from "@daegwang/database/generated/client";
@@ -53,7 +54,7 @@ export async function getPublishedWorshipContents(type: WorshipContentType, take
   }
 }
 
-export async function getPublishedWorshipContentBySlug(slug: string) {
+async function readgetPublishedWorshipContentBySlug(slug: string) {
   if (!hasDatabaseConfig()) return null;
   try {
     return await createPublicWorshipQueries(getPrisma()).bySlug(slug);
@@ -62,3 +63,6 @@ export async function getPublishedWorshipContentBySlug(slug: string) {
     return null;
   }
 }
+
+// Metadata and page render share only this request; publication changes stay fresh.
+export const getPublishedWorshipContentBySlug=cache(readgetPublishedWorshipContentBySlug);

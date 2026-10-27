@@ -1,3 +1,4 @@
+import {cache} from "react";
 import { decodeContentSlug } from "@daegwang/contracts/content-slug";
 import "server-only";
 
@@ -61,7 +62,7 @@ export async function getPublishedEvents(query = "", take = 50) {
   }
 }
 
-export async function getPublishedEventBySlug(slug: string) {
+async function readgetPublishedEventBySlug(slug: string) {
   if (!hasDatabaseConfig()) return null;
   try {
     return await getPrisma().event.findFirst({ where: { slug: decodeContentSlug(slug), ...publishedWhere() } });
@@ -71,3 +72,6 @@ export async function getPublishedEventBySlug(slug: string) {
   }
 }
 
+
+// Metadata and page render share only this request; publication changes stay fresh.
+export const getPublishedEventBySlug=cache(readgetPublishedEventBySlug);

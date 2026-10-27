@@ -1,14 +1,15 @@
-import { ActivityIndicator, Text, View } from 'react-native';
+import {DataLoading} from '../../components/data-loading';
+import { Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { AppScreen, MenuCard } from '../../components/app-screen';
-import { Card, Failure, colors, styles } from '../../components/ui';
+import { Card, Failure, styles } from '../../components/ui';
 import { eventDate, useChurchEvent } from '../../hooks/use-events';
 import { SaveEventButton } from '../../components/save-event-button';
 export default function EventDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, loading, error, reload } = useChurchEvent(typeof id === 'string' ? id : '');
   return <AppScreen title="행사 상세" onBack={() => router.canGoBack() ? router.back() : router.replace('/events')}>
-    {loading && <ActivityIndicator color={colors.primary} accessibilityLabel="행사를 불러오는 중" />}
+    {loading && <DataLoading label="행사를 불러오는 중"/>}
     {!!error && <Failure message={error} retry={reload} />}
     {data && <>
       <Card title={data.title}>{eventDate(data)}{'\n'}{data.location || '장소 안내 예정'}{data.ministryName ? ` · ${data.ministryName}` : ''}</Card>

@@ -1,15 +1,16 @@
+import {DataLoading} from '../../components/data-loading';
 import { NoticeAttachment } from '../../components/notice-attachment';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { AppScreen, MenuCard } from '../../components/app-screen';
-import { Card, Failure, colors, styles } from '../../components/ui';
+import { Card, Failure, styles } from '../../components/ui';
 import { noticeDate, useNotice } from '../../hooks/use-notices';
 
 export default function NoticeDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, loading, error, reload } = useNotice(typeof id === 'string' ? id : '');
   return <AppScreen title="공지 상세" onBack={() => router.canGoBack() ? router.back() : router.replace('/notices')}>
-    {loading && <ActivityIndicator color={colors.primary} accessibilityLabel="공지를 불러오는 중" />}
+    {loading && <DataLoading label="공지를 불러오는 중"/>}
     {!!error && <Failure message={error} retry={reload} />}
     {data && <>
       <Card title={data.title}>등록 {noticeDate(data.publishedAt)} · 수정 {noticeDate(data.updatedAt)}</Card>

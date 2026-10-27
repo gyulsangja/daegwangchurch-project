@@ -1,5 +1,6 @@
+import {DataLoading} from '../components/data-loading';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Text } from 'react-native';
+import { Text } from 'react-native';
 import { router } from 'expo-router';
 import { createEventClient } from '@daegwang/api-client/events';
 import { collectPages } from '@daegwang/api-client/pagination';
@@ -20,7 +21,7 @@ export default function ChurchCalendar() {
     <DayCalendar selected={selected} onSelect={setSelected} marked={marked} />
     <MenuCard title="목록 보기" onPress={() => router.push('/events')} />
     <Text accessibilityRole="header" style={styles.title}>{selected} 일정</Text>
-    {loading && <ActivityIndicator accessibilityLabel="일정을 불러오는 중" />}{!!error && <Failure message={error} retry={reload} />}
+    {loading && <DataLoading label="일정을 불러오는 중"/>}{!!error && <Failure message={error} retry={reload} />}
     {rows?.map(item => <MenuCard key={item.id} title={item.title} description={`${eventDate(item)}\n${item.location || '장소 안내 예정'}`} onPress={() => router.push({ pathname: '/events/[id]', params: { id: item.id } })} />)}
     {rows && !rows.length && <Card title="등록된 일정이 없습니다">선택한 날짜에 공개된 교회 행사가 없습니다.</Card>}
     <Card title="교회 공식 일정">관리자가 공개한 행사 일정입니다.</Card><MenuCard title="나의 일정으로 보기" description="회원 기능" onPress={() => router.push('/schedules')} />

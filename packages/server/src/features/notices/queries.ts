@@ -1,3 +1,4 @@
+import {cache} from "react";
 import "server-only";
 
 import type { Prisma } from "@daegwang/database/generated/client";
@@ -71,7 +72,7 @@ export async function getPublishedNotices(query = "", take = 30) {
   }
 }
 
-export async function getPublishedNoticeBySlug(slug: string) {
+async function readgetPublishedNoticeBySlug(slug: string) {
   if (!hasDatabaseConfig()) return null;
   try {
     return await getPrisma().notice.findFirst({
@@ -84,3 +85,6 @@ export async function getPublishedNoticeBySlug(slug: string) {
   }
 }
 
+
+// Metadata and page render share only this request; publication changes stay fresh.
+export const getPublishedNoticeBySlug=cache(readgetPublishedNoticeBySlug);

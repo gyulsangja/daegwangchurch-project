@@ -1,6 +1,7 @@
+import {DataLoading} from '../../components/data-loading';
 import { MonthPicker } from '../../components/date-picker';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { AppScreen, MenuCard } from '../../components/app-screen';
 import { Action, Card, Failure, colors, styles } from '../../components/ui';
@@ -14,7 +15,7 @@ export default function BulletinList() {
   return <AppScreen title="주보 목록" onBack={() => router.canGoBack() ? router.back() : router.replace('/news')}>
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}><Text style={[styles.caption, { flex: 1 }]}>공개된 주보를 30초마다 확인해요.</Text><Pressable accessibilityRole="button" accessibilityLabel="주보 새로고침" disabled={loading} onPress={() => void reload()} style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 }}><Text style={{ color: colors.primary, fontWeight: '700' }}>새로고침</Text></Pressable></View>
     <MonthPicker label="주보 조회 연월" value={month} onChange={value => { setMonth(value); setPage(0); }} />
-    {loading && <ActivityIndicator color={colors.primary} accessibilityLabel="주보를 불러오는 중" />}
+    {loading && <DataLoading label="주보를 불러오는 중"/>}
     {!!error && <Failure message={error} retry={reload} />}
     {data && <>
       {!data.data.length && <Card title="등록된 주보가 없습니다">기간을 변경하거나 나중에 다시 확인해 주세요.</Card>}

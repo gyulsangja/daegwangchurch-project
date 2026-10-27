@@ -1,6 +1,7 @@
+import {DataLoading} from '../../components/data-loading';
 import { NoticeAttachment } from '../../components/notice-attachment';
 import { useCallback } from 'react';
-import { ActivityIndicator } from 'react-native';
+import { } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { createNoticeClient } from '@daegwang/api-client/notices';
 import { AppScreen, MenuCard } from '../../components/app-screen';
@@ -11,7 +12,7 @@ export default function PrayerDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, loading, error, reload } = useNoticeResource(useCallback(signal => client.detail(id, signal), [id]));
   return <AppScreen title="공동기도 상세" onBack={() => router.canGoBack() ? router.back() : router.replace('/prayers')}>
-    {loading && <ActivityIndicator accessibilityLabel="공동기도를 불러오는 중" />}
+    {loading && <DataLoading label="공동기도를 불러오는 중"/>}
     {!!error && <Failure message={error} retry={reload} />}
     {data && <>
       <Card title={data.title}>교회 작성 · {noticeDate(data.publishedAt)}</Card>
