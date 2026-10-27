@@ -1,5 +1,11 @@
 # 작업 인수인계
 
+## 콘텐츠 운영자 운영 활성화 (2026-10-28)
+
+- 사용자 명시 승인 후 `004_content_operator.sql` 운영 적용 완료. 기존 함수/제약 정의를 `.local/ministry/content-role-backups`에 백업했으며 기존 사용자 권한·계정·게시물은 변경하지 않음. 재검사 `migrationRequired:false`.
+- 목회 Vercel production에 `MINISTRY_CONTENT_ROLE_ENABLED=true` 설정 완료. 이 커밋으로 운영 재배포 후 사용자 및 권한 화면의 역할 선택과 접근 보호를 확인한다.
+- 홈페이지·앱 운영자는 목회 교적/상담/기도/출력에 접근할 수 없으며 콘텐츠 편집에는 기존 CMS 활성 관리자 권한도 필요하다. 실제 사용자 배정은 관리자가 결정한다. 아래의 이전 승인 대기 상태는 이 승인·적용으로 대체한다.
+
 ## 통합 관리 3차: 계획 연결·콘텐츠 운영자 분리 (2026-10-28)
 
 - 최종 코드 `f8fa4c4` main 푸시 및 운영 배포 `dpl_BXHMgNTEbxtutRSygchDi5PYDv3M` READY, 실제 목회 도메인 연결 확인. `/church/manage` 및 새 API 포함 접근 보호 검사 통과. 새 역할은 DB 승인 답변을 아직 받지 않아 SQL 미적용·플래그 비활성. 검토용 개발 서버 종료. 기존 무관한 루트 `app.json`은 계속 미추적 상태로 보존.
