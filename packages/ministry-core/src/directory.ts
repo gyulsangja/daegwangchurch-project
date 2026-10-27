@@ -67,6 +67,10 @@ export function createDirectory(initial: DirectoryState, id: () => string, now =
       const pageSize = 12;
       return { items: rows.slice((query.page - 1) * pageSize, query.page * pageSize).map(summary), total: rows.length, page: query.page, pageSize };
     },
+    options(actor: Actor) {
+      church(actor);
+      return state.members.filter(member=>visible(actor,member)).sort((a,b)=>a.name.localeCompare(b.name,'ko')||a.id.localeCompare(b.id)).map(summary);
+    },
     overview(actor: Actor) {
       church(actor);
       const rows = state.members.filter(member => visible(actor, member));

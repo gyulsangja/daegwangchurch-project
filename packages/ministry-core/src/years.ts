@@ -116,6 +116,10 @@ export function createYearService(state: DirectoryState, now: () => string, fail
       event(period, actor, '교인 정보 반영', member.id);
     },
     list(actor: Actor) { authorize(actor); return periods.filter(p => p.churchId === actor.churchId).sort((a,b) => b.year-a.year).map(p => ({ year: p.year, state: p.state, version: p.version })); },
+    targets(actor:Actor) {
+      authorize(actor);
+      return periods.filter(p=>p.churchId===actor.churchId).sort((a,b)=>b.year-a.year).map(p=>({year:p.year,organizations:p.organizations.map(o=>({id:o.id,name:o.name,memberIds:p.assignments.filter(a=>a.affiliations.some(f=>f.organizationId===o.id)).map(a=>a.memberId)}))}));
+    },
     read(actor: Actor, year: number) { return structuredClone(get(actor, year)); },
     memberHistory(actor: Actor, memberId: string) {
       authorize(actor);

@@ -1,1 +1,1 @@
-export default function Loading() { return <div className="panel empty" role="status">교적 정보를 불러오고 있습니다.</div>; }
+export default function Loading() { return <div className="panel empty" role="status" aria-live="polite">화면을 준비하고 있습니다.</div>; }

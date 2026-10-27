@@ -4,7 +4,8 @@ import {randomUUID,createHash} from 'node:crypto';
 import {createDirectory,type DirectorySnapshot,type Actor} from '@daegwang/ministry-core/directory';
 import {asyncDirectory} from '@daegwang/ministry-core/async-directory';
 import {invokeDirectory} from '@daegwang/ministry-core/directory-dispatch';
-import {ministryTransaction,readMinistryRows,writeMinistryRows,type MinistryRows} from '@daegwang/database/ministry-postgres';
+import {directoryReadPlan} from '@daegwang/ministry-core/read-plan';
+import {ministryTransaction,readMinistryRows,writeMinistryRows,appendMinistryAudits,type MinistryRows,type MinistryTable} from '@daegwang/database/ministry-postgres';
 let pool:Pool|undefined;
 export function ministryPool(){
  if(!process.env.MINISTRY_DATABASE_URL)throw new Error('MINISTRY_NOT_CONFIGURED');
@@ -20,18 +21,24 @@ export function rows(snapshot:DirectorySnapshot):MinistryRows{
 }
 export async function operationalDirectory(userId:string,churchId:string,aal='aal1'){
  const security={aal,enforceMfa:false};
- const actor=await ministryTransaction(ministryPool(),userId,churchId,async(_db,grant):Promise<Actor>=>({id:userId,churchId,role:grant.role,organizationIds:grant.organizationIds,scopeYear:grant.scopeYear,canPrint:grant.canPrint,canDelete:grant.canDelete,permissions:grant.care?['CARE']:[]}),security);
+ const actor=await ministryTransaction(ministryPool(),userId,churchId,async(_db,grant):Promise<Actor>=>({id:userId,churchId,role:grant.role,organizationIds:grant.organizationIds,scopeYear:grant.scopeYear,canPrint:grant.canPrint,canDelete:grant.canDelete,permissions:grant.care?['CARE']:[]}),{...security,readOnly:true});
  const service=asyncDirectory(async(group,method,args)=>{
   if(['snapshot','sessionSnapshot','capture','syncMember','activeYear'].includes(method))throw new Error('INTERNAL_METHOD');
+  const readPlan=directoryReadPlan(group,method) as readonly MinistryTable[]|undefined;
   return ministryTransaction(ministryPool(),userId,churchId,async(db,grant)=>{
-   const before=await readMinistryRows(db,churchId);const saved=snapshot(before);
+   const before=await readMinistryRows(db,churchId,readPlan);const saved=snapshot(before);
    if(saved.years.length===0)throw new Error('MINISTRY_NOT_INITIALIZED');
    const domain=createDirectory(saved.state,randomUUID,undefined,saved);
    const current:Actor={...actor,role:grant.role,organizationIds:grant.organizationIds,scopeYear:grant.scopeYear,canPrint:grant.canPrint,canDelete:grant.canDelete,permissions:grant.care?['CARE']:[]};
    if(current.role==='LEADER'&&current.scopeYear!==domain.config(current).activeYear)throw new Error('MINISTRY_ACCESS_DENIED');
    const result=invokeDirectory(domain,group,method,[current,...args.slice(1)]);
-   await writeMinistryRows(db,churchId,before,rows(domain.snapshot()));return result;
-  },security);
+   if(readPlan){
+    // Reads may append a required access audit, but never rewrite domain rows.
+    const added=domain.snapshot().state.audits.slice(before.audits.length);
+    await appendMinistryAudits(db,churchId,added.map(a=>({id:a.id,payload:a})));
+   }else await writeMinistryRows(db,churchId,before,rows(domain.snapshot()));
+   return result;
+  },{...security,readOnly:!!readPlan});
  });
  return {service,actor};
 }
