@@ -12,7 +12,7 @@ export function ChurchContentEditor(){
   const controller=new AbortController();
   async function load(){
    setLoading(true);setError('');
-   try{const r=await fetch(`/api/v1/church-content?${new URLSearchParams({kind,page:String(page),q:query})}`,{cache:'no-store',signal:controller.signal});const json=await r.json();if(!r.ok)throw new Error(json.message);const result=contentPage.parse(json);setRows(result.data);setNext(result.nextPage);}
+   try{const r=await fetch(`/api/v1/church-content?${new URLSearchParams({kind,page:String(page),q:query})}`,{cache:'no-store',signal:controller.signal});const json=await r.json();if(!r.ok)throw new Error(json.message);const result=contentPage.parse(json);if(controller.signal.aborted)return;setRows(result.data);setNext(result.nextPage);}
    catch(e){if(!controller.signal.aborted){setRows([]);setNext(null);setError(e instanceof Error?e.message:'목록을 불러오지 못했습니다.');}}
    finally{if(!controller.signal.aborted)setLoading(false);}
   }
@@ -43,7 +43,7 @@ export function ChurchContentEditor(){
    {edit.kind==='NOTICE'&&<><div className="chips"><label className="check"><input type="checkbox" checked={edit.isImportant} onChange={e=>setEdit({...edit,isImportant:e.target.checked})}/>중요 공지</label><label className="check"><input type="checkbox" checked={edit.isPinned} onChange={e=>setEdit({...edit,isPinned:e.target.checked})}/>상단 고정</label></div>{text('게시 시작 · 한국 시간','publishStartsAt',false,'datetime-local')}{text('게시 종료 · 한국 시간','publishEndsAt',false,'datetime-local')}<p className="muted">기존 첨부파일 {edit.attachmentCount}개는 유지됩니다. 파일 추가·삭제는 기존 관리자에서 진행해 주세요.</p>{version&&<a className="button" href={`https://daegwangchurch-admin.vercel.app/admin/notices/${encodeURIComponent(edit.id)}/edit`} target="_blank" rel="noopener noreferrer">첨부파일 관리 ↗</a>}</>}
    <label>공개 상태<select value={edit.status} onChange={e=>setEdit({...edit,status:e.target.value as ContentRow['status']})}>{(['DRAFT','PUBLISHED','PRIVATE'] as const).map(s=><option key={s} value={s}>{statuses[s]}</option>)}</select></label>
    <p className="muted">{edit.status==='PUBLISHED'?'공개로 저장하면 게시 기간에 맞춰 홈페이지·앱에 표시됩니다.':'임시저장·비공개 자료는 홈페이지·앱에 표시되지 않습니다.'} 상담·심방 메모나 개인정보는 입력하지 마세요. 공개 일정과 중요 공지는 기존 알림 정책에 따라 푸시 대상이 될 수 있습니다.</p>
-   <label className="check" hidden={edit.status!=='PUBLISHED'}><input type="checkbox" name="publicationAcknowledged" required={edit.status==='PUBLISHED'}/>공개 및 기존 알림 정책 적용을 확인했습니다.</label><p role="alert">{message}</p><button className="button primary">{saving?'저장 중…':edit.status==='PUBLISHED'?'공개 상태로 저장':'저장'}</button>
+   {edit.status==='PUBLISHED'&&<label className="check"><input type="checkbox" name="publicationAcknowledged" required={edit.status==='PUBLISHED'}/>공개 및 기존 알림 정책 적용을 확인했습니다.</label>}<p role="alert">{message}</p><button className="button primary">{saving?'저장 중…':edit.status==='PUBLISHED'?'공개 상태로 저장':'저장'}</button>
   </fieldset>}</form></dialog>
  </>;
 }

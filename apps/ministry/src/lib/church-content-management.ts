@@ -5,7 +5,7 @@ import {authenticatedSession} from './auth-security';
 import {operationalEnabled} from './operational-config';
 const endpoint='https://daegwangchurch-admin.vercel.app/api/manage/church-content';
 export async function manageChurchContent(actor:Actor,raw:unknown,save=false){
- if(!operationalEnabled()||actor.role!=='ADMIN')throw new DirectoryError('FORBIDDEN','현재는 목회 최고관리자이면서 기존 콘텐츠 관리자일 때 사용할 수 있습니다.');
+ if(!operationalEnabled()||!['ADMIN','CONTENT'].includes(actor.role))throw new DirectoryError('FORBIDDEN','목회 콘텐츠 담당 권한과 기존 콘텐츠 관리 권한이 필요합니다.');
  const input=save?contentSave.parse(raw):contentQuery.parse(raw);
  const {client,user}=await authenticatedSession();
  const {data,error}=await client.auth.getSession();

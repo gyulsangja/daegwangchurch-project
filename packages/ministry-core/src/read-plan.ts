@@ -15,6 +15,7 @@ const plans:Record<string,readonly string[]>={
  'families.candidates':['years','members','families'],
  'pastoral.list':['years','pastoral'],
  'pastoral.calendar':['years','pastoral'],
+ 'pastoral.contentLinks':['years','pastoral'],
  'records.workspace':['years','records'],
  'records.careHistory':['years','records'],
  'records.list':['years','members','records'],

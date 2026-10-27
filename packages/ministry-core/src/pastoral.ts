@@ -44,6 +44,7 @@ export function createPastoralService(state:DirectoryState,id:()=>string,now:()=
   };
   return {
     snapshot(){return structuredClone(items);},
+    contentLinks(actor:Actor,itemId:string){authorize(actor);const item=items.find(i=>i.id===itemId&&i.churchId===actor.churchId);if(!item)return fail('NOT_FOUND');audit(actor,'','READ');return structuredClone(item.contentLinks??[]);},
     calendar(actor:Actor,month:string){
       authorize(actor);
       if(!canReadPastoralCalendar(actor))return fail('FORBIDDEN');
@@ -77,7 +78,7 @@ export function createPastoralService(state:DirectoryState,id:()=>string,now:()=
       if(item.sourceRecordId&&input.memberId!==item.memberId)return fail('INVALID','상담 기록에 연결한 교인은 바꿀 수 없습니다.');
       const resolved=targets(actor,input,item,refreshTargets);
       if(refreshTargets&&!reflection)return fail('INVALID','구성원을 다시 반영하는 이유를 수행 기록에 남겨 주세요.');
-      const before={...pastoralInput.parse({kind:item.kind,title:item.title,body:item.body,date:item.date,memberId:item.memberId,goalId:item.goalId,category:item.category,status:item.status,scope:item.scope,period:item.period,memberIds:item.memberIds,familyIds:item.familyIds,organizationIds:item.organizationIds,organizationYear:item.organizationYear}),targets:structuredClone(item.targets)};
+      const before={...pastoralInput.parse({kind:item.kind,title:item.title,body:item.body,date:item.date,memberId:item.memberId,goalId:item.goalId,category:item.category,status:item.status,scope:item.scope,period:item.period,memberIds:item.memberIds,familyIds:item.familyIds,organizationIds:item.organizationIds,organizationYear:item.organizationYear,contentLinks:item.contentLinks}),targets:structuredClone(item.targets)};
       if(input.status==='ARCHIVED'&&item.status!=='ARCHIVED'&&actor.canDelete===false)fail('FORBIDDEN');
       if(input.status!==item.status&&!reflection)return fail('INVALID','상태를 바꾸는 이유나 수행 결과를 기록해 주세요.');
       item.history.push({at:now(),date:reflectionDate,actorId:actor.id,status:input.status,note:reflection||'내용 수정',before});Object.assign(item,input,{targets:resolved,version:version+1});audit(actor,item.memberId,'UPDATE');return {id:item.id};

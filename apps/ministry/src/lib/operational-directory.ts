@@ -1,4 +1,6 @@
 import 'server-only';
+import {contentOnlyOperationAllowed} from '@daegwang/ministry-core/content-access';
+import {MinistryAccessError} from '@daegwang/database/ministry-postgres';
 import {Pool} from 'pg';
 import {randomUUID,createHash} from 'node:crypto';
 import {createDirectory,type DirectorySnapshot,type Actor} from '@daegwang/ministry-core/directory';
@@ -26,8 +28,9 @@ export async function operationalDirectory(userId:string,churchId:string,aal='aa
   if(['snapshot','sessionSnapshot','capture','syncMember','activeYear'].includes(method))throw new Error('INTERNAL_METHOD');
   const readPlan=directoryReadPlan(group,method) as readonly MinistryTable[]|undefined;
   return ministryTransaction(ministryPool(),userId,churchId,async(db,grant)=>{
-   const before=await readMinistryRows(db,churchId,readPlan);const saved=snapshot(before);
-   if(saved.years.length===0)throw new Error('MINISTRY_NOT_INITIALIZED');
+   if(grant.role==='CONTENT'&&!contentOnlyOperationAllowed(group,method))throw new MinistryAccessError();
+   const before=await readMinistryRows(db,churchId,grant.role==='CONTENT'?[]:readPlan);const saved=snapshot(before);
+   if(grant.role!=='CONTENT'&&saved.years.length===0)throw new Error('MINISTRY_NOT_INITIALIZED');
    const domain=createDirectory(saved.state,randomUUID,undefined,saved);
    const current:Actor={...actor,role:grant.role,organizationIds:grant.organizationIds,scopeYear:grant.scopeYear,canPrint:grant.canPrint,canDelete:grant.canDelete,permissions:grant.care?['CARE']:[]};
    if(current.role==='LEADER'&&current.scopeYear!==domain.config(current).activeYear)throw new Error('MINISTRY_ACCESS_DENIED');

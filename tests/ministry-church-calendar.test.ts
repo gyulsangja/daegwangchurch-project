@@ -28,3 +28,20 @@ test('calendar checks care and church scope and returns only minimal monthly sum
  assert.deepEqual(directoryReadPlan('pastoral','calendar'),['years','pastoral']);
  assert.ok(service.snapshot().state.audits.some(a=>a.action==='READ'));
 });
+test('pastoral content links retain IDs without copying content, preserve history and reject duplicates',()=>{
+ const service=createDirectory(createFixture(),randomUUID,()=> '2026-10-28T00:00:00Z');
+ const actor:Actor={id:'test',churchId:'demo-daegwang',role:'OFFICE',organizationIds:[],permissions:['CARE']};
+ const contentLinks=[{kind:'EVENT' as const,id:'public-event'}];
+ const input={kind:'GOAL',title:'Test plan',body:'PRIVATE PLAN',date:'2026-10-28',status:'OPEN'};
+ const {id}=service.pastoral.create(actor,{...input,contentLinks});
+ assert.deepEqual(service.pastoral.contentLinks(actor,id),contentLinks);
+ service.pastoral.update(actor,{...input,id,version:1,reflection:'Unrelated change'});
+ assert.deepEqual(service.pastoral.contentLinks(actor,id),contentLinks);
+ service.pastoral.update(actor,{...input,id,version:2,contentLinks:[],reflection:'Unlink'});
+ assert.deepEqual(service.pastoral.contentLinks(actor,id),[]);
+ assert.deepEqual(service.pastoral.list(actor).find(row=>row.id===id)!.history.at(-1)!.before!.contentLinks,contentLinks);
+ assert.throws(()=>service.pastoral.create(actor,{...input,contentLinks:[...contentLinks,...contentLinks]}));
+ assert.throws(()=>service.pastoral.create(actor,{...input,contentLinks:[{kind:'EVENT',id:'https://other.test'}]}));
+ assert.throws(()=>service.pastoral.contentLinks({...actor,churchId:'other'},id));
+ assert.throws(()=>service.pastoral.contentLinks({...actor,permissions:[]},id));
+});

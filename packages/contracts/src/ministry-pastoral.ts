@@ -1,5 +1,6 @@
 import {z} from 'zod';
 import {recordDate} from './ministry-records';
+import {ministryContentLinks} from './ministry-content-links';
 export const pastoralInput = z.object({
   kind:z.enum(['CARE','PRAYER','GOAL','PLAN']), title:z.string().trim().min(1).max(120),
   body:z.string().trim().max(4000), date:recordDate, memberId:z.string().max(100).default(''),
@@ -11,6 +12,7 @@ export const pastoralInput = z.object({
   familyIds:z.array(z.string().min(1).max(100)).max(100).optional(),
   organizationIds:z.array(z.string().min(1).max(100)).max(100).optional(),
   organizationYear:z.number().int().min(1900).max(2200).optional(),
+  contentLinks:ministryContentLinks.optional(),
 }).strict();
 export const pastoralChange=pastoralInput.extend({id:z.string().min(1),version:z.number().int().positive(),reflection:z.string().trim().max(2000).default(''),reflectionDate:recordDate.optional(),refreshTargets:z.boolean().optional()}).strict();
 export const pastoralCreate=pastoralInput.extend({reflection:z.string().trim().max(2000).default(''),reflectionDate:recordDate.optional()}).strict();

@@ -2,7 +2,7 @@ import type {Pool,PoolClient} from 'pg';
 // Structural interfaces allow the same transaction implementation to run in PostgreSQL integration tests.
 export type MinistryConnection=Pick<PoolClient,'query'>;
 export class MinistryAccessError extends Error {constructor(){super('MINISTRY_ACCESS_DENIED');this.name='MinistryAccessError';}}
-export type MinistryGrant={churchId:string;userId:string;role:'ADMIN'|'OFFICE'|'LEADER';care:boolean;organizationIds:string[];scopeYear?:number;canPrint:boolean;canDelete:boolean};
+export type MinistryGrant={churchId:string;userId:string;role:'ADMIN'|'OFFICE'|'LEADER'|'CONTENT';care:boolean;organizationIds:string[];scopeYear?:number;canPrint:boolean;canDelete:boolean};
 type Row={id:string;payload:unknown};
 export type MinistryRows={church:unknown;members:Row[];organizations:Row[];families:Row[];years:Row[];records:Row[];pastoral:Row[];attendance_sessions:Row[];audits:Row[]};
 const tables=['members','organizations','families','years','records','pastoral','attendance_sessions','audits'] as const;

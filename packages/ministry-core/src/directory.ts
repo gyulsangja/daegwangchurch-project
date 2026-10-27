@@ -6,7 +6,7 @@ import { createRecordService } from './records';
 import { createYearService } from './years';
 import { memberInputSchema, memberSearchSchema, memberUpdateSchema, type MemberInput } from '@daegwang/contracts/ministry';
 
-export type Actor = { id: string; churchId: string; role: 'ADMIN' | 'OFFICE' | 'LEADER'; organizationIds: string[]; scopeYear?: number; canPrint?:boolean; canDelete?:boolean; permissions?: ('CARE')[] };
+export type Actor = { id: string; churchId: string; role: 'ADMIN' | 'OFFICE' | 'LEADER' | 'CONTENT'; organizationIds: string[]; scopeYear?: number; canPrint?:boolean; canDelete?:boolean; permissions?: ('CARE')[] };
 export type Organization = { id: string; churchId: string; name: string; parentId: string | null };
 export type Family = { id: string; churchId: string; name: string; version:number; representativeId:string|null; archived:boolean; links?:{targetId:string;relationship:'PARENT'|'SIBLING'|'RELATIVE'|'OTHER';note:string}[]; members: { memberId: string; relationship: string }[] };
 export type Member = MemberInput & { id: string; churchId: string; version: number; createdAt: string; updatedAt: string };
@@ -56,6 +56,11 @@ export function createDirectory(initial: DirectoryState, id: () => string, now =
     snapshot():DirectorySnapshot { return {schemaVersion:1,state:structuredClone(state),years:years.snapshot(),records:records.snapshot(),pastoral:pastoral.snapshot(),attendanceSessions:records.sessionSnapshot()}; },
     years, records, pastoral, families:createFamilyService(state,id,now,fail),
     config(actor: Actor) {
+      if(actor.role==='CONTENT'){
+        const found=state.churches.find(item=>item.id===actor.churchId);
+        if(!actor.id||!found)throw new DirectoryError('FORBIDDEN');
+        return {id:found.id,name:found.name,statuses:[],positions:[],activeYear:initialYear,organizations:[]};
+      }
       const config = church(actor);
       return structuredClone({ ...config, activeYear: years.activeYear(actor.churchId), organizations: state.organizations.filter(org => org.churchId === actor.churchId && (actor.role !== 'LEADER' || ((actor.scopeYear ?? initialYear) === years.activeYear(actor.churchId) && actor.organizationIds.includes(org.id)))) });
     },

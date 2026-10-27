@@ -16,6 +16,7 @@ export async function accessQuery<T>(userId:string|null,aal:string,query:string,
 export function listAccess(userId:string,aal:string){return accessQuery<AccessSnapshot>(userId,aal,'SELECT ministry.access_list() AS result');}
 export async function changeAccess(userId:string,aal:string,raw:unknown,reauthenticated=false){
  const input=accessChange.parse(raw);const token=['INVITE','REISSUE'].includes(input.action)?randomBytes(32).toString('hex'):undefined;
+ if('role'in input&&input.role==='CONTENT'&&process.env.MINISTRY_CONTENT_ROLE_ENABLED!=='true'&&(input.action!=='UPDATE'||input.active))throw new Error('ACCESS_SETUP');
  await accessQuery(userId,aal,'SELECT ministry.access_change($1::jsonb) AS result',[JSON.stringify({...input,...(input.action==='INVITE'?{id:randomUUID(),email:input.email.toLowerCase()}:{}),...(token?{hash:invitationHash(token)}:{})})],reauthenticated);
  // Fragment tokens are not sent to servers, request logs or Referer. The recipient's browser posts them.
  return {ok:true,...(token?{invitationUrl:`${operationalOrigin()}/invite#${token}`}:{})};
