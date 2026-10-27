@@ -1,7 +1,7 @@
 {
   "applicationId": "org.daegwangchurch.app",
-  "version": "1.0.1",
-  "build": 2,
-  "downloadUrl": "https://expo.dev/artifacts/eas/QZjdSG4PseGfxv-sX3YiH7Yp24cKwjz_oieSDvETVM4.apk",
-  "notes": "공지 첨부 이미지를 바로 볼 수 있고, 새 버전이 나오면 앱에서 업데이트를 안내합니다."
+  "version": "1.0.2",
+  "build": 3,
+  "downloadUrl": "https://expo.dev/artifacts/eas/ct1yOD7KGqM6OSvgJDtfJEP_OLoCPOpGf-TTO1GVW1M.apk",
+  "notes": "화면 틀을 먼저 보여주고 데이터 영역에 로딩을 표시합니다. 앱 시작 대기와 중복 조회를 줄였습니다."
 }
