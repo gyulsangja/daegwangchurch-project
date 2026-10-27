@@ -1,4 +1,5 @@
 import { z } from "zod";
+import {koreanDateTimeInput} from "../../korean-datetime";
 
 const dateTime = z.string().trim().min(1, "시작 날짜와 시간을 입력해 주세요.").refine((value) => !Number.isNaN(Date.parse(value)), "날짜와 시간을 확인해 주세요.");
 const optionalDateTime = z.string().trim().refine((value) => value === "" || !Number.isNaN(Date.parse(value)), "날짜와 시간을 확인해 주세요.").transform((value) => value || undefined);
@@ -25,8 +26,8 @@ export function parseEventFormData(formData: FormData) {
   return eventFormSchema.safeParse({
     title: formData.get("title"),
     category: formData.get("category"),
-    startsAt: formData.get("startsAt"),
-    endsAt: formData.get("endsAt") ?? "",
+    startsAt: koreanDateTimeInput(formData.get("startsAt")),
+    endsAt: koreanDateTimeInput(formData.get("endsAt") ?? ""),
     isAllDay: formData.get("isAllDay") === "on",
     location: formData.get("location") ?? "",
     ministryName: formData.get("ministryName") ?? "",

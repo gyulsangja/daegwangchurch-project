@@ -1,4 +1,5 @@
 import { z } from "zod";
+import {koreanDateTimeInput} from "../../korean-datetime";
 
 const optionalDateTime = z
   .string()
@@ -32,8 +33,8 @@ export function parseNoticeFormData(formData: FormData) {
     status: formData.get("status"),
     isImportant: formData.get("isImportant") === "on",
     isPinned: formData.get("isPinned") === "on",
-    publishStartsAt: formData.get("publishStartsAt") ?? "",
-    publishEndsAt: formData.get("publishEndsAt") ?? "",
+    publishStartsAt: koreanDateTimeInput(formData.get("publishStartsAt") ?? ""),
+    publishEndsAt: koreanDateTimeInput(formData.get("publishEndsAt") ?? ""),
   });
 }
 

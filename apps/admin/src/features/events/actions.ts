@@ -67,6 +67,9 @@ export async function createEventAction(_state: EventActionState, formData: Form
 
 export async function updateEventAction(id: string, _state: EventActionState, formData: FormData): Promise<EventActionState> {
   const admin = await requireAdmin();
+  const expected = formData.get("expectedUpdatedAt");
+  if (typeof expected !== "string" || !expected || Number.isNaN(Date.parse(expected))) return { message: "게시물을 다시 열어 수정해 주세요." };
+  const expectedUpdatedAt = new Date(expected);
   const parsed = parseInput(formData);
   if (!parsed.success) return parsed.state;
   let slug = "";
@@ -74,9 +77,10 @@ export async function updateEventAction(id: string, _state: EventActionState, fo
     await getPrisma().$transaction(async (tx) => {
       const current = await tx.event.findFirst({ where: { id, deletedAt: null } });
       if (!current) throw new Error("NOT_FOUND");
+      if (current.updatedAt.getTime() !== expectedUpdatedAt.getTime()) throw new Error("CONTENT_CONFLICT");
       slug = current.slug;
       const event = await tx.event.update({
-        where: { id },
+        where: { id, deletedAt: null, updatedAt: expectedUpdatedAt },
         data: {
           title: parsed.data.title,
           category: parsed.data.category,
@@ -94,7 +98,7 @@ export async function updateEventAction(id: string, _state: EventActionState, fo
     });
   } catch (error) {
     console.error("Failed to update event", error);
-    return { message: "일정을 수정하지 못했습니다." };
+    return { message: "일정을 수정하지 못했습니다. 다른 화면에서 변경되었을 수 있으니 게시물을 다시 열어 확인해 주세요." };
   }
   revalidateEventPaths(slug);
   redirect(`/admin/events/${id}/edit?saved=1`);

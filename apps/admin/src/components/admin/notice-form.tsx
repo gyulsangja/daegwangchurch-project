@@ -16,6 +16,7 @@ import { noticeStatusLabels } from "@daegwang/contracts/features/notices/schema"
 
 export type NoticeFormValues = {
   id?: string;
+  updatedAt?: string;
   title?: string;
   category?: string;
   body?: string;
@@ -49,6 +50,7 @@ export function NoticeForm({ initialValues = {} }: { initialValues?: NoticeFormV
 
   return (
     <form action={formAction} data-unsaved-warning className="mt-8 grid gap-6 lg:grid-cols-[1fr_20rem]">
+      <input type="hidden" name="expectedUpdatedAt" value={initialValues.updatedAt ?? ""} />
       <Paper variant="outlined" className="flex flex-col gap-6 p-5 md:p-7">
         {state.message ? <Alert severity="error">{state.message}</Alert> : null}
         {pending && <p role="status" className="text-sm text-primary-700">{progress || '첨부파일 준비 중…'}</p>}

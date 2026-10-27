@@ -15,6 +15,7 @@ import { eventStatusLabels } from "@daegwang/contracts/features/events/schema";
 
 export type EventFormValues = {
   id?: string;
+  updatedAt?: string;
   title?: string;
   category?: string;
   startsAt?: string;
@@ -34,6 +35,7 @@ export function EventForm({ initialValues = {} }: { initialValues?: EventFormVal
   const error = (name: string) => state.errors?.[name]?.[0];
   return (
     <form action={formAction} data-unsaved-warning className="mt-8 grid gap-6 lg:grid-cols-[1fr_20rem]">
+      <input type="hidden" name="expectedUpdatedAt" value={initialValues.updatedAt ?? ""} />
       <Paper variant="outlined" className="flex flex-col gap-6 p-5 md:p-7">
         {state.message ? <Alert severity="error">{state.message}</Alert> : null}
         <TextField fullWidth required label="일정 제목" name="title" defaultValue={initialValues.title ?? ""} error={Boolean(error("title"))} helperText={error("title")} />

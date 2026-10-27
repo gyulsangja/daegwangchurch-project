@@ -167,6 +167,9 @@ export async function updateNoticeAction(
   formData: FormData,
 ): Promise<NoticeActionState> {
   const admin = await requireAdmin();
+  const expected = formData.get("expectedUpdatedAt");
+  if (typeof expected !== "string" || !expected || Number.isNaN(Date.parse(expected))) return { message: "게시물을 다시 열어 수정해 주세요." };
+  const expectedUpdatedAt = new Date(expected);
   const parsed = parseInput(formData);
   if (!parsed.success) return parsed.state;
   const files = getAttachmentFiles(formData);
@@ -176,6 +179,7 @@ export async function updateNoticeAction(
   const prisma = getPrisma();
   const current = await prisma.notice.findFirst({ where: { id, deletedAt: null }, include: { attachments: { include: { media: true }, orderBy: { sortOrder: "asc" } } } });
   if (!current) return { message: "수정할 공지사항을 찾지 못했습니다." };
+  if (current.updatedAt.getTime() !== expectedUpdatedAt.getTime()) return { message: "다른 화면에서 변경되었습니다. 게시물을 다시 열어 확인해 주세요." };
   const removeIds = new Set(formData.getAll("removeAttachmentIds").filter((value): value is string => typeof value === "string"));
   const removeAttachments = current.attachments.filter((attachment) => removeIds.has(attachment.id));
   const remainingCount = current.attachments.length - removeAttachments.length;
@@ -188,7 +192,7 @@ export async function updateNoticeAction(
     await prisma.$transaction(async (tx) => {
       slug = current.slug;
       const notice = await tx.notice.update({
-        where: { id },
+        where: { id, deletedAt: null, updatedAt: expectedUpdatedAt },
         data: {
           title: parsed.data.title,
           category: parsed.data.category,
@@ -229,7 +233,7 @@ export async function updateNoticeAction(
   } catch (error) {
     console.error("Failed to update notice", error);
     await removeStorageObjects(uploaded.map((item) => ({ bucket: PUBLIC_BUCKET, objectPath: item.objectPath })));
-    return { message: "공지사항을 수정하지 못했습니다." };
+    return { message: "공지사항을 수정하지 못했습니다. 다른 화면에서 변경되었을 수 있으니 게시물을 다시 열어 확인해 주세요." };
   }
 
   revalidateNoticePaths(slug);

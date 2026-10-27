@@ -11,8 +11,7 @@ type Props = { params: Promise<{ id: string }> };
 
 function toDateTimeLocal(value: Date | null) {
   if (!value) return "";
-  const offset = value.getTimezoneOffset() * 60_000;
-  return new Date(value.getTime() - offset).toISOString().slice(0, 16);
+  return new Date(value.getTime() + 9 * 3600000).toISOString().slice(0, 16);
 }
 
 export default async function EditNoticePage({ params }: Props) {
@@ -30,6 +29,7 @@ export default async function EditNoticePage({ params }: Props) {
       <Alert severity="info" className="mt-6!">삭제한 공지는 공개 목록에서 숨겨지며 데이터는 복구 가능한 상태로 보관됩니다.</Alert>
       <NoticeForm initialValues={{
         id: notice.id,
+        updatedAt: notice.updatedAt.toISOString(),
         title: notice.title,
         category: notice.category,
         body: getNoticeBody(notice.content),
