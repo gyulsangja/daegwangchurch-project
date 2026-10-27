@@ -1,5 +1,6 @@
 import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
+import Link from "next/link";
 
 import { ContentList } from "./content-list";
 import { ContentShell } from "../site/content-shell";
@@ -33,7 +34,11 @@ export function NewsListPage({
             <Button type="submit">검색</Button>
           </form>
         </Paper>
-        <ContentList items={items} basePath={basePath} />
+        {query && !items.length ? <div className="rounded-xl border border-border bg-background-warm p-8 text-center">
+          <p className="font-semibold">{title} 검색 결과가 없습니다.</p>
+          <p className="mt-2 text-sm leading-7 text-text-secondary">검색어를 바꾸거나 전체 목록에서 확인해 주세요.</p>
+          <Link href={basePath} className="focus-ring mt-3 inline-flex min-h-11 items-center rounded font-semibold text-primary-700">{title} 전체 보기 →</Link>
+        </div> : <ContentList items={items} basePath={basePath} />}
       </ContentShell>
     </>
   );

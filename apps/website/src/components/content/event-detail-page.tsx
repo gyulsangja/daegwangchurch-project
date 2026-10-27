@@ -29,7 +29,7 @@ export function EventDetailPage({ event }: { event: EventDetail }) {
             {event.ministryName ? <div className="flex items-start gap-3"><UsersRound aria-hidden="true" className="mt-0.5 size-5 text-primary-600" /><div><dt className="font-bold">담당</dt><dd className="mt-1 text-text-secondary">{event.ministryName}</dd></div></div> : null}
           </dl>
         </header>
-        <div className="whitespace-pre-wrap py-10 text-lg leading-9 text-text-secondary">{event.description || "상세 안내가 준비 중입니다."}</div>
+        <div className="whitespace-pre-wrap py-10 text-lg leading-9 text-text-secondary">{event.description || "추가 설명이 등록되지 않았습니다. 위 날짜·장소를 확인하고 참여 방법은 교회에 문의해 주세요."}</div>
       </article>
     </ContentShell>
   );

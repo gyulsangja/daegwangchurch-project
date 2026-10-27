@@ -18,7 +18,7 @@ export function ContentList({ items, basePath }: { items: ContentListItem[]; bas
             </div>
             <div><h2 className="text-xl font-semibold leading-relaxed"><Link href={`${basePath}/${item.slug}`} className="focus-ring rounded hover:text-primary-700">{item.title}</Link></h2>
             <p className="mt-3 line-clamp-2 leading-7 text-text-secondary">{item.summary}</p>
-            <Link href={`${basePath}/${item.slug}`} aria-label={`${item.title} 자세히 보기`} className="church-text-link mt-3">자세히 보기 <ArrowRight aria-hidden="true" className="size-4" /></Link></div>
+            <Link href={`${basePath}/${item.slug}`} aria-label={`${item.title} 본문 보기`} className="church-text-link mt-3">본문 보기 <ArrowRight aria-hidden="true" className="size-4" /></Link></div>
         </article>
       ))}
     </div>

@@ -6,7 +6,7 @@ import { getPublicHistoryItems } from "@daegwang/server/features/history/queries
 
 export const metadata: Metadata = {
   title: "교회연혁",
-  description: "1988년부터 이어진 대광교회의 발자취입니다.",
+  description: "1988년 5월 1일 독산동에서 시작된 대광교회의 첫 예배와 연도별 주요 연혁을 소개합니다.",
   alternates: { canonical: "/about/history" },
 };
 
@@ -19,7 +19,7 @@ export default async function HistoryPage() {
       <PageHero
         eyebrow="OUR HISTORY"
         title="첫 예배에서 오늘까지"
-        description="독산동에서 시작된 예배의 걸음을 기억하며 다음 세대를 향해 나아갑니다."
+        description="1988년 5월 1일 독산동에서 드린 첫 예배부터, 대광교회가 걸어온 시간을 연도별로 살펴보세요."
       />
       <ContentShell>
         <section className="grid gap-10 lg:grid-cols-[0.65fr_1.35fr]">
@@ -42,7 +42,7 @@ export default async function HistoryPage() {
                 <div><h3 className="text-lg font-extrabold">{item.title}</h3>{item.content ? <p className="mt-2 whitespace-pre-line leading-7 text-text-secondary">{item.content}</p> : null}</div>
               </li>;
             })}
-          </ol> : <div className="mt-9 rounded-2xl border border-border p-8 text-text-secondary">상세 연혁을 준비하고 있습니다.</div>}
+          </ol> : <div className="mt-9 rounded-2xl border border-border p-8 text-text-secondary">현재 공개된 추가 연혁이 없습니다. 교회의 시작은 위 안내에서 확인하실 수 있습니다.</div>}
         </section>
       </ContentShell>
     </>

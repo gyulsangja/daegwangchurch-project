@@ -7,7 +7,7 @@ import { getVisionPageContent } from "@daegwang/server/features/pages/queries";
 
 export const metadata: Metadata = {
   title: "비전과 사명",
-  description: "예배를 통해 세상이 회복됨을 믿는 대광교회의 목회철학입니다.",
+  description: "대광교회가 고백하는 예배의 가치와 신앙의 방향을 소개합니다. 말씀과 기도, 세대와 공동체, 지역과 이웃을 향한 비전을 살펴보세요.",
   alternates: { canonical: "/about/vision" },
 };
 

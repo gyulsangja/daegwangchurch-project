@@ -16,7 +16,7 @@ type AlbumListItem = { slug: string; title: string; category: string; date: stri
 export function AlbumListPage({ items, query }: { items: AlbumListItem[]; query: string }) {
   return (
     <>
-      <PageHero eyebrow="ALBUM" title="행사앨범" description="대광교회 공동체의 소중한 순간을 나눕니다." />
+      <PageHero eyebrow="ALBUM" title="행사앨범" description="예배와 행사, 공동체가 함께한 순간을 사진으로 나눕니다. 행사 날짜와 제목을 확인하고 앨범을 열어 보세요." />
       <ContentShell>
         <Paper variant="outlined" className="mb-8 flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm font-semibold text-text-secondary">총 {items.length}개 앨범</p>
@@ -31,12 +31,12 @@ export function AlbumListPage({ items, query }: { items: AlbumListItem[]; query:
                   <div className="flex items-center justify-between gap-3"><Chip label={item.category} size="small" color="primary" variant="outlined" /><span className="flex items-center gap-1 text-sm text-text-secondary"><CalendarDays aria-hidden="true" className="size-4" />{item.date}</span></div>
                   <h2 className="mt-5 text-xl font-extrabold tracking-[-0.03em]">{item.title}</h2>
                   <p className="mt-2 line-clamp-2 text-sm leading-6 text-text-secondary">{item.description || `사진 ${item.imageCount}장`}</p>
-                  <Link href={`/news/albums/${item.slug}`} className="focus-ring mt-5 inline-flex min-h-11 items-center gap-2 rounded-full font-bold text-primary-700">앨범 보기 <ArrowRight aria-hidden="true" className="size-4" /></Link>
+                  <Link href={`/news/albums/${item.slug}`} className="focus-ring mt-5 inline-flex min-h-11 items-center gap-2 rounded-full font-bold text-primary-700" aria-label={`${item.title} 사진 보기`}>사진 보기 <ArrowRight aria-hidden="true" className="size-4" /></Link>
                 </CardContent>
               </Card>
             ))}
           </div>
-        ) : <div className="rounded-2xl border border-border bg-white px-6 py-16 text-center text-text-secondary">표시할 행사앨범이 없습니다.</div>}
+        ) : <div className="rounded-2xl border border-border bg-white px-6 py-16 text-center text-text-secondary">{query ? "검색 조건에 맞는 앨범이 없습니다. 검색어를 바꾸거나 비워서 다시 검색해 주세요." : "현재 공개된 행사앨범이 없습니다."}</div>}
       </ContentShell>
     </>
   );

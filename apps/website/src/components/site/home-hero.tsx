@@ -20,7 +20,7 @@ export function HomeHero({ content, schedules }: { content: HomePageContent; sch
         <figcaption className="home-image-caption"><span>말씀을 가까이,</span><span>서로를 따뜻이.</span></figcaption>
       </figure>
       <div className="home-service-strip" aria-labelledby="home-worship-times">
-        <div><h2 id="home-worship-times" className="flex items-center gap-2 text-base font-bold"><Clock3 aria-hidden="true" className="size-4" />함께 드리는 예배</h2><Link href="/about/worship-info" className="church-text-link mt-1">예배 안내 <ArrowRight aria-hidden="true" className="size-4" /></Link></div>
+        <div><h2 id="home-worship-times" className="flex items-center gap-2 text-base font-bold"><Clock3 aria-hidden="true" className="size-4" />예배시간 안내</h2><Link href="/about/worship-info" className="church-text-link mt-1">전체 예배시간 <ArrowRight aria-hidden="true" className="size-4" /></Link></div>
         {schedules.length ? <div className="grid flex-1 gap-5 sm:grid-cols-3">{schedules.map(item => <div key={item.id}><p className="font-semibold">{item.name}</p><p className="mt-1 text-sm text-text-secondary">{item.dayLabel} {item.timeLabel}</p>{item.location && <p className="text-sm text-text-secondary">{item.location}</p>}</div>)}</div> : <p className="text-sm leading-7 text-text-secondary">함께 예배드릴 여러분을 기다립니다.<br />예배 시간은 확인 후 안내하겠습니다.</p>}
         <Link href="/location" className="church-text-link shrink-0">오시는 길 <ArrowRight aria-hidden="true" className="size-4" /></Link>
       </div>

@@ -33,7 +33,7 @@ export default async function LocationPage() {
       <PageHero
         eyebrow="LOCATION"
         title="찾아오시는 길"
-        description={`${settings.siteName}을 찾아오시는 방법을 안내합니다.`}
+        description={`${settings.siteName}의 주소와 지도, 대중교통·주차 안내를 확인하세요.`}
       />
       <ContentShell>
         <div className="grid gap-8 lg:grid-cols-[1.3fr_0.7fr]">
@@ -83,7 +83,7 @@ export default async function LocationPage() {
               <Car className="size-7 text-primary-600" />
               <h2 className="mt-5 text-xl font-extrabold">주차 안내</h2>
               <p className="mt-3 whitespace-pre-line leading-7 text-text-secondary">
-                {settings.parkingInfo || "교회 주차 공간과 인근 주차 안내를 확인 중입니다."}
+                {settings.parkingInfo || "주차 가능 여부와 이용 장소는 방문 전에 교회에 문의해 주세요."}
               </p>
             </article>
           </div>

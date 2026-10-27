@@ -48,7 +48,7 @@ export async function WorshipListPage({ eyebrow, title, description, category, t
             </p>
             <p className="mt-5 leading-7 text-text-secondary">{primary.summary}</p>
             <Link href={`/worship/videos/${primary.slug}`} className="focus-ring mt-7 inline-flex min-h-11 items-center gap-2 self-start rounded-full bg-primary-600 px-5 font-bold text-white hover:bg-primary-700">
-              <Play aria-hidden="true" className="size-4 fill-white" /> 영상 상세 보기
+              <Play aria-hidden="true" className="size-4 fill-white" /> 예배 영상 보기
             </Link>
           </div>
         </article>}
@@ -61,12 +61,12 @@ export async function WorshipListPage({ eyebrow, title, description, category, t
                 <div className="p-5">
                   <p className="text-xs font-bold text-primary-700">{item.category} · {item.date}</p>
                   <h3 className="mt-2 text-lg font-extrabold">{item.title}</h3>
-                  <Link href={`/worship/videos/${item.slug}`} className="focus-ring mt-4 inline-flex min-h-11 items-center rounded-full font-bold text-primary-700">자세히 보기</Link>
+                  <Link href={`/worship/videos/${item.slug}`} aria-label={`${item.title} 영상 보기`} className="focus-ring mt-4 inline-flex min-h-11 items-center rounded-full font-bold text-primary-700">영상 보기</Link>
                 </div>
               </article>
             ))}
           </div>
-        </section></> : <Paper variant="outlined" className="p-12 text-center"><h2 className="text-2xl font-extrabold">등록된 콘텐츠가 없습니다</h2><p className="mt-3 text-text-secondary">새로운 예배 콘텐츠가 공개되면 이곳에서 확인할 수 있습니다.</p></Paper>}
+        </section></> : <Paper variant="outlined" className="p-12 text-center"><h2 className="text-2xl font-extrabold">{archive.q || archive.month ? '검색 조건에 맞는 영상이 없습니다' : `현재 공개된 ${category} 영상이 없습니다`}</h2><p className="mt-3 text-text-secondary">{archive.q || archive.month ? '검색어나 조회 월을 바꾸거나, 전체 보기를 눌러 다른 영상을 확인해 주세요.' : '다른 예배 영상은 예배와 말씀 메뉴에서 확인하실 수 있습니다.'}</p></Paper>}
         <ArchivePagination page={archive.page} pageCount={archive.pageCount} total={archive.total} filters={{ q: archive.q, month: archive.month }} />
       </ContentShell>
     </>

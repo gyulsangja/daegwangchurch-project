@@ -4,7 +4,7 @@ import { AlbumListPage } from "../../../../components/content/album-list-page";
 import { getPublishedAlbums } from "@daegwang/server/features/albums/queries";
 import { getPublicStorageUrl } from "@daegwang/web-ui/lib/storage/public-url";
 
-export const metadata: Metadata = { title: "행사앨범", description: "대광교회 공동체의 행사 사진을 확인하세요.", alternates: { canonical: "/news/albums" } };
+export const metadata: Metadata = { title: "행사앨범", description: "대광교회 예배와 행사, 공동체 모임의 사진을 앨범별로 확인하세요. 행사 날짜와 제목을 살펴보고 앨범을 열어 사진을 볼 수 있습니다.", alternates: { canonical: "/news/albums" } };
 
 type Props = { searchParams: Promise<{ q?: string }> };
 

@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "섬기는 사람들",
-  description: "대광교회를 섬기는 사람들을 소개합니다.",
+  description: "대광교회 담임목사와 교역자, 장로 등 교회를 섬기는 분들의 이름·직분과 소개를 확인하세요.",
   alternates: { canonical: "/about/people" },
 };
 
@@ -30,7 +30,7 @@ export default async function PeoplePage() {
 
   return (
     <>
-      <PageHero eyebrow="PEOPLE" title="섬기는 사람들" description="말씀과 사랑으로 교회와 성도를 섬깁니다." />
+      <PageHero eyebrow="PEOPLE" title="섬기는 사람들" description="대광교회에서 말씀과 사랑으로 성도를 섬기는 분들의 이름과 직분, 사역을 소개합니다." />
       <ContentShell>
         {seniorPastor ? (
           <section className="grid gap-8 lg:grid-cols-[0.75fr_1.25fr] lg:items-center">
@@ -45,7 +45,7 @@ export default async function PeoplePage() {
             </div>
           </section>
         ) : (
-          <div className="rounded-2xl border border-dashed border-border bg-background-warm px-6 py-12 text-center text-text-secondary">담임목사 정보를 등록하면 이곳에 표시됩니다.</div>
+          <div className="rounded-2xl border border-dashed border-border bg-background-warm px-6 py-12 text-center text-text-secondary">현재 공개된 담임목사 소개가 없습니다. 교회에 관한 문의는 방문·교회 생활 문의를 이용해 주세요.</div>
         )}
 
         <section className="mt-20 md:mt-28">
