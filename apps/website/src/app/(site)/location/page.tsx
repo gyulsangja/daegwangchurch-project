@@ -11,7 +11,7 @@ import { mapEmbedUrl } from '@daegwang/contracts/features/church/links';
 
 export const metadata: Metadata = {
   title: "찾아오시는 길",
-  description: "대광교회로 오시는 길을 안내합니다.",
+  description: "서울 금천구 독산로 299 대광교회의 위치와 대중교통을 안내합니다. 구로디지털단지역에서 버스로 환승하여 독산동남문시장 정류장을 이용하세요.",
   alternates: { canonical: "/location" },
 };
 

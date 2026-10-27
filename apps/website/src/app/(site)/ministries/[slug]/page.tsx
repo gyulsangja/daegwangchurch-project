@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { CalendarDays, Clock3, MapPin, UsersRound } from "lucide-react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 
 import { MediaPlaceholder } from "../../../../components/content/media-placeholder";
 import { ContentShell, SectionTitle } from "../../../../components/site/content-shell";
@@ -37,7 +38,7 @@ export default async function MinistryPage({ params }: Props) {
   const introduction = record?.introduction ?? fallback.description;
   const audience = record?.audience ?? fallback.audience;
   const programs = record ? getMinistryPrograms(record.sections) : slug === "blessing-football" ? ["전문 코치의 체계적인 훈련", "즐겁게 참여하는 팀 게임", "유초등부부터 청년부까지 참여", "모든 순서 후 복음 나눔"] : [];
-  const heroDescription = record ? `${name} 공동체를 소개합니다.` : fallback.slogan;
+  const heroDescription = record ? `${name}의 참여 대상과 예배·모임 시간, 장소를 안내합니다.` : fallback.slogan;
 
   return (
     <>
@@ -54,7 +55,7 @@ export default async function MinistryPage({ params }: Props) {
         <section className="mt-20 md:mt-28">
           <SectionTitle eyebrow="INFORMATION" title="모임 안내" />
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Info icon={UsersRound} label="대상" value={audience || "누구나 참여할 수 있습니다"} />
+            <Info icon={UsersRound} label="대상" value={audience || "참여 대상은 교회에 문의해 주세요"} />
             <Info icon={CalendarDays} label="요일" value={record?.meetingDay || "교회에 문의해 주세요"} />
             <Info icon={Clock3} label="시간" value={record?.meetingTime || "교회에 문의해 주세요"} />
             <Info icon={MapPin} label="장소" value={record?.location || "교회에 문의해 주세요"} />
@@ -69,6 +70,14 @@ export default async function MinistryPage({ params }: Props) {
           </section>
         ) : null}
         {record?.leader || (record?.showContact && record.contactValue) ? <section className="mt-16 rounded-2xl border border-border p-7"><SectionTitle eyebrow="CONTACT" title="담당 및 문의" /><dl className="mt-6 grid gap-3 sm:grid-cols-[8rem_1fr]">{record.leader ? <><dt className="font-bold text-text-secondary">담당자</dt><dd className="font-extrabold">{record.leader}</dd></> : null}{record.showContact && record.contactValue ? <><dt className="font-bold text-text-secondary">문의</dt><dd className="font-extrabold">{record.contactName ? `${record.contactName} · ` : ""}{record.contactValue}</dd></> : null}</dl></section> : null}
+        <aside className="mt-8 rounded-2xl bg-primary-50 p-6">
+          <h2 className="text-lg font-bold">{name}에 처음 방문하시나요?</h2>
+          <p className="mt-2 leading-7 text-text-secondary">참여 대상과 모임 장소를 확인해 주세요. 첫 방문이나 참여 방법이 궁금하시면 교회에 문의하실 수 있습니다.</p>
+          <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
+            <Link href="/newcomer/contact" className="focus-ring inline-flex min-h-11 items-center rounded font-semibold text-primary-700">참여 문의하기 →</Link>
+            <Link href="/location" className="focus-ring inline-flex min-h-11 items-center rounded font-semibold text-primary-700">교회 위치·교통편 보기 →</Link>
+          </div>
+        </aside>
       </ContentShell>
     </>
   );

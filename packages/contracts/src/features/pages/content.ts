@@ -41,8 +41,8 @@ export type HomePageContent = {
 };
 
 export const defaultChurchContent: ChurchPageContent = {
-  heroTitle: "예배와 말씀으로 세워지는 공동체",
-  heroDescription: "대한예수교장로회(고신)에 속한 대광교회는 성경을 믿음과 삶의 최종 권위로 삼습니다.",
+  heroTitle: "독산동에서 함께 예배하는 대광교회",
+  heroDescription: "서울 금천구 독산동에 있는 대한예수교장로회(고신) 대광교회입니다. 성경을 믿음과 삶의 최종 권위로 삼고, 예배와 말씀을 중심으로 함께 살아갑니다.",
   sinceLabel: "SINCE 1988",
   motto: "일어나라,\n빛을 발하라.",
   sectionTitle: "한 가정의 예배에서 시작된 교회",
@@ -77,8 +77,8 @@ export const defaultNewcomerEducationContent: NewcomerEducationContent = {
 };
 
 export const defaultHomePageContent: HomePageContent = {
-  heroBadge: "모든 길은 예배로 통합니다", heroTitleBefore: "예배를 통해", heroTitleAccent: "세상이 회복됨", heroTitleAfter: "을 믿습니다.", heroDescription: "말씀 위에 굳게 서서 이웃과 다음세대를 섬기는 대광교회에 오신 것을 환영합니다.",
-  worshipTitle: "말씀과 예배로 한 주를 시작하세요", newsTitle: "대광교회의 새로운 소식", sinceLabel: "SINCE 1988", motto: "일어나라,\n빛을 발하라.", churchTitle: "성경을 믿음과 삶의 최종 권위로 삼는 교회", churchDescription: "1988년 독산동에서 첫 예배를 드린 대광교회는 예배와 말씀을 중심으로 이웃과 지역을 섬기며 다음세대를 세워가고 있습니다.", welcomeTitle: "처음 오신 여러분을 진심으로 환영합니다", welcomeDescription: "낯설지 않도록 예배부터 새가족 과정까지 차근차근 안내해 드립니다.",
+  heroBadge: "모든 길은 예배로 통합니다", heroTitleBefore: "예배를 통해", heroTitleAccent: "세상이 회복됨", heroTitleAfter: "을 믿습니다.", heroDescription: "서울 금천구 독산동 대광교회에 오신 것을 환영합니다. 예배시간과 오시는 길을 확인하고, 말씀과 교회 소식을 만나보세요.",
+  worshipTitle: "말씀과 예배로 한 주를 시작하세요", newsTitle: "대광교회의 새로운 소식", sinceLabel: "SINCE 1988", motto: "일어나라,\n빛을 발하라.", churchTitle: "성경을 믿음과 삶의 최종 권위로 삼는 교회", churchDescription: "대한예수교장로회(고신) 대광교회는 1988년 독산동에서 첫 예배를 드렸습니다. 주일예배와 수요기도회, 교회학교와 청년부 모임으로 함께 신앙생활을 이어갑니다.", welcomeTitle: "처음 오신 여러분을 진심으로 환영합니다", welcomeDescription: "처음 방문하시나요? 예배시간·장소와 교통편을 먼저 확인해 주세요. 자녀와 함께 오시거나 교회 생활이 궁금하시면 새가족 안내에서 필요한 정보를 찾으실 수 있습니다.",
   showWorship: true, showNews: true, showChurch: true, showWelcome: true,
 };
 

@@ -27,7 +27,7 @@ export async function WorshipListPage({ eyebrow, title, description, category, t
         category,
         title: item.title,
         date: item.contentDate.toISOString().slice(0, 10).replaceAll("-", "."),
-        summary: item.summary || item.description || "등록된 예배 콘텐츠입니다.",
+        summary: item.summary || item.description || [item.scripture, item.preacher].filter(Boolean).join(' · ') || `${category} 영상입니다. 제목을 눌러 영상을 보실 수 있습니다.`,
         thumbnailUrl: item.thumbnailUrl,
       }));
   const primary = items[0];

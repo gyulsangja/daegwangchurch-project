@@ -9,8 +9,8 @@ import { getSiteSettings } from '@daegwang/server/features/settings/queries';
 import { getPublicSchedules } from '@daegwang/server/features/schedules/queries';
 
 export const metadata: Metadata = {
-  title: "처음 오셨나요?",
-  description: "대광교회를 처음 방문하는 분을 위한 안내입니다.",
+  title: "처음 방문하는 분을 위한 새가족 안내",
+  description: "서울 금천구 독산동 대광교회 첫 방문 안내입니다. 예배시간·위치·교회학교와 청년부, 새가족 등록 문의 방법을 확인하세요.",
   alternates: { canonical: "/newcomer/guide" },
 };
 
@@ -34,8 +34,8 @@ const guideSteps = [
     icon: HeartHandshake,
   },
   {
-    title: "공동체와 함께하세요",
-    description: "연령별 공동체에서 믿음의 동역자를 만나세요.",
+    title: "새가족 교육을 알아보세요",
+    description: "신앙생활의 기초를 배우는 새가족 교육과 신청 방법을 살펴보세요.",
     href: "/newcomer/education",
     icon: UsersRound,
   },
@@ -44,9 +44,10 @@ const guideSteps = [
 export default async function NewcomerGuidePage() {
   const [settings, schedules] = await Promise.all([getSiteSettings(), getPublicSchedules()]);
   const questions = [
+    { question: '아이와 함께 방문하거나 청년 모임에 참여하려면 어떻게 하나요?', answer: '유초등부·중고등부·청년부의 예배와 모임을 안내하고 있습니다. 예배시간 안내에서 각 부서의 시간과 장소를 확인해 주세요. 자녀의 연령에 맞는 모임이나 첫 방문 안내가 필요하시면 교회에 문의해 주세요.', href: '/about/worship-info', label: '교회학교·청년부 시간 확인' },
     { question: '대광교회는 어디에 있나요?', answer: settings.address ? `${settings.siteName} 주소는 ${[settings.address, settings.addressDetail].filter(Boolean).join(' ')}입니다. 교통편과 지도는 오시는 길에서 확인하실 수 있습니다.` : '오시는 길에서 교회 위치와 방문 안내를 확인해 주세요.', href: '/location', label: '오시는 길' },
-    { question: '예배는 언제 드리나요?', answer: schedules.length ? schedules.map(item => `${item.name}: ${item.dayLabel} ${item.timeLabel}${item.location ? ` (${item.location})` : ''}`).join(' / ') : '예배안내에서 최신 예배시간을 확인해 주세요.', href: '/about/worship-info', label: '예배시간 자세히 보기' },
-    { question: '설교와 주보는 회원가입 없이 볼 수 있나요?', answer: '홈페이지의 공개된 설교 영상과 주보는 회원가입 없이 보실 수 있습니다. 주일 설교는 예배 메뉴에서, 주보는 교회소식 메뉴에서 확인하세요.', href: '/news/bulletins', label: '이번 주 주보' },
+    { question: '예배는 언제 드리나요?', answer: schedules.length ? schedules.map(item => `${item.name}: ${item.dayLabel} ${item.timeLabel}${item.location ? ` (${item.location})` : ''}`).join('\n') : '예배안내에서 최신 예배시간을 확인해 주세요.', href: '/about/worship-info', label: '예배시간 자세히 보기' },
+    { question: '설교와 주보는 회원가입 없이 볼 수 있나요?', answer: '홈페이지의 공개된 설교 영상과 주보는 회원가입 없이 보실 수 있습니다. 주일 설교는 예배 메뉴에서, 주보는 교회소식 메뉴에서 확인하세요.', href: '/news/bulletins', label: '날짜별 주보 보기' },
     { question: '처음 방문하기 전에 문의하려면 어떻게 하나요?', answer: settings.phone ? `교회 대표전화 ${settings.phone} 또는 홈페이지 문의하기를 이용해 주세요.` : '홈페이지 문의하기에서 방문과 교회 생활에 관한 질문을 남겨 주세요.', href: '/newcomer/contact', label: '문의하기' },
   ];
   return (
@@ -93,7 +94,7 @@ export default async function NewcomerGuidePage() {
           <p className="church-eyebrow">첫 방문을 함께 준비하겠습니다</p>
           <h2 className="mt-3 text-3xl leading-relaxed">궁금한 점이 있으신가요?</h2>
           <p className="mt-4 max-w-2xl">
-            새가족 방문과 교회 생활에 관한 질문을 온라인으로 안전하게 남길 수 있습니다.
+            새가족 방문과 교회 생활에 관한 질문을 문의하기에 남길 수 있습니다. 자녀의 예배 참여나 방문 안내가 필요하시면 편하게 문의해 주세요.
           </p>
           <Button asChild className="mt-7 bg-white text-text-primary hover:bg-primary-50">
             <Link href="/newcomer/contact">문의하기</Link>

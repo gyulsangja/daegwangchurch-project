@@ -8,8 +8,8 @@ import { Button } from "@daegwang/web-ui/components/ui/button";
 import { getPublicSchedules } from "@daegwang/server/features/schedules/queries";
 
 export const metadata: Metadata = {
-  title: "예배안내",
-  description: "대광교회의 주일예배와 주중 예배를 안내합니다.",
+  title: "예배시간·장소 안내",
+  description: "대광교회 주일 오전·오후예배, 수요기도회와 교회학교의 예배시간·장소를 확인하세요. 처음 방문하는 분을 위한 교통편과 새가족 안내도 제공합니다.",
   alternates: { canonical: "/about/worship-info" },
 };
 
@@ -21,8 +21,8 @@ export default async function WorshipInfoPage() {
     <>
       <PageHero
         eyebrow="WORSHIP INFORMATION"
-        title="예배의 자리로 초대합니다"
-        description="하나님을 예배하며 말씀 안에서 함께 회복되는 시간입니다."
+        title="함께 드리는 예배, 시간과 장소"
+        description="주일예배와 주중 예배, 교회학교 모임의 시간과 장소를 확인하세요. 예배의 자리에 여러분을 초대합니다."
       />
       <ContentShell>
         <SectionTitle eyebrow="WEEKLY WORSHIP" title="예배 시간" />

@@ -5,7 +5,7 @@ import { getEventDescription, getPublishedEvents } from "@daegwang/server/featur
 
 export const metadata: Metadata = {
   title: "교회 일정",
-  description: "대광교회의 예배, 교육과 공동체 일정을 확인하세요.",
+  description: "대광교회의 예배·교육·공동체 행사 일정을 확인하세요. 각 일정에서 날짜와 장소, 행사 안내를 살펴보실 수 있습니다.",
   alternates: { canonical: "/news/events" },
 };
 
@@ -24,6 +24,6 @@ export default async function EventsPage({ searchParams }: Props) {
       summary: description.replace(/\s+/g, " ").slice(0, 140) || [event.location, event.ministryName].filter(Boolean).join(" · ") || "교회 일정 안내입니다.",
     };
   });
-  return <NewsListPage eyebrow="EVENTS" title="교회 일정" description="예배와 교육, 공동체의 주요 일정을 확인하세요." items={items} basePath="/news/events" query={q} />;
+  return <NewsListPage eyebrow="EVENTS" title="교회 일정" description="예배·교육·공동체 모임의 날짜와 장소를 확인하세요. 일정 제목을 누르면 자세한 안내를 보실 수 있습니다." items={items} basePath="/news/events" query={q} />;
 }
 

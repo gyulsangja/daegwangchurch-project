@@ -8,7 +8,7 @@ import { FaithPanel } from '../../../../components/site/faith-panel';
 
 export const metadata: Metadata = {
   title: "교회소개",
-  description: "1988년 독산동에서 첫 예배를 드린 대광교회를 소개합니다.",
+  description: "서울 금천구 독산동 대한예수교장로회(고신) 대광교회의 시작과 신앙, 예배와 공동체를 소개합니다.",
   alternates: { canonical: "/about/church" },
 };
 
