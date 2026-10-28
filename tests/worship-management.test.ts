@@ -15,7 +15,7 @@ function fixture(){
 function input(version='2026-10-29T00:00:00.000Z'){return {id:'bulletin1',expectedUpdatedAt:version,title:'Changed',worshipDate:'2026-10-25',summary:'Public summary',status:'DRAFT',worshipContentId:'worship1'};}
 test('bulletin source edit preserves IDs, files and URL; authorization and stale writes enforced',async()=>{
  const f=fixture();await assert.rejects(f.service.list('visitor',{month:'2026-10'}),/권한/);await assert.rejects(f.service.save('visitor',input()),/권한/);
- const page=await f.service.list('admin',{month:'2026-10'});assert.equal(page.data[0].date,'2026-10-25');assert.equal('pdfMediaId'in page.data[0],false);
+ const page=await f.service.list('admin',{month:'2026-10'});assert.ok('data'in page);assert.equal(page.data[0].date,'2026-10-25');assert.equal('pdfMediaId'in page.data[0],false);
  await f.service.save('admin',input());assert.equal(f.read().row.worshipContentId,'worship1');assert.equal(f.read().row.slug,'keep-slug');assert.equal(f.read().row.pdfMediaId,'keep-file');
  await assert.rejects(f.service.save('admin',input()),/다른 화면/);f.revoke();await assert.rejects(f.service.list('admin',{month:'2026-10'}),/권한/);
 });

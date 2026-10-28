@@ -130,6 +130,8 @@ test('persisted group interests never grant membership; revocation and manager b
   await assert.rejects(a.update({ interests: [groupId], notifications: false, version: 1 }), MemberRecordConflict);
   await assert.rejects(a.update({ interests: [], notifications: false, version: 2, memberships: [groupId] }));
   await assert.rejects(createGroupAdminService(db, limited.id).saveNotice(notice), /FORBIDDEN/);
+  await assert.rejects(manage.setMembership(groupId, owner, true), MemberRecordConflict);
+  await db.churchMembership.create({data:{ownerId:owner,status:'CONFIRMED',realName:'Fixture',phone:'01000000000',position:'성도'}});
   await manage.setMembership(groupId, owner, true);
   assert.equal((await a.snapshot()).notices.length, 1);
   assert.equal((await b.snapshot()).notices.length, 0);

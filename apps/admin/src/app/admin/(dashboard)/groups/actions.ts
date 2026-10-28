@@ -18,18 +18,13 @@ export async function saveGroupNoticeAction(_state: GroupActionState, form: Form
 export async function saveMembershipAction(_state: GroupActionState, form: FormData): Promise<GroupActionState> {
   const admin = await requireSuperAdmin();
   try { await createGroupAdminService(getPrisma(), admin.id).setMembership(String(form.get('groupId')), String(form.get('ownerId')), form.get('approved') === 'true'); revalidatePath('/admin/groups'); return { ok: true, message: '소속을 변경했습니다. 관심 모임 선택과는 별개입니다.' }; }
-  catch { return { ok: false, message: '등록된 회원과 활성 모임을 선택해 주세요.' }; }
+  catch { return { ok: false, message: '교인 확인이 승인된 회원과 활성 모임인지 확인하고 새로고침해 주세요.' }; }
 }
 export async function saveGroupManagerAction(_state: GroupActionState, form: FormData): Promise<GroupActionState> {
   const admin = await requireSuperAdmin(); const db = getPrisma();
   const groupId = String(form.get('groupId')); const adminId = String(form.get('adminId'));
   try {
-    await db.$transaction(async tx => {
-      if (!await tx.churchGroup.findUnique({ where: { id: groupId } }) || !await tx.adminProfile.findFirst({ where: { id: adminId, isActive: true } })) throw new Error('Invalid selection');
-      if (form.get('assigned') === 'true') await tx.groupManager.upsert({ where: { groupId_adminId: { groupId, adminId } }, create: { groupId, adminId }, update: {} });
-      else await tx.groupManager.deleteMany({ where: { groupId, adminId } });
-      await tx.activityLog.create({ data: { actorId: admin.id, action: 'UPDATE', entityType: 'GroupManager', entityId: groupId, summary: '모임 담당자 권한 변경', changes: { adminId } } });
-    });
+    await createGroupAdminService(db,admin.id).setManager(groupId,adminId,form.get('assigned') === 'true');
     revalidatePath('/admin/groups'); return { ok: true, message: '담당자 권한을 변경했습니다.' };
   } catch { return { ok: false, message: '모임과 활성 관리자를 확인해 주세요.' }; }
 }
