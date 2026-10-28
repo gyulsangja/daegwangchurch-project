@@ -13,7 +13,7 @@ const input = {
 };
 
 function fixture(options: { inactive?: boolean; missing?: boolean; failAudit?: boolean; failPublication?: boolean } = {}) {
-  let saved: Record<string, unknown> = { id: "content-1", title: "기존 제목", status: "DRAFT", publishedAt: null };
+  let saved: Record<string, unknown> = { id: "content-1", title: "기존 제목", slug:'existing-permalink', updatedAt:date, status: "DRAFT", publishedAt: null };
   let logs: Record<string, unknown>[] = [];
   let publication: Record<string, unknown> | null = null;
   let revisions: Record<string, unknown>[] = [];
@@ -78,6 +78,18 @@ test('failed APP synchronization rolls back the website content and revision as 
   assert.equal(f.revisions().length, 0);
   assert.equal(f.publication(), null);
   assert.equal(f.logs().length, 0);
+});
+
+test('edits retain public permalink and reject stale versions before publication',async()=>{
+ const f=fixture();
+ await assert.rejects(f.service.update(actor,'content-1',input,'2026-09-01T00:00:00.000Z'),/CONFLICT/);
+ assert.equal(f.revisions().length,0);assert.equal(f.logs().length,0);
+ await f.service.update(actor,'content-1',input,date.toISOString());
+ assert.equal(f.saved().slug,'existing-permalink');assert.equal(f.revisions().length,1);
+});
+test('client-supplied creation ID prevents retry from creating another video',async()=>{
+ const f=fixture();await assert.rejects(f.service.create(actor,input,'content-1'),/CONFLICT/);
+ assert.equal(f.logs().length,0);assert.equal(f.revisions().length,0);
 });
 
 test("create normalizes YouTube metadata and stores publication plus audit", async () => {

@@ -3,6 +3,7 @@ import {worshipManagementSave,worshipManagementQuery,worshipMonthRange,parseWors
 import {ContentManagementError} from './management';
 import {publicAttachmentUrl} from '../notices/app-query-core';
 import {rememberBulletinFile} from '../bulletins/file-history';
+import {createWorshipService} from '../worship/service-core';
 export function createWorshipManagement(db:Pick<PrismaClient,'$transaction'>,storageUrl?:string){
  async function authorize(tx:Prisma.TransactionClient,userId:string){
   const actor=await tx.adminProfile.findUnique({where:{authUserId:userId}});
@@ -14,6 +15,11 @@ export function createWorshipManagement(db:Pick<PrismaClient,'$transaction'>,sto
    const input=worshipManagementQuery.parse(raw);const range=worshipMonthRange(input.month);
    return db.$transaction(async tx=>{
     await authorize(tx,userId);
+    if(input.kind==='VIDEO_DETAIL'){
+     const row=await tx.worshipContent.findFirst({where:{id:input.id,deletedAt:null},select:{id:true,updatedAt:true,type:true,title:true,contentDate:true,youtubeUrl:true,preacher:true,scripture:true,description:true,summary:true,status:true,isPinned:true}});
+     if(!row)throw new ContentManagementError(404,'말씀을 찾을 수 없습니다.');
+     return {video:{id:row.id,expectedUpdatedAt:row.updatedAt.toISOString(),type:row.type,title:row.title,contentDate:row.contentDate.toISOString().slice(0,10),youtubeUrl:row.youtubeUrl,preacher:row.preacher??'',scripture:row.scripture??'',description:row.description??'',summary:row.summary??'',status:row.status,isPinned:row.isPinned}};
+    }
     if(input.kind==='HISTORY'){
      const current=await tx.bulletin.findFirst({where:{id:input.id,deletedAt:null},select:{id:true,pdfMediaId:true,updatedAt:true,pdfMedia:true}});
      if(!current)throw new ContentManagementError(404,'주보를 찾을 수 없습니다.');
@@ -45,6 +51,25 @@ export function createWorshipManagement(db:Pick<PrismaClient,'$transaction'>,sto
    const input=worshipManagementSave.parse(raw);
    return db.$transaction(async tx=>{
     const actor=await authorize(tx,userId);
+    if('operation'in input&&input.operation==='DELETE_SOURCE'){
+     if(input.kind==='WORSHIP'){
+      const service=createWorshipService({$transaction:async(work:(inner:Prisma.TransactionClient)=>Promise<unknown>)=>work(tx)} as Pick<PrismaClient,'$transaction'>);
+      try{await service.delete({adminId:actor.id},input.id,input.expectedUpdatedAt);}catch(e){if(e instanceof Error&&['CONFLICT','NOT_FOUND'].includes(e.message))throw new ContentManagementError(409,'자료가 변경되었습니다. 목록을 새로고침해 주세요.');throw e;}
+     }else{
+      const changed=await tx.bulletin.updateMany({where:{id:input.id,deletedAt:null,updatedAt:new Date(input.expectedUpdatedAt)},data:{deletedAt:new Date()}});
+      if(changed.count!==1)throw new ContentManagementError(409,'자료가 변경되었습니다. 목록을 새로고침해 주세요.');
+      await tx.activityLog.create({data:{actorId:actor.id,action:'DELETE',entityType:'Bulletin',entityId:input.id,summary:'통합 관리에서 주보 삭제 (파일·이력 보존)'}});
+     }
+     return {saved:true};
+    }
+    if('operation'in input&&input.operation==='SAVE_VIDEO'){
+     // Reuse publication + audit logic in this already-authorized transaction.
+     const service=createWorshipService({$transaction:async(work:(inner:Prisma.TransactionClient)=>Promise<unknown>)=>work(tx)} as Pick<PrismaClient,'$transaction'>);
+     const data={...input,sermonTitle:input.title,preacher:input.preacher??'',scripture:input.scripture??'',description:input.description??'',summary:input.summary??''};
+     try{if(input.expectedUpdatedAt===null)await service.create({adminId:actor.id},data,input.id);else await service.update({adminId:actor.id},input.id,data,input.expectedUpdatedAt);}
+     catch(e){if(e instanceof Error&&e.message==='CONFLICT')throw new ContentManagementError(409,'이미 저장되었거나 다른 화면에서 수정되었습니다. 목록을 새로고침해 주세요.');if(e instanceof Error&&e.message==='NOT_FOUND')throw new ContentManagementError(404,'말씀을 찾을 수 없습니다.');if(e&&typeof e==='object'&&'code'in e&&e.code==='P2002')throw new ContentManagementError(409,'같은 날짜·유형의 영상이 이미 등록되어 있습니다. 기존 자료를 확인해 주세요.');throw e;}
+     return {saved:true};
+    }
     const current=await tx.bulletin.findFirst({where:{id:input.id,deletedAt:null}});
     if(!current)throw new ContentManagementError(404,'주보를 찾을 수 없습니다.');
     if(current.updatedAt.toISOString()!==input.expectedUpdatedAt)throw new ContentManagementError(409,'다른 화면에서 수정되었습니다. 다시 열어 주세요.');

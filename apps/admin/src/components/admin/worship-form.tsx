@@ -21,6 +21,7 @@ import { parseYouTubeUrl } from "@daegwang/contracts/lib/youtube/parser";
 
 export type WorshipFormValues = {
   id?: string;
+  expectedUpdatedAt?: string;
   type?: keyof typeof worshipTypeLabels;
   title?: string;
   contentDate?: string;
@@ -48,6 +49,7 @@ export function WorshipForm({ initialValues = {} }: { initialValues?: WorshipFor
 
   return (
     <form action={formAction} data-unsaved-warning className="mt-8 grid gap-6 lg:grid-cols-[1fr_20rem]">
+      <input type="hidden" name="expectedUpdatedAt" value={initialValues.expectedUpdatedAt??''}/>
       <Paper variant="outlined" className="flex flex-col gap-6 p-5 md:p-7">
         {state.message ? <Alert severity="error">{state.message}</Alert> : null}
         <div className="grid gap-6 sm:grid-cols-2">

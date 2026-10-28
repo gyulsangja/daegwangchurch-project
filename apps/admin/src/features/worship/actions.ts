@@ -57,10 +57,13 @@ export async function updateWorshipAction(
 ): Promise<WorshipActionState> {
   const admin = await requireAdmin();
   try {
+    const expected=formData.get('expectedUpdatedAt');
+    if(typeof expected!=='string'||!Number.isFinite(Date.parse(expected)))return {message:'화면을 새로고침한 뒤 다시 수정해 주세요.'};
     await getWorshipService().update(
-      { adminId: admin.id }, id, worshipFormDataToInput(formData),
+      { adminId: admin.id }, id, worshipFormDataToInput(formData), expected,
     );
   } catch (error) {
+    if(error instanceof Error&&error.message==='CONFLICT')return {message:'다른 화면에서 수정되었습니다. 새로고침 후 다시 확인해 주세요.'};
     const state = validationState(error);
     if (state) return state;
     console.error("Failed to update worship content", error);

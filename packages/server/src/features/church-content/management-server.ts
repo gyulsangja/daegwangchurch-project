@@ -5,6 +5,7 @@ import {requireSupabaseConfig} from '@daegwang/config/env';
 import {createContentManagement} from './management';
 import {createContentManagementHandler} from './management-api';
 import {createWorshipManagement} from './worship-management';
+import {manageBulletinUpload} from '../bulletins/upload-server';
 async function authenticate(token:string){
   const {url,publishableKey}=requireSupabaseConfig();
   const client=createClient(url,publishableKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:(input,init)=>fetch(input,{...init,signal:AbortSignal.timeout(10000)})}});
@@ -17,4 +18,4 @@ export const churchContentManagement=createContentManagementHandler({
  list:(user,input)=>createContentManagement(getPrisma()).list(user,input),
  save:(user,input)=>createContentManagement(getPrisma()).save(user,input),
 });
-export const worshipContentManagement=createContentManagementHandler({authenticate,list:(user,input)=>createWorshipManagement(getPrisma(),requireSupabaseConfig().url).list(user,input),save:(user,input)=>createWorshipManagement(getPrisma(),requireSupabaseConfig().url).save(user,input)});
+export const worshipContentManagement=createContentManagementHandler({authenticate,list:(user,input)=>createWorshipManagement(getPrisma(),requireSupabaseConfig().url).list(user,input),save:(user,input)=>input&&typeof input==='object'&&'operation'in input&&['PREPARE_PDF','SAVE_PDF'].includes(String(input.operation))?manageBulletinUpload(user,input):createWorshipManagement(getPrisma(),requireSupabaseConfig().url).save(user,input)});

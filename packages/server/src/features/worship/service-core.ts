@@ -36,12 +36,13 @@ export function createWorshipService(
   }
 
   return {
-    async create(actor: WorshipActor, input: unknown) {
+    async create(actor: WorshipActor, input: unknown, id?: string) {
       const data = contentData(input);
       return database.$transaction(async (tx) => {
         const admin = await requireActiveAdmin(tx, actor);
+        if(id && await tx.worshipContent.findFirst({where:{id}}))throw new Error('CONFLICT');
         const content = await tx.worshipContent.create({
-          data: { ...data, publishedAt: data.status === "PUBLISHED" ? now() : null },
+          data: { ...data, ...(id?{id}:{}), publishedAt: data.status === "PUBLISHED" ? now() : null },
         });
         await syncWorshipPublication(tx, content);
         await tx.activityLog.create({ data: {
@@ -51,17 +52,19 @@ export function createWorshipService(
         return content;
       });
     },
-    async update(actor: WorshipActor, id: string, input: unknown) {
+    async update(actor: WorshipActor, id: string, input: unknown, expectedUpdatedAt?: string) {
       const data = contentData(input);
       return database.$transaction(async (tx) => {
         const admin = await requireActiveAdmin(tx, actor);
         await tx.$queryRaw`SELECT id FROM worship_contents WHERE id = ${id} FOR UPDATE`;
         const current = await tx.worshipContent.findFirst({ where: { id, deletedAt: null } });
         if (!current) throw new Error("NOT_FOUND");
+        if(expectedUpdatedAt && current.updatedAt.toISOString()!==expectedUpdatedAt)throw new Error('CONFLICT');
         const content = await tx.worshipContent.update({
           where: { id },
           data: {
             ...data,
+            slug: current.slug,
             publishedAt: data.status === "PUBLISHED" ? current.publishedAt ?? now() : null,
           },
         });
@@ -74,9 +77,15 @@ export function createWorshipService(
         return content;
       });
     },
-    async delete(actor: WorshipActor, id: string) {
+    async delete(actor: WorshipActor, id: string, expectedUpdatedAt?:string) {
       return database.$transaction(async (tx) => {
         const admin = await requireActiveAdmin(tx, actor);
+        if(expectedUpdatedAt){
+          await tx.$queryRaw`SELECT id FROM worship_contents WHERE id = ${id} FOR UPDATE`;
+          const current=await tx.worshipContent.findFirst({where:{id,deletedAt:null}});
+          if(!current)throw new Error('NOT_FOUND');
+          if(current.updatedAt.toISOString()!==expectedUpdatedAt)throw new Error('CONFLICT');
+        }
         const content = await tx.worshipContent.update({
           where: { id }, data: { deletedAt: now() },
         });

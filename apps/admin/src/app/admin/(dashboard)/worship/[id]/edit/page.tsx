@@ -30,6 +30,7 @@ export default async function EditWorshipPage({ params }: Props) {
       <AppPublicationSection id={content.id} updatedAt={content.updatedAt} status={content.status} />
       <WorshipForm initialValues={{
         id: content.id,
+        expectedUpdatedAt: content.updatedAt.toISOString(),
         type: content.type,
         title: content.title,
         contentDate: content.contentDate.toISOString().slice(0, 10),
