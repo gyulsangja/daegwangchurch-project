@@ -6,6 +6,7 @@ import { revalidatePath } from "@/lib/revalidate";
 import { redirect } from "next/navigation";
 
 import { parseBulletinFormData } from "@daegwang/contracts/features/bulletins/schema";
+import {rememberBulletinFile} from '@daegwang/server/features/bulletins/file-history';
 import { requireAdmin } from "../../lib/auth/permissions";
 import { getPrisma } from "@daegwang/database/prisma";
 import { createClient } from "../../lib/supabase/server";
@@ -102,6 +103,7 @@ export async function createBulletinAction(
         },
       });
       createdId = bulletin.id;
+      await rememberBulletinFile(tx,bulletin);
       await tx.activityLog.create({
         data: { actorId: admin.id, action: "CREATE", entityType: "Bulletin", entityId: bulletin.id, summary: `주보 '${bulletin.title}' 등록` },
       });
@@ -165,17 +167,14 @@ export async function updateBulletinAction(
       });
       if(updated.count!==1)throw new Error('BULLETIN_CONFLICT');
       const bulletin=await tx.bulletin.findUniqueOrThrow({where:{id}});
-      if (newMediaId) await tx.media.update({ where: { id: current.pdfMediaId }, data: { deletedAt: new Date() } });
+      await rememberBulletinFile(tx,current);
+      await rememberBulletinFile(tx,bulletin);
       await tx.activityLog.create({
         data: { actorId: admin.id, action: "UPDATE", entityType: "Bulletin", entityId: bulletin.id, summary: `주보 '${bulletin.title}' 수정`, changes: { previousStatus: current.status, nextStatus: bulletin.status, replacedPdf: Boolean(newMediaId) } },
       });
     });
 
-    if (newMediaId) {
-      const supabase = await createClient();
-      const { error } = await supabase.storage.from(current.pdfMedia.bucket).remove([current.pdfMedia.objectPath]);
-      if (error) console.error("Failed to remove replaced bulletin PDF", error);
-    }
+    // Replaced PDFs stay referenced by file history; never delete the prior file here.
   } catch (error) {
     console.error("Failed to update bulletin", error);
     if (uploadedPath) {

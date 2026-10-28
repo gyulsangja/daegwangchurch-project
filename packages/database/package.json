@@ -7,7 +7,8 @@
     "./prisma": "./src/prisma.ts",
     "./generated/*": "./src/generated/*.ts",
     "./ministry-local": "./src/ministry-local.ts",
-    "./ministry-postgres": "./src/ministry-postgres.ts"
+    "./ministry-postgres": "./src/ministry-postgres.ts",
+    "./ministry-worship": "./src/ministry-worship.ts"
   },
   "dependencies": {
     "@prisma/client": "^7.8.0",

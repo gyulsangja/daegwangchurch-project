@@ -1,0 +1,41 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {PGlite} from '@electric-sql/pglite';
+import {saveWorshipSession,listWorshipSessions} from '../packages/database/src/ministry-worship';
+import type {MinistryConnection,MinistryGrant} from '../packages/database/src/ministry-postgres';
+test('worship storage isolates church and role; file history is not exposed to Supabase API roles',async()=>{
+ const db=new PGlite();const admin='11111111-1111-4111-8111-111111111111',content='22222222-2222-4222-8222-222222222222',id='33333333-3333-4333-8333-333333333333';
+ try{
+  await db.exec('CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY,email text,email_confirmed_at timestamptz); CREATE ROLE daegwang_ministry_runtime; CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role; CREATE TABLE public.bulletins(id text PRIMARY KEY); CREATE TABLE public.media(id text PRIMARY KEY);');
+  for(const file of ['001_workspace.sql','002_access_management.sql','003_optional_mfa.sql','004_content_operator.sql','005_worship_sessions.sql'])await db.exec(readFileSync('packages/database/ministry/'+file,'utf8'));
+  await db.exec(readFileSync('packages/database/prisma/migrations/20261029090000_bulletin_file_history/migration.sql','utf8'));
+  await db.exec("GRANT USAGE ON SCHEMA ministry TO daegwang_ministry_runtime; GRANT SELECT ON ministry.access_grants TO daegwang_ministry_runtime; INSERT INTO ministry.churches VALUES('one','{}'),('two','{}');");
+  await db.query("INSERT INTO ministry.access_grants(church_id,user_id,role,care,can_print,can_delete) VALUES('one',$1,'ADMIN',false,true,true),('one',$2,'CONTENT',false,false,false)",[admin,content]);
+  await db.exec('GRANT SELECT,INSERT ON ministry.audits TO daegwang_ministry_runtime');
+  await db.exec('SET ROLE daegwang_ministry_runtime');
+  const as=(u:string,c='one')=>db.query("SELECT set_config('ministry.user_id',$1,false),set_config('ministry.church_id',$2,false)",[u,c]);
+  await as(admin);
+  const grant:MinistryGrant={churchId:'one',userId:admin,role:'ADMIN',care:false,organizationIds:[],canPrint:true,canDelete:true};
+  const connection=db as unknown as MinistryConnection;
+  const draft={id:'55555555-5555-4555-8555-555555555555',version:null,date:'2026-10-18',name:'Sunday',status:'PREPARING' as const,notes:'Internal',resources:[]};
+  await db.exec('BEGIN');
+  const saved=await saveWorshipSession(connection,grant,draft);await db.exec('COMMIT');assert.equal(saved.version,1);
+  const updated=await saveWorshipSession(connection,grant,{...draft,version:1,name:'Updated'});assert.equal(updated.version,2);
+  await assert.rejects(saveWorshipSession(connection,grant,{...draft,version:1}),/WORSHIP_CONFLICT/);
+  await assert.rejects(saveWorshipSession(connection,grant,draft),/WORSHIP_CONFLICT/);
+  const page=await listWorshipSessions(connection,grant,'2026-10',0);assert.equal(page.data[0].name,'Updated');assert.equal(page.nextPage,null);
+  assert.equal((await db.query('SELECT * FROM ministry.audits')).rows.length,2);
+  await assert.rejects(listWorshipSessions(connection,{...grant,role:'CONTENT'},'2026-10',0),/MINISTRY_ACCESS_DENIED/);
+  const insert="INSERT INTO ministry.worship_sessions(church_id,id,worship_date,name,created_by,updated_by) VALUES($1,$2,'2026-10-29','Test service',$3,$3)";
+  await db.query(insert,['one',id,admin]);assert.equal((await db.query('SELECT * FROM ministry.worship_sessions')).rows.length,2);
+  await assert.rejects(db.query(insert,['two',id,admin]),/row-level security/);
+  await assert.rejects(db.query('DELETE FROM ministry.worship_sessions'),/permission denied/);
+  await as(content);assert.equal((await db.query('SELECT * FROM ministry.worship_sessions')).rows.length,0);
+  await assert.rejects(db.query(insert,['one','44444444-4444-4444-8444-444444444444',content]),/row-level security/);
+  await as(admin,'two');assert.equal((await db.query('SELECT * FROM ministry.worship_sessions')).rows.length,0);
+  await db.exec('RESET ROLE; SET ROLE anon;');await assert.rejects(db.query('SELECT * FROM public.bulletin_file_versions'),/permission denied/);
+  await db.exec('RESET ROLE');
+  const rows=await db.query<{relrowsecurity:boolean}>("SELECT relrowsecurity FROM pg_class WHERE oid='public.bulletin_file_versions'::regclass");assert.equal(rows.rows[0].relrowsecurity,true);
+ }finally{await db.close();}
+});

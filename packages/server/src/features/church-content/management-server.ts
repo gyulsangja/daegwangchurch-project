@@ -17,4 +17,4 @@ export const churchContentManagement=createContentManagementHandler({
  list:(user,input)=>createContentManagement(getPrisma()).list(user,input),
  save:(user,input)=>createContentManagement(getPrisma()).save(user,input),
 });
-export const worshipContentManagement=createContentManagementHandler({authenticate,list:(user,input)=>createWorshipManagement(getPrisma()).list(user,input),save:(user,input)=>createWorshipManagement(getPrisma()).save(user,input)});
+export const worshipContentManagement=createContentManagementHandler({authenticate,list:(user,input)=>createWorshipManagement(getPrisma(),requireSupabaseConfig().url).list(user,input),save:(user,input)=>createWorshipManagement(getPrisma(),requireSupabaseConfig().url).save(user,input)});

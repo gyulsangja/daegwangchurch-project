@@ -16,6 +16,7 @@ export function getUnreferencedMediaWhere(
     worshipContents: { none: {} },
     bulletinsAsPdf: { none: {} },
     bulletinsAsCover: { none: {} },
+    bulletinFileVersions: { none: {} },
     events: { none: {} },
     albums: { none: {} },
     albumImages: { none: {} },

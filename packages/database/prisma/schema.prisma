@@ -152,6 +152,7 @@ model Media {
   worshipContents    WorshipContent[] @relation("WorshipThumbnail")
   bulletinsAsPdf     Bulletin[]       @relation("BulletinPdf")
   bulletinsAsCover   Bulletin[]       @relation("BulletinCover")
+  bulletinFileVersions BulletinFileVersion[]
   events             Event[]          @relation("EventCoverImage")
   albums             Album[]          @relation("AlbumCoverImage")
   albumImages        AlbumImage[]
@@ -346,9 +347,23 @@ model Bulletin {
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   deletedAt        DateTime?
+  fileVersions     BulletinFileVersion[]
 
   @@index([status, worshipDate, deletedAt])
   @@map("bulletins")
+}
+
+model BulletinFileVersion {
+  id         String   @id @default(cuid())
+  bulletinId String
+  bulletin   Bulletin @relation(fields: [bulletinId], references: [id], onDelete: Restrict)
+  mediaId    String
+  media      Media    @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+  title      String
+  capturedAt DateTime
+  @@unique([bulletinId, mediaId])
+  @@index([bulletinId, capturedAt])
+  @@map("bulletin_file_versions")
 }
 
 model Event {
