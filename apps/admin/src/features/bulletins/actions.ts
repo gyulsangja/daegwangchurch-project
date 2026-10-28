@@ -134,6 +134,8 @@ export async function updateBulletinAction(
   const prisma = getPrisma();
   const current = await prisma.bulletin.findFirst({ where: { id, deletedAt: null }, include: { pdfMedia: true } });
   if (!current) return { message: "수정할 주보를 찾지 못했습니다." };
+  const expectedUpdatedAt=String(formData.get('expectedUpdatedAt')??'');
+  if(current.updatedAt.toISOString()!==expectedUpdatedAt)return {message:'다른 화면에서 수정되었습니다. 주보를 다시 열어 확인해 주세요.'};
 
   let uploadedPath = "";
   let newMediaId: string | undefined;
@@ -150,8 +152,8 @@ export async function updateBulletinAction(
         });
         newMediaId = media.id;
       }
-      const bulletin = await tx.bulletin.update({
-        where: { id },
+      const updated = await tx.bulletin.updateMany({
+        where: { id, deletedAt:null, updatedAt:new Date(expectedUpdatedAt) },
         data: {
           title: parsed.data.title,
           worshipDate: new Date(`${parsed.data.worshipDate}T00:00:00.000Z`),
@@ -161,6 +163,8 @@ export async function updateBulletinAction(
           publishedAt: parsed.data.status === "PUBLISHED" ? current.publishedAt ?? new Date() : null,
         },
       });
+      if(updated.count!==1)throw new Error('BULLETIN_CONFLICT');
+      const bulletin=await tx.bulletin.findUniqueOrThrow({where:{id}});
       if (newMediaId) await tx.media.update({ where: { id: current.pdfMediaId }, data: { deletedAt: new Date() } });
       await tx.activityLog.create({
         data: { actorId: admin.id, action: "UPDATE", entityType: "Bulletin", entityId: bulletin.id, summary: `주보 '${bulletin.title}' 수정`, changes: { previousStatus: current.status, nextStatus: bulletin.status, replacedPdf: Boolean(newMediaId) } },
@@ -178,7 +182,7 @@ export async function updateBulletinAction(
       const supabase = await createClient();
       await supabase.storage.from(PUBLIC_BUCKET).remove([uploadedPath]);
     }
-    return { message: "주보를 수정하지 못했습니다." };
+    return { message: error instanceof Error&&error.message==='BULLETIN_CONFLICT'?'다른 화면에서 수정되었습니다. 주보를 다시 열어 확인해 주세요.':"주보를 수정하지 못했습니다." };
   }
 
   revalidateBulletinPaths(current.slug);

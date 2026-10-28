@@ -13,6 +13,7 @@ import { bulletinStatusLabels } from "@daegwang/contracts/features/bulletins/sch
 
 export type BulletinFormValues = {
   id?: string;
+  expectedUpdatedAt?: string;
   title?: string;
   worshipDate?: string;
   summary?: string;
@@ -33,6 +34,7 @@ export function BulletinForm({ initialValues = {} }: { initialValues?: BulletinF
 
   return (
     <form action={formAction} data-unsaved-warning className="mt-8 grid gap-6 lg:grid-cols-[1fr_20rem]">
+      {initialValues.id&&<input type="hidden" name="expectedUpdatedAt" value={initialValues.expectedUpdatedAt??''}/>}
       <Paper variant="outlined" className="flex flex-col gap-6 p-5 md:p-7">
         {state.message ? <Alert severity="error">{state.message}</Alert> : null}
         <TextField fullWidth required label="제목" name="title" defaultValue={initialValues.title ?? ""} error={Boolean(error("title"))} helperText={error("title")} />

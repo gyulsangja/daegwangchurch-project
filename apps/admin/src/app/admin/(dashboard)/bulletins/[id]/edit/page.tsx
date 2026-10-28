@@ -23,6 +23,7 @@ export default async function EditBulletinPage({ params }: Props) {
       <Alert severity="info" className="mt-6!">새 PDF를 선택하지 않으면 기존 파일을 유지합니다.</Alert>
       <BulletinForm initialValues={{
         id: bulletin.id,
+        expectedUpdatedAt: bulletin.updatedAt.toISOString(),
         title: bulletin.title,
         worshipDate: bulletin.worshipDate.toISOString().slice(0, 10),
         summary: bulletin.summary ?? "",
