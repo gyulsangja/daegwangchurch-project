@@ -2,6 +2,8 @@ import { z } from 'zod';
 import type { PrismaClient } from '@daegwang/database/generated/client';
 import { careCreateSchema, careSchema, careStatusSchema } from '@daegwang/contracts/features/member/extras';
 import { MemberRecordConflict, MemberRecordNotFound } from './record-service';
+import {careAllowedTransitions} from '@daegwang/contracts/intake-management';
+export {careAllowedTransitions} from '@daegwang/contracts/intake-management';
 
 export const carePolicySchema = z.object({ version: z.string().min(1).max(100), notice: z.string().min(1).max(10000), retentionDays: z.number().int().min(1).max(3650), retentionYears: z.number().int().min(1).max(10).optional(), adminIds: z.array(z.string().min(1)).min(1).max(20) }).strict();
 export type CarePolicy = z.infer<typeof carePolicySchema>;
@@ -57,11 +59,10 @@ export function createCareAdminService(db: PrismaClient, adminId: string, approv
     async list() { await authorize(); return (await db.memberCareRequest.findMany({ where: { expiresAt: { gt: now() } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 100 })).map(dto); },
     async update(id: string, version: number, next: string) {
       await authorize(); z.number().int().positive().parse(version); const status = careStatusSchema.parse(next);
-      const allowed: Record<string, string[]> = { RECEIVED: ['DISCUSSING', 'CANCELLED'], DISCUSSING: ['SCHEDULED', 'COMPLETED', 'CANCELLED'], SCHEDULED: ['DISCUSSING', 'COMPLETED', 'CANCELLED'], COMPLETED: [], CANCELLED: [] };
       return db.$transaction(async tx => {
         const row = await tx.memberCareRequest.findFirst({ where: { id, expiresAt: { gt: now() } } });
         if (!row) throw new MemberRecordNotFound();
-        if (!allowed[row.status]?.includes(status)) throw new MemberRecordConflict();
+        if (!careAllowedTransitions[row.status]?.includes(status)) throw new MemberRecordConflict();
         const changed = await tx.memberCareRequest.updateMany({ where: { id, version, status: row.status, expiresAt: { gt: now() } }, data: { status, version: { increment: 1 } } });
         if (!changed.count) throw new MemberRecordConflict();
         await tx.activityLog.create({ data: { actorId: adminId, action: 'UPDATE', entityType: 'MemberCareRequest', entityId: id, summary: '돌봄 요청 상태 변경', changes: { previous: row.status, next: status } } });

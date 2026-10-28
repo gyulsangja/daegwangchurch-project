@@ -42,7 +42,7 @@ export async function applyIntegration(actor:Actor,raw:unknown){
    const request=source.care.find(c=>c.id===input.sourceId&&c.version===input.sourceVersion&&c.expiresAt>new Date());if(!request)throw new DirectoryError('CONFLICT','접수 정보가 변경되었거나 열람 기간이 끝났습니다.');
    const old=(await db.query('SELECT pastoral_id FROM ministry.care_intakes WHERE church_id=$1 AND source_id=$2',[actor.churchId,request.id])).rows[0];if(old)return {id:old.pastoral_id as string};
    const link=(await db.query('SELECT member_id FROM ministry.account_links WHERE church_id=$1 AND user_id=$2',[actor.churchId,request.ownerId])).rows[0];if(!link)throw new DirectoryError('INVALID','먼저 요청자의 회원 계정과 교적을 연결해 주세요.');
-   result=domain.pastoral.create(current,{kind:'CARE',title:request.kind==='VISIT'?'심방 접수 확인·일정 협의':'상담 접수 확인·일정 협의',date:input.date,memberId:link.member_id,body:'기존 관리자에서 접수 내용을 확인하고 연락해 주세요. 이 항목은 예배·심방 예약 확정을 의미하지 않습니다.',category:request.kind==='VISIT'?'VISIT':'COUNSEL',goalId:'',status:'OPEN'});
+   result=domain.pastoral.create(current,{kind:'CARE',title:request.kind==='VISIT'?'심방 접수 확인·일정 협의':'상담 접수 확인·일정 협의',date:input.date,memberId:link.member_id,body:'문의·돌봄 접수함에서 원본 요청을 확인하고 연락해 주세요. 이 항목은 예배·심방 예약 확정을 의미하지 않습니다.',category:request.kind==='VISIT'?'VISIT':'COUNSEL',goalId:'',status:'OPEN'});
    await writeMinistryRows(db,actor.churchId,before,rows(domain.snapshot()));
    await db.query('INSERT INTO ministry.care_intakes(church_id,source_id,member_id,pastoral_id,imported_by) VALUES($1,$2,$3,$4,$5)',[actor.churchId,request.id,link.member_id,result.id,actor.id]);
   }

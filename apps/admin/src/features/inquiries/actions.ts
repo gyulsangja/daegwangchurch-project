@@ -8,6 +8,7 @@ import {
   inquiryStatusSchema,
 } from "@daegwang/contracts/features/inquiries/schema";
 import { requireSuperAdmin } from "../../lib/auth/permissions";
+import {createIntakeManagement} from "@daegwang/server/features/church-content/intake-management";
 import { getPrisma } from "@daegwang/database/prisma";
 
 export type AdminInquiryState = { message?: string; success?: boolean };
@@ -21,32 +22,11 @@ export async function updateInquiryStatusAction(
   const result = inquiryStatusSchema.safeParse(formData.get("status"));
   if (!result.success) return { message: "처리 상태를 확인해 주세요." };
 
-  const current = await getPrisma().inquiry.findFirst({
-    where: { id, deletedAt: null },
-  });
-  if (!current) return { message: "문의를 찾지 못했습니다." };
-
-  const now = new Date();
-  await getPrisma().$transaction(async (tx) => {
-    await tx.inquiry.update({
-      where: { id },
-      data: {
-        status: result.data,
-        checkedAt: current.checkedAt ?? now,
-        completedAt:
-          result.data === "COMPLETED" ? current.completedAt ?? now : null,
-      },
-    });
-    await tx.activityLog.create({
-      data: {
-        actorId: admin.id,
-        action: "UPDATE",
-        entityType: "Inquiry",
-        entityId: id,
-        summary: `문의 처리 상태 변경: ${current.status} → ${result.data}`,
-      },
-    });
-  });
+  try {
+    await createIntakeManagement(getPrisma()).save(admin.authUserId,{kind:'INQUIRY',id,expectedUpdatedAt:formData.get('expectedUpdatedAt'),status:result.data,note:''});
+  } catch {
+    return {message:'문의를 저장하지 못했습니다. 다른 화면의 변경 사항이 있는지 새로고침 후 확인해 주세요.'};
+  }
   revalidatePath(`/admin/inquiries/${id}`);
   revalidatePath("/admin/inquiries");
   return { success: true, message: "처리 상태를 변경했습니다." };
