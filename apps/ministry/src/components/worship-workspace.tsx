@@ -1,19 +1,32 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {worshipManagementPage,type WorshipManagementRow} from '@daegwang/contracts/worship-management';
+import {worshipManagementPage,worshipManagementBundle,type WorshipManagementRow} from '@daegwang/contracts/worship-management';
 const labels={DRAFT:'임시저장',PUBLISHED:'공개',PRIVATE:'비공개'};
 const types:Record<string,string>={SUNDAY_MORNING:'주일오전예배',SUNDAY_AFTERNOON:'주일오후 성경공부',WEDNESDAY:'수요기도회',FIRST_HOUR:'첫시간 주님께',SPECIAL:'특별예배',PRAISE:'찬양'};
 const cms='https://daegwangchurch-admin.vercel.app/admin';
-async function load(month:string,kind:'BULLETIN'|'WORSHIP',page:number,signal:AbortSignal){
- const response=await fetch(`/api/v1/worship?${new URLSearchParams({month,kind,page:String(page)})}`,{cache:'no-store',signal});const value=await response.json();if(!response.ok)throw new Error(value.message);return worshipManagementPage.parse(value);
+async function load(query:Record<string,string>,signal:AbortSignal){
+ const response=await fetch(`/api/v1/worship?${new URLSearchParams(query)}`,{cache:'no-store',signal});const value=await response.json();if(!response.ok)throw new Error(value.message);return value;
 }
+type Bundle=ReturnType<typeof worshipManagementBundle.parse>;
 export function WorshipWorkspace(){
  const [month,setMonth]=useState(()=>new Date(Date.now()+9*3600000).toISOString().slice(0,7));const [pages,setPages]=useState({BULLETIN:0,WORSHIP:0});
- const [result,setResult]=useState<{BULLETIN:ReturnType<typeof worshipManagementPage.parse>;WORSHIP:ReturnType<typeof worshipManagementPage.parse>}|null>(null);
+ const [result,setResult]=useState<Bundle|null>(null);
+ const last=useRef<{scope:string;pages:typeof pages;data:Bundle}|null>(null);
  const [loadedKey,setLoadedKey]=useState('');const [error,setError]=useState('');const [notice,setNotice]=useState('');const [reload,setReload]=useState(0);
  const [edit,setEdit]=useState<WorshipManagementRow|null>(null);const [saving,setSaving]=useState(false);const [saveError,setSaveError]=useState('');const dialog=useRef<HTMLDialogElement>(null);
  const requestKey=`${month}:${pages.BULLETIN}:${pages.WORSHIP}:${reload}`;const loading=loadedKey!==requestKey;
- useEffect(()=>{const controller=new AbortController();void Promise.all([load(month,'BULLETIN',pages.BULLETIN,controller.signal),load(month,'WORSHIP',pages.WORSHIP,controller.signal)]).then(([BULLETIN,WORSHIP])=>{if(!controller.signal.aborted){setResult({BULLETIN,WORSHIP});setError('');}}).catch(e=>{if(!controller.signal.aborted){setResult(null);setError(e instanceof Error?e.message:'자료를 불러오지 못했습니다.');}}).finally(()=>{if(!controller.signal.aborted)setLoadedKey(requestKey);});return()=>controller.abort();},[month,pages,requestKey]);
+ useEffect(()=>{
+  const controller=new AbortController();const scope=`${month}:${reload}`;
+  async function read(){
+   const previous=last.current;
+   const changed=(['BULLETIN','WORSHIP'] as const).filter(kind=>!previous||previous.scope!==scope||previous.pages[kind]!==pages[kind]);
+   let data:Bundle;
+   if(previous&&changed.length===1){const kind=changed[0];const part=worshipManagementPage.parse(await load({month,kind,page:String(pages[kind])},controller.signal));data={...previous.data,[kind]:part};}
+   else data=worshipManagementBundle.parse(await load({month,kind:'ALL',bulletinPage:String(pages.BULLETIN),worshipPage:String(pages.WORSHIP)},controller.signal));
+   if(!controller.signal.aborted){last.current={scope,pages,data};setResult(data);setError('');}
+  }
+  void read().catch(e=>{if(!controller.signal.aborted){setResult(null);setError(e instanceof Error?e.message:'자료를 불러오지 못했습니다.');}}).finally(()=>{if(!controller.signal.aborted)setLoadedKey(requestKey);});return()=>controller.abort();
+ },[month,pages,reload,requestKey]);
  useEffect(()=>{if(edit)dialog.current?.showModal();else dialog.current?.close();},[edit]);
  function open(row:WorshipManagementRow){setEdit({...row});setSaveError('');}
  async function save(event:React.FormEvent<HTMLFormElement>){event.preventDefault();if(!edit)return;setSaving(true);setSaveError('');try{

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import type {PrismaClient,Prisma} from '@daegwang/database/generated/client';
 import {createWorshipManagement} from '../packages/server/src/features/church-content/worship-management';
-import {bulletinManagementSave,worshipMonthRange} from '../packages/contracts/src/worship-management';
+import {bulletinManagementSave,worshipMonthRange,worshipManagementBundle} from '../packages/contracts/src/worship-management';
 function fixture(){
  let row={id:'bulletin1',title:'Test',slug:'keep-slug',worshipDate:new Date('2026-10-25'),summary:null as string|null,status:'DRAFT',updatedAt:new Date('2026-10-29T00:00:00Z'),deletedAt:null,pdfMediaId:'keep-file',worshipContentId:null as string|null,publishedAt:null as Date|null};
  let logs:unknown[]=[];let active=true;let auditFails=false;let conflict=false;
@@ -27,4 +27,10 @@ test('invalid/deleted links, concurrent changes and audit failures leave origina
 test('publishing needs confirmation; date filters cover December rollover and reject malformed months',()=>{
  assert.equal(bulletinManagementSave.safeParse({...input(),status:'PUBLISHED'}).success,false);assert.equal(bulletinManagementSave.safeParse({...input(),status:'PUBLISHED',publishConfirmed:true}).success,true);
  assert.equal(worshipMonthRange('2026-12').lt.toISOString(),'2027-01-01T00:00:00.000Z');assert.throws(()=>worshipMonthRange('2026-13'));assert.throws(()=>worshipMonthRange('2026-01-other'));
+});
+test('combined list authorizes once and reads each bounded collection once',async()=>{
+ let auth=0,bulletins=0,worship=0,transactions=0;
+ const db={async $transaction<T>(work:(tx:Prisma.TransactionClient)=>Promise<T>){transactions++;return work({adminProfile:{findUnique:async()=>{auth++;return {id:'admin',role:'ADMIN',isActive:true};}},bulletin:{findMany:async({skip,take}:{skip:number;take:number})=>{assert.equal(skip,30);assert.equal(take,31);bulletins++;return [];}},worshipContent:{findMany:async({skip,take}:{skip:number;take:number})=>{assert.equal(skip,60);assert.equal(take,31);worship++;return [];}}} as unknown as Prisma.TransactionClient);}} as unknown as Pick<PrismaClient,'$transaction'>;
+ const value=await createWorshipManagement(db).list('admin',{month:'2026-10',kind:'ALL',bulletinPage:1,worshipPage:2});
+ assert.deepEqual(worshipManagementBundle.parse(value),{BULLETIN:{data:[],nextPage:null},WORSHIP:{data:[],nextPage:null}});assert.deepEqual({auth,bulletins,worship,transactions},{auth:1,bulletins:1,worship:1,transactions:1});
 });

@@ -1,2 +1,2 @@
 import {LogoutButton} from '@/components/logout-button';
-export default function Denied(){return <main className="locked"><h1>목회 권한 확인이 필요합니다</h1><p>로그인한 계정에 이 교회의 목회 권한이 없습니다. 교회 운영 담당자에게 권한 부여를 요청해 주세요.</p><LogoutButton/></main>;}
+export default function Denied(){return <main className="locked"><h1>통합 관리 권한 확인이 필요합니다</h1><p>로그인한 계정에 이 교회의 목회 권한이 없습니다. 교회 운영 담당자에게 담당 업무에 맞는 권한을 요청해 주세요.</p><p>기존 홈페이지·앱 관리자라면 기능 이전 기간 동안 아래 관리 화면을 이용할 수 있습니다. 해당 화면에서도 기존 관리 권한을 확인합니다.</p><a className="button" href="https://daegwangchurch-admin.vercel.app/admin">홈페이지·앱 관리 열기</a><LogoutButton/></main>;}

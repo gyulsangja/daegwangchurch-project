@@ -12,15 +12,19 @@ export function createWorshipManagement(db:Pick<PrismaClient,'$transaction'>){
    const input=worshipManagementQuery.parse(raw);const range=worshipMonthRange(input.month);
    return db.$transaction(async tx=>{
     await authorize(tx,userId);
-    let rows:WorshipManagementRow[];
-    if(input.kind==='BULLETIN'){
-     const values=await tx.bulletin.findMany({where:{deletedAt:null,worshipDate:range},orderBy:[{worshipDate:'desc'},{id:'desc'}],skip:input.page*30,take:31,select:{id:true,title:true,worshipDate:true,status:true,updatedAt:true,summary:true,worshipContentId:true,worshipContent:{select:{title:true,deletedAt:true}}}});
+    async function read(kind:'BULLETIN'|'WORSHIP',page:number){
+     let rows:WorshipManagementRow[];
+     if(kind==='BULLETIN'){
+     const values=await tx.bulletin.findMany({where:{deletedAt:null,worshipDate:range},orderBy:[{worshipDate:'desc'},{id:'desc'}],skip:page*30,take:31,select:{id:true,title:true,worshipDate:true,status:true,updatedAt:true,summary:true,worshipContentId:true,worshipContent:{select:{title:true,deletedAt:true}}}});
      rows=values.map(r=>({id:r.id,kind:'BULLETIN',title:r.title,date:r.worshipDate.toISOString().slice(0,10),status:r.status,updatedAt:r.updatedAt.toISOString(),summary:r.summary??'',worshipContentId:r.worshipContentId,linkedTitle:r.worshipContent&&!r.worshipContent.deletedAt?r.worshipContent.title:null,type:'주보',preacher:'',scripture:'',videoId:null}));
     }else{
-     const values=await tx.worshipContent.findMany({where:{deletedAt:null,contentDate:range},orderBy:[{contentDate:'desc'},{id:'desc'}],skip:input.page*30,take:31,select:{id:true,title:true,type:true,contentDate:true,status:true,updatedAt:true,summary:true,preacher:true,scripture:true,youtubeVideoId:true}});
+     const values=await tx.worshipContent.findMany({where:{deletedAt:null,contentDate:range},orderBy:[{contentDate:'desc'},{id:'desc'}],skip:page*30,take:31,select:{id:true,title:true,type:true,contentDate:true,status:true,updatedAt:true,summary:true,preacher:true,scripture:true,youtubeVideoId:true}});
      rows=values.map(r=>({id:r.id,kind:'WORSHIP',title:r.title,date:r.contentDate.toISOString().slice(0,10),status:r.status,updatedAt:r.updatedAt.toISOString(),summary:r.summary??'',worshipContentId:null,linkedTitle:null,type:r.type,preacher:r.preacher??'',scripture:r.scripture??'',videoId:r.youtubeVideoId}));
     }
-    return {data:rows.slice(0,30),nextPage:rows.length>30?input.page+1:null};
+     return {data:rows.slice(0,30),nextPage:rows.length>30?page+1:null};
+    }
+    if(input.kind==='ALL'){const BULLETIN=await read('BULLETIN',input.bulletinPage);const WORSHIP=await read('WORSHIP',input.worshipPage);return {BULLETIN,WORSHIP};}
+    return read(input.kind,input.page);
    });
   },
   async save(userId:string,raw:unknown){

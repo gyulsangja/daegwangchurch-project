@@ -23,11 +23,11 @@ export function directory(host: string | null) {
 export async function requestWorkspace(host:string|null){
  if(operationalEnabled()){
   if(host!==new URL(operationalOrigin()).host)throw new Error('MINISTRY_INVALID_HOST');
-  const {user,aal,nextLevel}=await authenticatedSession();if(nextLevel==='aal2'&&aal!=='aal2')throw new Error('MINISTRY_MFA_REQUIRED');
+  const session=await authenticatedSession();const {user,aal,nextLevel}=session;if(nextLevel==='aal2'&&aal!=='aal2')throw new Error('MINISTRY_MFA_REQUIRED');
   if(!process.env.MINISTRY_CHURCH_ID)throw new Error('MINISTRY_NOT_CONFIGURED');
-  return operationalDirectory(user.id,process.env.MINISTRY_CHURCH_ID,aal);
+  return {...await operationalDirectory(user.id,process.env.MINISTRY_CHURCH_ID,aal),session};
  }
- return {service:directory(host),actor:reviewActor};
+ return {service:directory(host),actor:reviewActor,session:null};
 }
 // Share only inside this server render, never across users or requests.
 export const workspace=cache(async function workspace() {
