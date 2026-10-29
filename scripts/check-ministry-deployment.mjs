@@ -13,7 +13,7 @@ for(const path of ['/','/members','/app-members','/app-groups','/church-settings
  const r=await fetch(origin+path,{redirect:'manual'});assert.ok([303,307].includes(r.status),`${path}: ${r.status}`);
  assert.equal(new URL(r.headers.get('location'),origin).pathname,'/login');console.log(`PASS ${path}: login required`);
 }
-for(const path of ['/api/v1/access','/api/v1/members','/api/v1/member-accounts','/api/v1/groups','/api/v1/site-settings','/api/v1/pages?kind=home','/api/v1/worship-attendance?month=2026-10','/api/v1/church-content?kind=EVENT','/api/v1/intake?kind=INQUIRY','/api/v1/worship?month=2026-10','/api/v1/worship-sessions?month=2026-10']){
+for(const path of ['/api/v1/access','/api/v1/members','/api/v1/member-accounts','/api/v1/groups','/api/v1/organization-sync?groupId=review','/api/v1/site-settings','/api/v1/pages?kind=home','/api/v1/worship-attendance?month=2026-10','/api/v1/church-content?kind=EVENT','/api/v1/intake?kind=INQUIRY','/api/v1/worship?month=2026-10','/api/v1/worship-sessions?month=2026-10']){
  const r=await fetch(origin+path);assert.equal(r.status,401,`${path}: ${r.status}`);console.log(`PASS ${path}: unauthenticated rejected`);
 }
 const forbidden=await fetch(origin+'/api/v1/access',{method:'POST',headers:{Origin:'https://example.invalid','Content-Type':'application/json'},body:'{}'});assert.equal(forbidden.status,403);console.log('PASS cross-origin writes rejected');

@@ -6,7 +6,7 @@ export type AnnualAssignment = { memberId: string; name: string; position: strin
 export type MinistryYear = {
   churchId: string; year: number; state: 'DRAFT' | 'ACTIVE' | 'ARCHIVED'; version: number;
   name: string; positions: Code[]; statuses: Code[]; organizationTypes: Code[]; roles: Code[]; courses: Code[];
-  organizations: { id: string; name: string; parentId: string | null; type: string; roleCodes?:string[] }[];
+  organizations: { id: string; name: string; parentId: string | null; type: string; roleCodes?:string[];appGroupId?:string }[];
   assignments: AnnualAssignment[];
   events: { at: string; actorId: string; action: string; memberId?: string; assignment?: AnnualAssignment }[];
 };

@@ -16,7 +16,7 @@ export function createGroupManagement(db:PrismaClient,enabled:boolean){
    const actor=await authorize(tx,user,input.groupId,['MEMBERS','MANAGERS'].includes(input.view));
    const superAdmin=actor.role==='SUPER_ADMIN';const scope=superAdmin?{}:{managers:{some:{adminId:actor.id}}};
    if(input.view==='GROUPS'){
-    const rows=await tx.churchGroup.findMany({where:scope,orderBy:[{name:'asc'},{id:'asc'}],take:31,skip:input.page*30,include:{_count:{select:{memberships:true}}}});
+    const rows=await tx.churchGroup.findMany({where:{...scope,id:input.groupId},orderBy:[{name:'asc'},{id:'asc'}],take:31,skip:input.page*30,include:{_count:{select:{memberships:true}}}});
     return {groups:rows.slice(0,30).map(r=>({id:r.id,name:r.name,description:r.description,isActive:r.isActive,version:r.version,memberCount:r._count.memberships})),nextPage:rows.length>30?input.page+1:null,superAdmin,enabled};
    }
    if(input.view==='NOTICES'){
