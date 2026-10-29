@@ -12,11 +12,11 @@ import { saveHomePageAction, type FixedPageActionState } from '../../features/pa
 import type { HomePageContent } from '@daegwang/contracts/features/pages/content';
 import { pageStatusLabels } from '@daegwang/contracts/features/pages/schema';
 
-export function HomePageForm({ content, status }: { content: HomePageContent; status: keyof typeof pageStatusLabels }) {
+export function HomePageForm({ content, status,expectedUpdatedAt }: { expectedUpdatedAt:string|null;content: HomePageContent; status: keyof typeof pageStatusLabels }) {
   const [state, action, pending] = useActionState(saveHomePageAction, {} as FixedPageActionState);
   const field = (name: keyof HomePageContent, label: string, multiline = false) => <TextField key={name} required fullWidth name={name} label={label} defaultValue={String(content[name])} multiline={multiline} minRows={multiline ? 4 : undefined} error={!!state.errors?.[name]} helperText={state.errors?.[name]?.[0]} />;
   return <form action={action} className="mt-8 grid gap-6 lg:grid-cols-[1fr_20rem]">
-    {/* Retain old CMS values for compatibility, but do not offer controls that no longer affect the home. */}
+    <input type="hidden" name="expectedUpdatedAt" value={state.expectedUpdatedAt??expectedUpdatedAt??''}/>{/* Retain old CMS values for compatibility, but do not offer controls that no longer affect the home. */}
     {(['worshipTitle', 'newsTitle', 'sinceLabel', 'motto'] as const).map(name => <input key={name} type="hidden" name={name} value={content[name]} />)}
     <div className="grid gap-6">
       {state.message && <Alert severity={state.success ? 'success' : 'error'}>{state.message}</Alert>}

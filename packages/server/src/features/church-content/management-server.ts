@@ -10,6 +10,7 @@ import {createIntakeManagement} from './intake-management';
 import {createMemberAccountManagement} from './member-account-management';
 import {memberDeletionProvider} from '../member/admin-deletion-provider';
 import {createGroupManagement} from './group-management';
+import {createFixedPageManagement} from './page-management';
 import {createSiteSettingsManagement} from './site-settings-management';
 async function authenticate(token:string){
   const {url,publishableKey}=requireSupabaseConfig();
@@ -29,3 +30,5 @@ export const memberAccountManagement=createContentManagementHandler({authenticat
 export const groupManagement=createContentManagementHandler({authenticate,list:(user,input)=>createGroupManagement(getPrisma(),process.env.APP_GROUPS_ENABLED==='true').list(user,input),save:(user,input)=>createGroupManagement(getPrisma(),process.env.APP_GROUPS_ENABLED==='true').save(user,input)});
 export const siteSettingsManagement=createContentManagementHandler({authenticate,list:user=>createSiteSettingsManagement(getPrisma()).list(user),save:(user,input)=>createSiteSettingsManagement(getPrisma()).save(user,input)});
 export const worshipContentManagement=createContentManagementHandler({authenticate,list:(user,input)=>createWorshipManagement(getPrisma(),requireSupabaseConfig().url).list(user,input),save:(user,input)=>input&&typeof input==='object'&&'operation'in input&&['PREPARE_PDF','SAVE_PDF'].includes(String(input.operation))?manageBulletinUpload(user,input):createWorshipManagement(getPrisma(),requireSupabaseConfig().url).save(user,input)});
+
+export const fixedPageManagement=createContentManagementHandler({authenticate,list:(user,input)=>createFixedPageManagement(getPrisma()).list(user,input),save:(user,input)=>createFixedPageManagement(getPrisma()).save(user,input)});

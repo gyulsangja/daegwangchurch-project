@@ -19,7 +19,7 @@ type Props =
   | { variant: "vision"; content: VisionPageContent; status: keyof typeof pageStatusLabels }
   | { variant: "newcomerEducation"; content: NewcomerEducationContent; status: keyof typeof pageStatusLabels };
 
-export function FixedPageForm(props: Props) {
+export function FixedPageForm(props: Props & {expectedUpdatedAt:string|null}) {
   const action = props.variant === "church" ? saveChurchPageAction : props.variant === "vision" ? saveVisionPageAction : saveNewcomerEducationAction;
   const [state, formAction, pending] = useActionState(action, initialState);
   const error = (name: string) => state.errors?.[name]?.[0];
@@ -29,7 +29,7 @@ export function FixedPageForm(props: Props) {
 
   return (
     <form action={formAction} data-unsaved-warning className="mt-8 grid gap-6 lg:grid-cols-[1fr_20rem]">
-      <Paper variant="outlined" className="flex flex-col gap-6 p-5 md:p-7">
+      <input type="hidden" name="expectedUpdatedAt" value={state.expectedUpdatedAt??props.expectedUpdatedAt??''}/><Paper variant="outlined" className="flex flex-col gap-6 p-5 md:p-7">
         {state.message ? <Alert severity={state.success ? "success" : "error"}>{state.message}</Alert> : null}
         {field("heroTitle", "대표 제목", props.content.heroTitle)}
         {field("heroDescription", "대표 설명", props.content.heroDescription, true)}
