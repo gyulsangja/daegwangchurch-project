@@ -176,7 +176,7 @@ export async function updateAlbumAction(id: string, _state: AlbumActionState, fo
       });
       if (removeImages.length) {
         await tx.albumImage.deleteMany({ where: { id: { in: removeImages.map((image) => image.id) } } });
-        await tx.media.updateMany({ where: { id: { in: removeImages.map((image) => image.mediaId) } }, data: { deletedAt: new Date() } });
+        // Shared files are removed only by the reference-aware cleanup.
       }
       if (newMediaIds.length) {
         const startOrder = Math.max(-1, ...remainingImages.map((image) => image.sortOrder)) + 1;
@@ -192,7 +192,7 @@ export async function updateAlbumAction(id: string, _state: AlbumActionState, fo
       }
       await tx.activityLog.create({ data: { actorId: admin.id, action: "UPDATE", entityType: "Album", entityId: id, summary: `행사앨범 '${parsed.data.title}' 수정`, changes: { addedImages: newMediaIds.length, removedImages: removeImages.length } } });
     });
-    await removeStorageObjects(removeImages.map((image) => ({ bucket: image.media.bucket, objectPath: image.media.objectPath })));
+
   } catch (error) {
     console.error("Failed to update album", error);
     await removeStorageObjects(uploaded.map((item) => ({ bucket: PUBLIC_BUCKET, objectPath: item.objectPath })));

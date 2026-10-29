@@ -207,7 +207,7 @@ export async function updateNoticeAction(
       });
       if (removeAttachments.length) {
         await tx.noticeAttachment.deleteMany({ where: { id: { in: removeAttachments.map((attachment) => attachment.id) } } });
-        await tx.media.updateMany({ where: { id: { in: removeAttachments.map((attachment) => attachment.mediaId) } }, data: { deletedAt: new Date() } });
+        // Detach only: the public file can be reused by another post.
       }
       if (uploaded.length) {
         const mediaIds: string[] = [];
@@ -229,7 +229,7 @@ export async function updateNoticeAction(
         },
       });
     });
-    await removeStorageObjects(removeAttachments.map((attachment) => ({ bucket: attachment.media.bucket, objectPath: attachment.media.objectPath })));
+
   } catch (error) {
     console.error("Failed to update notice", error);
     await removeStorageObjects(uploaded.map((item) => ({ bucket: PUBLIC_BUCKET, objectPath: item.objectPath })));

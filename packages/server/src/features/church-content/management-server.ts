@@ -12,6 +12,7 @@ import {memberDeletionProvider} from '../member/admin-deletion-provider';
 import {createGroupManagement} from './group-management';
 import {createFixedPageManagement} from './page-management';
 import {createSiteSettingsManagement} from './site-settings-management';
+import {mediaManagementService} from '../media/management-server';
 async function authenticate(token:string){
   const {url,publishableKey}=requireSupabaseConfig();
   const client=createClient(url,publishableKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:(input,init)=>fetch(input,{...init,signal:AbortSignal.timeout(10000)})}});
@@ -21,7 +22,7 @@ async function authenticate(token:string){
  }
 export const churchContentManagement=createContentManagementHandler({
  authenticate,
- list:(user,input)=>createContentManagement(getPrisma()).list(user,input),
+ list:(user,input)=>createContentManagement(getPrisma(),requireSupabaseConfig().url).list(user,input),
  save:(user,input)=>createContentManagement(getPrisma()).save(user,input),
 });
 export const intakeManagement=createContentManagementHandler({authenticate,list:(user,input)=>createIntakeManagement(getPrisma()).list(user,input),save:(user,input)=>createIntakeManagement(getPrisma()).save(user,input)});
@@ -32,3 +33,4 @@ export const siteSettingsManagement=createContentManagementHandler({authenticate
 export const worshipContentManagement=createContentManagementHandler({authenticate,list:(user,input)=>createWorshipManagement(getPrisma(),requireSupabaseConfig().url).list(user,input),save:(user,input)=>input&&typeof input==='object'&&'operation'in input&&['PREPARE_PDF','SAVE_PDF'].includes(String(input.operation))?manageBulletinUpload(user,input):createWorshipManagement(getPrisma(),requireSupabaseConfig().url).save(user,input)});
 
 export const fixedPageManagement=createContentManagementHandler({authenticate,list:(user,input)=>createFixedPageManagement(getPrisma()).list(user,input),save:(user,input)=>createFixedPageManagement(getPrisma()).save(user,input)});
+export const mediaManagement=createContentManagementHandler({authenticate,list:(user,input)=>mediaManagementService().list(user,input),save:(user,input)=>mediaManagementService().save(user,input)});

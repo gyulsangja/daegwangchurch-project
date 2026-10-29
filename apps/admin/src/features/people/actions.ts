@@ -143,10 +143,9 @@ export async function updatePersonAction(id: string, _state: PersonActionState, 
           sortOrder: parsed.data.sortOrder,
         },
       });
-      if (replacedImage && current.profileImageId) await tx.media.update({ where: { id: current.profileImageId }, data: { deletedAt: new Date() } });
+      // Keep shared image bytes; reference-aware cleanup handles unused media.
       await tx.activityLog.create({ data: { actorId: admin.id, action: "UPDATE", entityType: "Person", entityId: person.id, summary: `교역자 '${person.name}' 수정`, changes: { replacedImage } } });
     });
-    if (replacedImage && current.profileImage) await removeProfileImage(current.profileImage.bucket, current.profileImage.objectPath);
   } catch (error) {
     console.error("Failed to update person", error);
     if (objectPath) await removeProfileImage(PUBLIC_BUCKET, objectPath);

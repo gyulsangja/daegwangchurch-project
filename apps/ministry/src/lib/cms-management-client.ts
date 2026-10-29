@@ -3,7 +3,7 @@ import {DirectoryError,type Actor} from '@daegwang/ministry-core/directory';
 import {authenticatedSession} from './auth-security';
 export type VerifiedSession=Awaited<ReturnType<typeof authenticatedSession>>|null;
 // Fixed destinations only. A verified session is reused within one request, never globally cached.
-export async function requestCmsManagement(actor:Actor,resource:'worship'|'church-content'|'intake'|'member-accounts'|'groups'|'site-settings'|'pages',input:object,save:boolean,session?:VerifiedSession,rawBody?:unknown){
+export async function requestCmsManagement(actor:Actor,resource:'worship'|'church-content'|'intake'|'member-accounts'|'groups'|'site-settings'|'pages'|'media',input:object,save:boolean,session?:VerifiedSession,rawBody?:unknown){
  const {client,user}=session??await authenticatedSession();
  const {data,error}=await client.auth.getSession();
  if(error||!data.session||data.session.user.id!==user.id||user.id!==actor.id)throw new Error('MINISTRY_LOGIN_REQUIRED');

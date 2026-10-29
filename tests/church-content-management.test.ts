@@ -11,9 +11,9 @@ const timestamp=new Date('2026-10-28T01:00:00.000Z');
 const eventData={title:'Test event',category:'Test',startsAt:'2026-10-28T09:00:00+09:00',endsAt:'',isAllDay:false,location:'',ministryName:'',description:'Public details',status:'DRAFT'};
 function fixture(){
  let state:{event:Event|null;notice:(Notice&{_count:{attachments:number}})|null;logs:unknown[];active:boolean}={event:null,notice:null,logs:[],active:true};
- let auditFailure=false;
+ let auditFailure=false;let availableMedia:string[]=[];let attachments:string[]=[];
  const db={async $transaction<T>(work:(tx:Prisma.TransactionClient)=>Promise<T>){
-  const draft=structuredClone(state);
+  const draft=structuredClone(state);let draftAttachments=[...attachments];
   const model=(kind:'event'|'notice')=>({
    findUnique:async()=>draft[kind],findUniqueOrThrow:async()=>draft[kind],findMany:async()=>draft[kind]?[draft[kind]]:[],
    create:async({data}:{data:Record<string,unknown>})=>{
@@ -26,10 +26,10 @@ function fixture(){
     Object.assign(row,data,{updatedAt:new Date(row.updatedAt.getTime()+1)});return {count:1};
    },
   });
-  const tx={adminProfile:{findUnique:async({where}:{where:{authUserId:string}})=>where.authUserId==='operator'?{id:'admin',role:'ADMIN',isActive:draft.active}:null},event:model('event'),notice:model('notice'),activityLog:{create:async(data:unknown)=>{if(auditFailure)throw new Error('audit failed');draft.logs.push(data);}}} as unknown as Prisma.TransactionClient;
-  const result=await work(tx);state=draft;return result;
+  const tx={media:{findMany:async({where}:{where:{id:{in:string[]}}})=>availableMedia.filter(id=>where.id.in.includes(id)).map(id=>({id,mimeType:'image/png'}))},noticeAttachment:{deleteMany:async()=>{draftAttachments=[];},createMany:async({data}:{data:{mediaId:string}[]})=>{draftAttachments=data.map(row=>row.mediaId);}},adminProfile:{findUnique:async({where}:{where:{authUserId:string}})=>where.authUserId==='operator'?{id:'admin',role:'ADMIN',isActive:draft.active}:null},event:model('event'),notice:model('notice'),activityLog:{create:async(data:unknown)=>{if(auditFailure)throw new Error('audit failed');draft.logs.push(data);}}} as unknown as Prisma.TransactionClient;
+  const result=await work(tx);state=draft;attachments=draftAttachments;return result;
  }} as unknown as Pick<PrismaClient,'$transaction'>;
- return {service:createContentManagement(db),read:()=>state,revoke:()=>{state.active=false;},failAudit:()=>{auditFailure=true;}};
+ return {setMedia:(ids:string[])=>{availableMedia=ids;},attachments:()=>attachments,service:createContentManagement(db),read:()=>state,revoke:()=>{state.active=false;},failAudit:()=>{auditFailure=true;}};
 }
 test('same event source retains ID, slug and image; retries and stale updates cannot overwrite',async()=>{
  const f=fixture();const input={kind:'EVENT',id,expectedUpdatedAt:null,data:eventData};
@@ -71,4 +71,13 @@ test('existing CMS forms and ministry editor agree on Korea time on UTC servers'
  const parsed=parseEventFormData(event);assert.ok(parsed.success);assert.equal(new Date(parsed.data.startsAt).toISOString(),'2026-10-28T00:00:00.000Z');
  const notice=new FormData();for(const [key,value] of Object.entries({title:'Test',category:'Test',body:'Body',status:'DRAFT',publishStartsAt:'2026-10-28T09:00',publishEndsAt:'2026-10-29T09:00'}))notice.set(key,value);
  const result=parseNoticeFormData(notice);assert.ok(result.success);assert.equal(new Date(result.data.publishStartsAt!).toISOString(),'2026-10-28T00:00:00.000Z');
+});
+
+test('attachment replacement is ordered, versioned, reference-only and atomic with audit',async()=>{
+ const f=fixture();f.setMedia(['first','second']);
+ const input={kind:'NOTICE',id,expectedUpdatedAt:null,attachmentIds:['second','first'],data:{title:'사진 공지',category:'소식',body:'안내',status:'DRAFT',isImportant:false,isPinned:false,publishStartsAt:'',publishEndsAt:''}};
+ const saved=await f.service.save('operator',input);assert.deepEqual(f.attachments(),['second','first']);
+ await assert.rejects(f.service.save('operator',{...input,expectedUpdatedAt:saved.data.updatedAt,attachmentIds:['private-or-unverified']}),/업로드/);assert.deepEqual(f.attachments(),['second','first']);
+ f.failAudit();await assert.rejects(f.service.save('operator',{...input,expectedUpdatedAt:saved.data.updatedAt,attachmentIds:[]}),/audit/);assert.deepEqual(f.attachments(),['second','first']);
+ assert.equal(contentSave.safeParse({...input,attachmentIds:['first','first']}).success,false);
 });
