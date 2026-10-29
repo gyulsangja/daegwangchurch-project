@@ -9,7 +9,7 @@ import {directoryMethods,invokeDirectory} from '../packages/ministry-core/src/di
 import {contentOnlyPathAllowed} from '../packages/ministry-core/src/content-access';
 test('content-only actor cannot dispatch any pastoral domain operation or see organization metadata',()=>{
  const service=createDirectory(createFixture(),randomUUID);
- const actor:Actor={id:'content',churchId:'demo-daegwang',role:'CONTENT',organizationIds:[],permissions:[],canPrint:false,canDelete:false};
+ const actor:Actor={id:'content',churchId:'demo-daegwang',role:'CONTENT',organizationIds:[],permissions:[],canPrint:false,canDelete:true};
  const config=service.config(actor);assert.deepEqual(config.organizations,[]);assert.deepEqual(config.statuses,[]);assert.deepEqual(config.positions,[]);
  for(const [group,methods] of Object.entries(directoryMethods))for(const method of methods){
   if(group==='root'&&method==='config')continue;
@@ -17,6 +17,8 @@ test('content-only actor cannot dispatch any pastoral domain operation or see or
  }
  for(const path of ['/','/members','/care','/users','/statistics','/print','/church/manage/other'])assert.equal(contentOnlyPathAllowed(path),false);
  assert.ok(contentOnlyPathAllowed('/church'));assert.ok(contentOnlyPathAllowed('/church/manage'));
+ for(const path of ['/worship','/app-groups','/albums','/church-guide','/site-pages','/church-settings'])assert.ok(contentOnlyPathAllowed(path));
+ for(const path of ['/worship/print','/intake','/management','/app-members'])assert.equal(contentOnlyPathAllowed(path),false);
 });
 test('account linking candidates use one scoped summary without private histories',()=>{
  const service=createDirectory(createFixture(),randomUUID);const actor:Actor={id:'root',churchId:'demo-daegwang',role:'ADMIN',organizationIds:[]};

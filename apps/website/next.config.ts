@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import {legacyManagementPaths} from '@daegwang/contracts/management-routes';
 
 const nextConfig: NextConfig = {
   transpilePackages: ['@daegwang/contracts', '@daegwang/database', '@daegwang/server', '@daegwang/config', '@daegwang/web-ui', '@daegwang/design-tokens'],
@@ -7,6 +8,7 @@ const nextConfig: NextConfig = {
     if (!['https:', 'http:'].includes(ministry.protocol) || ministry.username || ministry.password || ministry.pathname !== '/' || ministry.search || ministry.hash) throw new Error('MINISTRY_URL must be an HTTP(S) origin');
     if (process.env.NEXT_PUBLIC_SITE_URL && ministry.origin === new URL(process.env.NEXT_PUBLIC_SITE_URL).origin) throw new Error('MINISTRY_URL must differ from the website origin');
     const redirects = [{ source: '/ministry/:path*', destination: ministry.origin + '/:path*', permanent: false }];
+    if(process.env.UNIFIED_MANAGEMENT_ENABLED==='true')return [...redirects,...legacyManagementPaths.map(([source,destination])=>({source:source+'/:path*',destination:ministry.origin+destination,permanent:false})),{source:'/admin/:path*',destination:ministry.origin+'/',permanent:false}];
     const admin = process.env.ADMIN_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : undefined);
     if (!admin) return redirects;
     const url = new URL(admin);

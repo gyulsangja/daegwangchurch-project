@@ -91,3 +91,13 @@ test('text-only edits preserve attachments even when a linked file is no longer 
  assert.deepEqual(f.attachments(),['visible','hidden']);
  assert.equal(f.read().notice!.title,'Updated text');
 });
+
+test('confirmed content deletion checks the version and preserves shared files with atomic audit',async()=>{
+ const f=fixture();f.setMedia(['shared']);
+ const created=await f.service.save('operator',{kind:'NOTICE',id,expectedUpdatedAt:null,attachmentIds:['shared'],data:{title:'Delete test',category:'Test',body:'Body',status:'DRAFT',isImportant:false,isPinned:false,publishStartsAt:'',publishEndsAt:''}});
+ const input={operation:'DELETE',kind:'NOTICE',id,expectedUpdatedAt:created.data.updatedAt,confirmed:true};
+ await assert.rejects(f.service.save('operator',{...input,confirmed:false}));
+ await assert.rejects(f.service.save('operator',{...input,expectedUpdatedAt:'2000-01-01T00:00:00.000Z'}),/다른 담당자/);
+ await f.service.save('operator',input);assert.ok(f.read().notice!.deletedAt);assert.deepEqual(f.attachments(),['shared']);
+ await assert.rejects(f.service.save('operator',input),/찾을 수/);
+});

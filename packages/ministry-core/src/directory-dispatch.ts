@@ -11,7 +11,7 @@ export const directoryMethods={
 export function directoryGroup(key:PropertyKey):key is Exclude<keyof typeof directoryMethods,'root'>{return typeof key==='string'&&key!=='root'&&Object.hasOwn(directoryMethods,key);}
 export function directoryMethod(group:string|undefined,method:PropertyKey){const key=group??'root';return typeof method==='string'&&Object.hasOwn(directoryMethods,key)&&(directoryMethods[key as keyof typeof directoryMethods] as readonly string[]).includes(method);}
 export function invokeDirectory(service:object,group:string|undefined,method:string,args:unknown[]){
- if(args[0]&&typeof args[0]==='object'&&'role'in args[0]&&args[0].role==='CONTENT'&&!contentOnlyOperationAllowed(group,method))throw new DirectoryError('FORBIDDEN');
+ if(args[0]&&typeof args[0]==='object'&&'role'in args[0]&&['CONTENT','COUNCIL'].includes(String(args[0].role))&&!contentOnlyOperationAllowed(group,method))throw new DirectoryError('FORBIDDEN');
  if(!directoryMethod(group,method))throw new Error('MINISTRY_UNKNOWN_METHOD');
  const target=group?Reflect.get(service,group):service;
  if(!target||typeof target!=='object')throw new Error('MINISTRY_UNKNOWN_METHOD');

@@ -1,6 +1,6 @@
 import {randomUUID} from 'node:crypto';
 import type {Media,Prisma,PrismaClient} from '@daegwang/database/generated/client';
-import {mediaCommand,mediaQuery,type ManagedMedia} from '@daegwang/contracts/media-management';
+import {imageCommand,mediaQuery,type ManagedMedia} from '@daegwang/contracts/media-management';
 import {ContentManagementError} from '../church-content/management';
 import {signImageReceipt,verifyImageReceipt} from './upload-receipt';
 export const selectableMedia={bucket:'public-assets',visibility:'PUBLIC' as const,deletedAt:null,inquiryAttachments:{none:{}},OR:[{NOT:{objectPath:{startsWith:'images/managed/'}}},{width:{gt:0},height:{gt:0}}]};
@@ -11,7 +11,7 @@ export function createMediaManagement(db:Pick<PrismaClient,'$transaction'>,stora
  return {
   async list(userId:string,raw:unknown){const input=mediaQuery.parse(raw);return db.$transaction(async tx=>{await admin(tx,userId);const rows=await tx.media.findMany({where:{...selectableMedia,mimeType:{in:['image/jpeg','image/png','image/webp']},...(input.q?{originalName:{contains:input.q,mode:'insensitive'}}:{})},orderBy:[{createdAt:'desc'},{id:'desc'}],skip:input.page*24,take:25});return {data:rows.slice(0,24).map(row=>mediaDto(row,url)),nextPage:rows.length>24?input.page+1:null};});},
   async save(userId:string,raw:unknown){
-   const input=mediaCommand.parse(raw);await db.$transaction(tx=>admin(tx,userId));
+   const input=imageCommand.parse(raw);await db.$transaction(tx=>admin(tx,userId));
    if(input.operation==='PREPARE_IMAGE'){
     const mediaId=randomUUID(),path=`images/managed/${mediaId}.${{'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[input.mimeType]}`;
     const receipt=signImageReceipt({userId,mediaId,path,mimeType:input.mimeType,size:input.size,expires:Date.now()+2*3600000},key);

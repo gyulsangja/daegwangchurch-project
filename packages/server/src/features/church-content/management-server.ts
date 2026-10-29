@@ -1,4 +1,6 @@
 import 'server-only';
+import {createSystemTools} from './system-tools';
+import {manageDocumentUpload} from '../media/document-management-server';
 import {createClient} from '@supabase/supabase-js';
 import {getPrisma} from '@daegwang/database/prisma';
 import {requireSupabaseConfig} from '@daegwang/config/env';
@@ -29,14 +31,17 @@ export const churchContentManagement=createContentManagementHandler({
  save:(user,input)=>createContentManagement(getPrisma()).save(user,input),
 });
 export const intakeManagement=createContentManagementHandler({authenticate,list:(user,input)=>createIntakeManagement(getPrisma()).list(user,input),save:(user,input)=>createIntakeManagement(getPrisma()).save(user,input)});
-const memberAccounts=()=>createMemberAccountManagement(getPrisma(),{membershipEnabled:process.env.APP_CHURCH_MEMBERSHIP_ENABLED==='true',provider:memberDeletionProvider()});
+const memberAccounts=()=>createMemberAccountManagement(getPrisma(),{membershipEnabled:process.env.APP_CHURCH_MEMBERSHIP_ENABLED==='true',unifiedAccess:process.env.UNIFIED_MANAGEMENT_ENABLED==='true',provider:memberDeletionProvider()});
 export const memberAccountManagement=createContentManagementHandler({authenticate,list:(user,input)=>memberAccounts().list(user,input),save:(user,input)=>memberAccounts().save(user,input)});
 export const groupManagement=createContentManagementHandler({authenticate,list:(user,input)=>createGroupManagement(getPrisma(),process.env.APP_GROUPS_ENABLED==='true').list(user,input),save:(user,input)=>createGroupManagement(getPrisma(),process.env.APP_GROUPS_ENABLED==='true').save(user,input)});
 export const siteSettingsManagement=createContentManagementHandler({authenticate,list:user=>createSiteSettingsManagement(getPrisma()).list(user),save:(user,input)=>createSiteSettingsManagement(getPrisma()).save(user,input)});
 export const worshipContentManagement=createContentManagementHandler({authenticate,list:(user,input)=>createWorshipManagement(getPrisma(),requireSupabaseConfig().url).list(user,input),save:(user,input)=>input&&typeof input==='object'&&'operation'in input&&['PREPARE_PDF','SAVE_PDF'].includes(String(input.operation))?manageBulletinUpload(user,input):createWorshipManagement(getPrisma(),requireSupabaseConfig().url).save(user,input)});
 
 export const fixedPageManagement=createContentManagementHandler({authenticate,list:(user,input)=>createFixedPageManagement(getPrisma()).list(user,input),save:(user,input)=>createFixedPageManagement(getPrisma()).save(user,input)});
-export const mediaManagement=createContentManagementHandler({authenticate,list:(user,input)=>mediaManagementService().list(user,input),save:(user,input)=>mediaManagementService().save(user,input)});
+export const mediaManagement=createContentManagementHandler({authenticate,list:(user,input)=>mediaManagementService().list(user,input),save:(user,input)=>input&&typeof input==='object'&&'operation'in input&&['PREPARE_DOCUMENT','COMPLETE_DOCUMENT'].includes(String(input.operation))?manageDocumentUpload(user,input):mediaManagementService().save(user,input)});
 export const albumManagement=createContentManagementHandler({authenticate,list:(user,input)=>createAlbumManagement(getPrisma(),requireSupabaseConfig().url).list(user,input),save:(user,input)=>createAlbumManagement(getPrisma(),requireSupabaseConfig().url).save(user,input)});
 export const operationsSettingsManagement=createContentManagementHandler({authenticate,list:user=>createOperationsSettings(getPrisma()).list(user),save:(user,input)=>createOperationsSettings(getPrisma()).save(user,input)});
 export const guideManagement=createContentManagementHandler({authenticate,list:(user,input)=>createGuideManagement(getPrisma(),requireSupabaseConfig().url).list(user,input),save:(user,input)=>createGuideManagement(getPrisma(),requireSupabaseConfig().url).save(user,input)});
+
+const systemTools=()=>createSystemTools(getPrisma(),async(bucket,paths)=>{const {url}=requireSupabaseConfig();const key=process.env.SUPABASE_SECRET_KEY;if(!key)throw Error('STORAGE_NOT_CONFIGURED');const client=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});const {error}=await client.storage.from(bucket).remove(paths);if(error)throw Error('STORAGE_DELETE_FAILED');});
+export const systemToolsManagement=createContentManagementHandler({authenticate,list:(user,input)=>systemTools().list(user,input),save:(user,input)=>systemTools().save(user,input)});

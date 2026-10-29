@@ -9,6 +9,7 @@
     "./ministry-local": "./src/ministry-local.ts",
     "./ministry-postgres": "./src/ministry-postgres.ts",
     "./ministry-worship": "./src/ministry-worship.ts",
+    "./ministry-summary": "./src/ministry-summary.ts",
     "./ministry-organization-sync": "./src/ministry-organization-sync.ts"
   },
   "dependencies": {

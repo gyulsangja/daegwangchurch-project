@@ -21,3 +21,5 @@ export const contentDetail=contentRow.extend({attachments:z.array(managedMedia).
 export const contentPage=z.object({data:z.array(contentDetail),nextPage:z.number().int().nonnegative().nullable()});
 export type ContentRow=z.infer<typeof contentRow>;
 export type ContentSave=z.infer<typeof contentSave>;
+export const contentDelete=z.object({operation:z.literal('DELETE'),kind:contentKind,id:mediaId,expectedUpdatedAt:version,confirmed:z.literal(true)}).strict();
+export const contentMutation=z.union([contentSave,contentDelete]);

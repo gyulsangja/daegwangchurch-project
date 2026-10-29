@@ -1,7 +1,7 @@
 import {randomUUID} from 'node:crypto';
 import {Prisma,type PrismaClient,type Event,type Notice} from '@daegwang/database/generated/client';
 import {createContentSlug} from '@daegwang/contracts/content-slug';
-import {contentQuery,contentSave,type ContentRow} from '@daegwang/contracts/church-content-management';
+import {contentQuery,contentMutation,type ContentRow} from '@daegwang/contracts/church-content-management';
 import {mediaDto,selectableMedia} from '../media/management';
 
 export class ContentManagementError extends Error {
@@ -41,7 +41,7 @@ export function createContentManagement(db:Pick<PrismaClient,'$transaction'>,sto
    });
   },
   async save(userId:string,raw:unknown){
-   const input=contentSave.parse(raw);
+   const input=contentMutation.parse(raw);
    try{return await db.$transaction(async tx=>{
     const actor=await admin(tx,userId);
     const create=input.expectedUpdatedAt===null;
@@ -49,6 +49,13 @@ export function createContentManagement(db:Pick<PrismaClient,'$transaction'>,sto
     if(create&&current)throw new ContentManagementError(409,'이미 저장된 게시물입니다. 목록에서 확인해 주세요.');
     if(!create&&(!current||current.deletedAt))throw new ContentManagementError(404,'게시물을 찾을 수 없습니다.');
     if(!create&&current!.updatedAt.toISOString()!==input.expectedUpdatedAt)throw new ContentManagementError(409,'다른 담당자가 수정했습니다. 다시 열어 확인해 주세요.');
+    if('operation'in input){
+     const where={id:input.id,deletedAt:null,updatedAt:new Date(input.expectedUpdatedAt)},data={deletedAt:new Date(),status:'PRIVATE' as const};
+     const changed=input.kind==='EVENT'?await tx.event.updateMany({where,data}):await tx.notice.updateMany({where,data});
+     if(changed.count!==1)throw new ContentManagementError(409,'다른 담당자가 수정했습니다. 다시 확인해 주세요.');
+     await tx.activityLog.create({data:{actorId:actor.id,action:'DELETE',entityType:input.kind==='EVENT'?'Event':'Notice',entityId:input.id,summary:'통합 관리 게시물 삭제'}});
+     return {data:dto(input.kind,{...current!,...data})};
+    }
     const mediaIds=input.kind==='NOTICE'?input.attachmentIds:input.coverImageId?[input.coverImageId]:undefined;
     if(mediaIds?.length){
      const files=await tx.media.findMany({where:{...selectableMedia,id:{in:mediaIds}}});

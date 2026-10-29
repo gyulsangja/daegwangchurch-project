@@ -13,7 +13,7 @@ import {authenticatedSession} from './auth-security';
 import { type Actor } from '@daegwang/ministry-core/directory';
 import { isLocalReviewEnabled } from '@daegwang/ministry-core/local-access';
 
-export const reviewActor: Actor = { id: 'local-review-admin', churchId: 'demo-daegwang', role: 'ADMIN', organizationIds: [], permissions: ['CARE'] };
+export const reviewActor: Actor = { id: 'local-review-admin', churchId: 'demo-daegwang', role: 'ADMIN', organizationIds: [], permissions: ['CARE'],canPrint:true,canDelete:true };
 export const enabled = (host: string | null) => isLocalReviewEnabled({ NODE_ENV: process.env.NODE_ENV, MINISTRY_LOCAL_DEMO: process.env.MINISTRY_LOCAL_DEMO }, host);
 export function directory(host: string | null) {
   if (!enabled(host)) throw new Error('LOCAL_REVIEW_DISABLED');
@@ -33,6 +33,6 @@ export async function requestWorkspace(host:string|null){
 export const workspace=cache(async function workspace() {
   const host = (await headers()).get('host');
   if (!operationalEnabled()&&!enabled(host)) notFound();
-  try{const {service,actor}=await requestWorkspace(host);const path=(await headers()).get('x-ministry-path')??'/';if(actor.role==='CONTENT'&&!contentOnlyPathAllowed(path))redirect('/church');if(actor.role==='LEADER'&&!(path==='/members'||(/^\/members\/[^/]+$/.test(path)&&path!=='/members/new')||path==='/attendance'||path==='/church'))redirect('/members');return {service,actor,config:await service.config(actor)};}
+  try{const {service,actor}=await requestWorkspace(host);const path=(await headers()).get('x-ministry-path')??'/';if(actor.role==='COUNCIL'&&!['/reports','/church','/account/security'].includes(path))redirect('/reports');if(actor.role==='CONTENT'&&!contentOnlyPathAllowed(path))redirect('/church');if(actor.role==='LEADER'&&!(path==='/members'||(/^\/members\/[^/]+$/.test(path)&&path!=='/members/new')||path==='/attendance'||path==='/church'))redirect('/members');return {service,actor,config:await service.config(actor)};}
   catch(error){if(error instanceof Error&&error.message==='MINISTRY_MFA_REQUIRED')redirect('/account/security');if(error instanceof Error&&error.message==='MINISTRY_ACCESS_DENIED')redirect('/access-denied');if(error instanceof Error&&error.message==='MINISTRY_LOGIN_REQUIRED')redirect('/login');if(error instanceof Error&&error.name==='MinistryAccessError')redirect('/access-denied');throw error;}
 });

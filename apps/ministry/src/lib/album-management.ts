@@ -4,7 +4,7 @@ import {albumQuery,albumCommand,albumPage,albumDetail} from '@daegwang/contracts
 import {requestCmsManagement,type VerifiedSession} from './cms-management-client';
 import {operationalEnabled} from './operational-config';
 export async function manageAlbums(actor:Actor,raw:unknown,save=false,session?:VerifiedSession){
- if(!operationalEnabled()||actor.role!=='ADMIN')throw new DirectoryError('FORBIDDEN','사진첩 관리 권한이 필요합니다.');
+ if(!operationalEnabled()||!['ADMIN','CONTENT'].includes(actor.role))throw new DirectoryError('FORBIDDEN','사진첩 관리 권한이 필요합니다.');
  const input=save?albumCommand.parse(raw):albumQuery.parse(raw);
  if('operation'in input&&input.operation==='DELETE'&&!actor.canDelete)throw new DirectoryError('FORBIDDEN','삭제 권한이 필요합니다.');
  const result=await requestCmsManagement(actor,'albums',input,save,session,raw);
