@@ -17,7 +17,7 @@ export const contentSave=z.discriminatedUnion('kind',[
  if(dates.some(date=>date&&!z.iso.datetime({offset:true}).safeParse(date).success))ctx.addIssue({code:'custom',message:'시간대가 포함된 날짜를 입력해 주세요.'});
 });
 export const contentRow=z.object({id:z.string(),kind:contentKind,title:z.string(),category:z.string(),status:z.enum(['DRAFT','PUBLISHED','PRIVATE','ARCHIVED']),updatedAt:version,body:z.string(),startsAt:z.string(),endsAt:z.string(),isAllDay:z.boolean(),location:z.string(),ministryName:z.string(),isImportant:z.boolean(),isPinned:z.boolean(),publishStartsAt:z.string(),publishEndsAt:z.string(),attachmentCount:z.number().int().nonnegative()});
-export const contentDetail=contentRow.extend({attachments:z.array(managedMedia).optional(),coverImage:managedMedia.nullable().optional()});
+export const contentDetail=contentRow.extend({attachments:z.array(managedMedia).optional(),attachmentsComplete:z.boolean().optional(),coverImage:managedMedia.nullable().optional(),coverEditable:z.boolean().optional()});
 export const contentPage=z.object({data:z.array(contentDetail),nextPage:z.number().int().nonnegative().nullable()});
 export type ContentRow=z.infer<typeof contentRow>;
 export type ContentSave=z.infer<typeof contentSave>;

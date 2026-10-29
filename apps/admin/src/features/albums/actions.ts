@@ -130,6 +130,8 @@ export async function createAlbumAction(_state: AlbumActionState, formData: Form
 
 export async function updateAlbumAction(id: string, _state: AlbumActionState, formData: FormData): Promise<AlbumActionState> {
   const admin = await requireAdmin();
+  const expected = formData.get("expectedUpdatedAt");
+  if(typeof expected!=="string"||!expected||Number.isNaN(Date.parse(expected)))return {message:"앨범을 다시 열어 수정해 주세요."};
   const parsed = parseInput(formData);
   if (!parsed.success) return parsed.state;
   const files = getImageFiles(formData);
@@ -140,6 +142,7 @@ export async function updateAlbumAction(id: string, _state: AlbumActionState, fo
   const current = await prisma.album.findFirst({ where: { id, deletedAt: null }, include: { images: { include: { media: true }, orderBy: { sortOrder: "asc" } } } });
   if (!current) return { message: "수정할 앨범을 찾지 못했습니다." };
 
+  if(current.updatedAt.toISOString()!==expected)return {message:"다른 화면에서 수정되었습니다. 앨범을 다시 열어 주세요."};
   const removeIds = new Set(formData.getAll("removeImageIds").filter((value): value is string => typeof value === "string"));
   const removeImages = current.images.filter((image) => removeIds.has(image.id));
   const remainingImages = current.images.filter((image) => !removeIds.has(image.id));
@@ -162,7 +165,7 @@ export async function updateAlbumAction(id: string, _state: AlbumActionState, fo
         : availableMediaIds.includes(current.coverImageId ?? "") ? current.coverImageId : availableMediaIds[0];
 
       await tx.album.update({
-        where: { id },
+        where: { id, deletedAt:null, updatedAt:new Date(expected) },
         data: {
           title: parsed.data.title,
           eventDate: new Date(`${parsed.data.eventDate}T00:00:00.000Z`),

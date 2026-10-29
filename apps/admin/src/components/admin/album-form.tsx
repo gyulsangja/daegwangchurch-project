@@ -19,6 +19,7 @@ type ExistingImage = { id: string; mediaId: string; name: string; url: string; i
 
 export type AlbumFormValues = {
   id?: string;
+  expectedUpdatedAt?: string;
   title?: string;
   eventDate?: string;
   category?: string;
@@ -37,6 +38,7 @@ export function AlbumForm({ initialValues = {} }: { initialValues?: AlbumFormVal
 
   return (
     <form action={formAction} data-unsaved-warning className="mt-8 grid gap-6 lg:grid-cols-[1fr_20rem]">
+      <input type="hidden" name="expectedUpdatedAt" value={initialValues.expectedUpdatedAt??""}/>
       <Paper variant="outlined" className="flex flex-col gap-6 p-5 md:p-7">
         {state.message ? <Alert severity="error">{state.message}</Alert> : null}
         <TextField fullWidth required label="앨범 제목" name="title" defaultValue={initialValues.title ?? ""} error={Boolean(error("title"))} helperText={error("title")} />

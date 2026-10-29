@@ -31,11 +31,11 @@ export function createContentManagement(db:Pick<PrismaClient,'$transaction'>,sto
     if(input.id&&rows[0]){
      if(input.kind==='NOTICE'){
       const files=await tx.noticeAttachment.findMany({where:{noticeId:input.id,media:{...selectableMedia}},include:{media:true},orderBy:{sortOrder:'asc'}});
-      return {data:[{...rows[0],attachments:files.map(file=>mediaDto(file.media,storageUrl))}],nextPage:null};
+      return {data:[{...rows[0],attachments:files.map(file=>mediaDto(file.media,storageUrl)),attachmentsComplete:files.length===rows[0].attachmentCount}],nextPage:null};
      }
-     const event=await tx.event.findUnique({where:{id:input.id},select:{coverImage:true}});
-     const image=event?.coverImage;
-     return {data:[{...rows[0],coverImage:image&&!image.deletedAt&&image.visibility==='PUBLIC'?mediaDto(image,storageUrl):null}],nextPage:null};
+     const event=await tx.event.findUnique({where:{id:input.id},select:{coverImageId:true}});
+     const image=event?.coverImageId?await tx.media.findFirst({where:{...selectableMedia,id:event.coverImageId}}):null;
+     return {data:[{...rows[0],coverImage:image?mediaDto(image,storageUrl):null,coverEditable:!event?.coverImageId||!!image}],nextPage:null};
     }
     return {data:rows.slice(0,20),nextPage:rows.length>20?input.page+1:null};
    });

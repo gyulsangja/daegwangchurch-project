@@ -81,3 +81,13 @@ test('attachment replacement is ordered, versioned, reference-only and atomic wi
  f.failAudit();await assert.rejects(f.service.save('operator',{...input,expectedUpdatedAt:saved.data.updatedAt,attachmentIds:[]}),/audit/);assert.deepEqual(f.attachments(),['second','first']);
  assert.equal(contentSave.safeParse({...input,attachmentIds:['first','first']}).success,false);
 });
+
+test('text-only edits preserve attachments even when a linked file is no longer selectable',async()=>{
+ const f=fixture();f.setMedia(['visible','hidden']);
+ const input={kind:'NOTICE',id,expectedUpdatedAt:null,data:{title:'Original',category:'News',body:'Body',status:'DRAFT',isImportant:false,isPinned:false,publishStartsAt:'',publishEndsAt:''}};
+ const created=await f.service.save('operator',{...input,attachmentIds:['visible','hidden']});
+ f.setMedia(['visible']);
+ await f.service.save('operator',{...input,expectedUpdatedAt:created.data.updatedAt,data:{...input.data,title:'Updated text'}});
+ assert.deepEqual(f.attachments(),['visible','hidden']);
+ assert.equal(f.read().notice!.title,'Updated text');
+});

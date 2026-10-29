@@ -1,0 +1,35 @@
+import {Prisma,type PrismaClient,type Person,type Ministry,type WorshipSchedule,type HistoryItem} from '@daegwang/database/generated/client';
+import {guideQuery,guideCommand,guideFields,type GuideKind} from '@daegwang/contracts/guide-management';
+import {ContentManagementError} from './management';
+import {mediaDto,selectableMedia} from '../media/management';
+type Row=Person|Ministry|WorshipSchedule|HistoryItem;
+function summary(row:Row){return {id:row.id,title:'name'in row?row.name:row.title,subtitle:'year'in row?`${row.year}${row.month?'.'+row.month:''}${row.day?'.'+row.day:''}`:'position'in row?row.position:'dayLabel'in row?`${row.dayLabel} ${row.timeLabel}`:'부서·사역',visible:'status'in row?row.status==='PUBLISHED':row.isVisible,sortOrder:row.sortOrder,updatedAt:row.updatedAt.toISOString()};}
+function read(tx:Prisma.TransactionClient,kind:GuideKind,id:string){const where={id,deletedAt:null};switch(kind){case'PEOPLE':return tx.person.findFirst({where});case'MINISTRIES':return tx.ministry.findFirst({where});case'SCHEDULES':return tx.worshipSchedule.findFirst({where});case'HISTORY':return tx.historyItem.findFirst({where});}}
+function lines(value:Prisma.JsonValue|null){return Array.isArray(value)?value.filter((v):v is string=>typeof v==='string').join('\n'):'';}
+function values(kind:GuideKind,row:Row){const source=row as unknown as Record<string,unknown>,result:Record<string,string|number|boolean>={sortOrder:row.sortOrder};for(const field of guideFields[kind]){const v=source[field.key];result[field.key]=typeof v==='string'||typeof v==='boolean'||typeof v==='number'?v:'';}if('career'in row)result.careerText=lines(row.career);if('sections'in row){result.slug=row.slug;const sections=row.sections&&typeof row.sections==='object'&&!Array.isArray(row.sections)?row.sections:{};result.programText=lines(sections.programs??null);}if('year'in row){result.month=row.month?String(row.month):'';result.day=row.day?String(row.day):'';}return result;}
+export function createGuideManagement(db:Pick<PrismaClient,'$transaction'>,url:string){
+ async function admin(tx:Prisma.TransactionClient,user:string){const actor=await tx.adminProfile.findUnique({where:{authUserId:user}});if(!actor?.isActive||!['ADMIN','SUPER_ADMIN'].includes(actor.role))throw new ContentManagementError(403,'교회 안내 관리 권한이 필요합니다.');return actor;}
+ return {
+  async list(user:string,raw:unknown){const input=guideQuery.parse(raw);return db.$transaction(async tx=>{await admin(tx,user);
+   if(input.id){const row=await read(tx,input.kind,input.id);if(!row)throw new ContentManagementError(404,'안내 자료를 찾을 수 없습니다.');const imageId='profileImageId'in row?row.profileImageId:'coverImageId'in row?row.coverImageId:null;const image=imageId?await tx.media.findFirst({where:{...selectableMedia,id:imageId}}):null;return {data:{...summary(row),kind:input.kind,values:values(input.kind,row),image:image?mediaDto(image,url):null}};}
+   const where={deletedAt:null,...(input.q?{[input.kind==='HISTORY'?'title':'name']:{contains:input.q,mode:'insensitive' as const}}:{})};const args={where,skip:input.page*20,take:21,orderBy:[{sortOrder:'asc' as const},{id:'asc' as const}]};
+   const rows:Row[]=input.kind==='PEOPLE'?await tx.person.findMany(args):input.kind==='MINISTRIES'?await tx.ministry.findMany(args):input.kind==='SCHEDULES'?await tx.worshipSchedule.findMany(args):await tx.historyItem.findMany({...args,orderBy:[{year:'desc'},{month:'desc'},{day:'desc'},{sortOrder:'asc'},{id:'asc'}]});return {data:rows.slice(0,20).map(summary),nextPage:rows.length>20?input.page+1:null};
+  });},
+  async save(user:string,raw:unknown){const input=guideCommand.parse(raw);try{return await db.$transaction(async tx=>{const actor=await admin(tx,user);const current=await read(tx,input.kind,input.id);
+   if(input.expectedUpdatedAt===null?!!current:!current||current.updatedAt.toISOString()!==input.expectedUpdatedAt)throw new ContentManagementError(409,'다른 화면에서 수정되었거나 이미 저장되었습니다. 다시 열어 주세요.');
+   const where={id:input.id,deletedAt:null,...(current?{updatedAt:current.updatedAt}:{})};let changed=1;
+   if(input.operation==='DELETE'){const data={deletedAt:new Date()};changed=(input.kind==='PEOPLE'?await tx.person.updateMany({where,data}):input.kind==='MINISTRIES'?await tx.ministry.updateMany({where,data}):input.kind==='SCHEDULES'?await tx.worshipSchedule.updateMany({where,data}):await tx.historyItem.updateMany({where,data})).count;}
+   else{
+    if(input.imageId&&!await tx.media.findFirst({where:{...selectableMedia,id:input.imageId,mimeType:{in:['image/jpeg','image/png','image/webp']}}}))throw new ContentManagementError(409,'이미지 업로드를 다시 확인해 주세요.');
+    switch(input.kind){
+     case'PEOPLE':{const {careerText,...d}=input.data;const data={...d,ministry:d.ministry??null,introduction:d.introduction??null,quote:d.quote??null,career:careerText?careerText.split(/\r?\n/).map(v=>v.trim()).filter(Boolean):Prisma.JsonNull,profileImageId:input.imageId};if(current)changed=(await tx.person.updateMany({where,data})).count;else await tx.person.create({data:{id:input.id,...data}});break;}
+     case'MINISTRIES':{const {programText,...d}=input.data;const old=current&&'sections'in current&&current.sections&&typeof current.sections==='object'&&!Array.isArray(current.sections)?current.sections:{};const data={...d,slug:current&&'slug'in current?current.slug:d.slug,audience:d.audience??null,meetingDay:d.meetingDay??null,meetingTime:d.meetingTime??null,location:d.location??null,leader:d.leader??null,contactName:d.contactName??null,contactValue:d.contactValue??null,coverImageId:input.imageId,sections:{...old,programs:programText?programText.split(/\r?\n/).map(v=>v.trim()).filter(Boolean):[]},publishedAt:d.status==='PUBLISHED'?(current&&'publishedAt'in current?current.publishedAt:null)??new Date():null};if(current)changed=(await tx.ministry.updateMany({where,data})).count;else await tx.ministry.create({data:{id:input.id,...data}});break;}
+     case'SCHEDULES':{const d=input.data,data={...d,location:d.location??null,note:d.note??null};if(current)changed=(await tx.worshipSchedule.updateMany({where,data})).count;else await tx.worshipSchedule.create({data:{id:input.id,...data}});break;}
+     case'HISTORY':{const d=input.data,data={...d,month:d.month??null,day:d.day??null,content:d.content??null};if(current)changed=(await tx.historyItem.updateMany({where,data})).count;else await tx.historyItem.create({data:{id:input.id,...data}});break;}
+    }
+   }
+   if(changed!==1)throw new ContentManagementError(409,'다른 화면에서 수정되었습니다. 다시 열어 주세요.');
+   await tx.activityLog.create({data:{actorId:actor.id,action:input.operation==='DELETE'?'DELETE':current?'UPDATE':'CREATE',entityType:{PEOPLE:'Person',MINISTRIES:'Ministry',SCHEDULES:'WorshipSchedule',HISTORY:'HistoryItem'}[input.kind],entityId:input.id,summary:'통합 관리 교회 안내 저장',changes:{operation:input.operation}}});return {saved:true};
+  });}catch(e){if(e instanceof Prisma.PrismaClientKnownRequestError&&e.code==='P2002')throw new ContentManagementError(409,'이미 저장되었거나 주소가 중복됩니다. 다시 확인해 주세요.');throw e;}},
+ };
+}

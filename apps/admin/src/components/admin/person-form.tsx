@@ -14,7 +14,7 @@ import { Button } from "@daegwang/web-ui/components/ui/button";
 import { createPersonAction, updatePersonAction, type PersonActionState } from "../../features/people/actions";
 
 export type PersonFormValues = {
-  id?: string;
+  id?: string; expectedUpdatedAt?: string;
   name?: string;
   position?: string;
   ministry?: string;
@@ -36,7 +36,7 @@ export function PersonForm({ initialValues = {} }: { initialValues?: PersonFormV
   const error = (name: string) => state.errors?.[name]?.[0];
 
   return (
-    <form action={formAction} data-unsaved-warning className="mt-8 grid gap-6 lg:grid-cols-[1fr_20rem]">
+    <form action={formAction} data-unsaved-warning className="mt-8 grid gap-6 lg:grid-cols-[1fr_20rem]"><input type="hidden" name="expectedUpdatedAt" value={initialValues.expectedUpdatedAt??""}/>
       <Paper variant="outlined" className="flex flex-col gap-6 p-5 md:p-7">
         {state.message ? <Alert severity="error">{state.message}</Alert> : null}
         <div className="grid gap-6 sm:grid-cols-2">

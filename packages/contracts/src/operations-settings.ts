@@ -1,0 +1,4 @@
+import {z} from 'zod';
+export const careSettingsInput=z.object({expectedVersion:z.string().min(1).max(100).nullable(),enabled:z.boolean(),adminIds:z.array(z.string().min(1).max(100)).min(1).max(20).refine(ids=>new Set(ids).size===ids.length),retentionUnit:z.enum(['years','days']),retention:z.number().int().positive().max(3650),notice:z.string().trim().min(1).max(10000),confirmed:z.literal(true)}).strict().refine(v=>v.retentionUnit!=='years'||v.retention<=10,{message:'보관 기간은 최대 10년입니다.'});
+export const careSettingsSnapshot=z.object({expectedVersion:z.string().nullable(),enabled:z.boolean(),adminIds:z.array(z.string()),retentionUnit:z.enum(['years','days']),retention:z.number(),notice:z.string(),admins:z.array(z.object({id:z.string(),name:z.string(),active:z.boolean()}))});
+export type CareSettingsSnapshot=z.infer<typeof careSettingsSnapshot>;

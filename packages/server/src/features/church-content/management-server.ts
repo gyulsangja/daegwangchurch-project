@@ -13,6 +13,9 @@ import {createGroupManagement} from './group-management';
 import {createFixedPageManagement} from './page-management';
 import {createSiteSettingsManagement} from './site-settings-management';
 import {mediaManagementService} from '../media/management-server';
+import {createAlbumManagement} from './album-management';
+import {createOperationsSettings} from './operations-settings';
+import {createGuideManagement} from './guide-management';
 async function authenticate(token:string){
   const {url,publishableKey}=requireSupabaseConfig();
   const client=createClient(url,publishableKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:(input,init)=>fetch(input,{...init,signal:AbortSignal.timeout(10000)})}});
@@ -34,3 +37,6 @@ export const worshipContentManagement=createContentManagementHandler({authentica
 
 export const fixedPageManagement=createContentManagementHandler({authenticate,list:(user,input)=>createFixedPageManagement(getPrisma()).list(user,input),save:(user,input)=>createFixedPageManagement(getPrisma()).save(user,input)});
 export const mediaManagement=createContentManagementHandler({authenticate,list:(user,input)=>mediaManagementService().list(user,input),save:(user,input)=>mediaManagementService().save(user,input)});
+export const albumManagement=createContentManagementHandler({authenticate,list:(user,input)=>createAlbumManagement(getPrisma(),requireSupabaseConfig().url).list(user,input),save:(user,input)=>createAlbumManagement(getPrisma(),requireSupabaseConfig().url).save(user,input)});
+export const operationsSettingsManagement=createContentManagementHandler({authenticate,list:user=>createOperationsSettings(getPrisma()).list(user),save:(user,input)=>createOperationsSettings(getPrisma()).save(user,input)});
+export const guideManagement=createContentManagementHandler({authenticate,list:(user,input)=>createGuideManagement(getPrisma(),requireSupabaseConfig().url).list(user,input),save:(user,input)=>createGuideManagement(getPrisma(),requireSupabaseConfig().url).save(user,input)});

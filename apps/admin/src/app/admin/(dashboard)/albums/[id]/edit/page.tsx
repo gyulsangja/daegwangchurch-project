@@ -23,6 +23,7 @@ export default async function EditAlbumPage({ params }: Props) {
       <Alert severity="info" className="mt-6!">사진 삭제와 대표 사진 변경은 아래에서 선택한 뒤 저장해야 반영됩니다.</Alert>
       <AlbumForm initialValues={{
         id: album.id,
+        expectedUpdatedAt: album.updatedAt.toISOString(),
         title: album.title,
         eventDate: album.eventDate.toISOString().slice(0, 10),
         category: album.category,

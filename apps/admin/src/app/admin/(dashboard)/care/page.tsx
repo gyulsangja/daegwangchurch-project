@@ -10,6 +10,8 @@ import { updateCareAction, saveCareSettingsAction } from './actions';
 const transitions: Record<string, string[]> = { RECEIVED: ['DISCUSSING', 'CANCELLED'], DISCUSSING: ['SCHEDULED', 'COMPLETED', 'CANCELLED'], SCHEDULED: ['DISCUSSING', 'COMPLETED', 'CANCELLED'], COMPLETED: [], CANCELLED: [] };
 export default async function CarePage({ searchParams }: { searchParams: Promise<{ status?: string; q?: string }> }) {
   const admin = await requireAdmin(); const db = getPrisma(); const settings = await readCareSettings(db);
+  const stored=await db.careSetting.findUnique({where:{id:"CARE"},select:{policy:true}});
+  const storedVersion=stored&&(stored.policy as {version?:string})?.version||"";
   const superAdmin = admin.role === 'SUPER_ADMIN'; const authorized = settings?.policy.adminIds.includes(admin.id);
   const admins = superAdmin ? await db.adminProfile.findMany({ where: { isActive: true }, select: { id: true, displayName: true }, orderBy: { displayName: 'asc' } }) : [];
   const rows = settings && authorized ? await createCareAdminService(db, admin.id, settings.policy).list() : [];
@@ -20,6 +22,7 @@ export default async function CarePage({ searchParams }: { searchParams: Promise
     <p role="status" className="rounded-xl border border-border bg-white p-4"><strong>{settings?.enabled ? '앱 접수 중' : '새 요청 접수 중지'}</strong> · {settings ? `접수일로부터 ${careRetentionLabel(settings.policy)} 보관` : '담당자와 접수 설정을 저장해 주세요.'}</p>
     {superAdmin && <AdminDialog  title={<>접수 설정 · 담당자와 보관 기간</>} trigger={<>접수 설정 · 담당자와 보관 기간</>}>
       <OperationForm key={settings?.policy.version ?? 'new'} action={saveCareSettingsAction} submit="접수 설정 저장">
+        <input type="hidden" name="expectedVersion" value={storedVersion}/>
         <label className="flex items-center gap-3"><input type="checkbox" name="enabled" defaultChecked={settings?.enabled ?? false} className="!w-5" />앱에서 새 상담·심방 요청 받기</label>
         <fieldset><legend className="mb-2 font-bold">요청을 열람하고 처리할 담당자</legend><p className="mb-2 text-sm text-text-secondary">최고관리자도 담당자로 지정해야 요청 내용을 볼 수 있습니다.</p>{admins.map(person => <label key={person.id} className="flex min-h-11 items-center gap-3"><input type="checkbox" name="adminIds" value={person.id} defaultChecked={settings?.policy.adminIds.includes(person.id)} className="!w-5" />{person.displayName}</label>)}</fieldset>
         <label className="block">접수일로부터 보관할 기간<input type="number" name="retentionDays" required min={1} max={3650} defaultValue={settings?.policy.retentionYears ?? settings?.policy.retentionDays ?? 5} /></label>

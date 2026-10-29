@@ -22,7 +22,7 @@ export default async function EditPersonPage({ params }: Props) {
       </div>
       <Alert severity="info" className="mt-6!">공개를 해제하면 홈페이지에서 즉시 숨겨집니다.</Alert>
       <PersonForm initialValues={{
-        id: person.id,
+        id: person.id, expectedUpdatedAt: person.updatedAt.toISOString(),
         name: person.name,
         position: person.position,
         ministry: person.ministry ?? "",

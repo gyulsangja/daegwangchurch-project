@@ -104,7 +104,7 @@ export async function createPersonAction(_state: PersonActionState, formData: Fo
 }
 
 export async function updatePersonAction(id: string, _state: PersonActionState, formData: FormData): Promise<PersonActionState> {
-  const admin = await requireAdmin();
+  const admin = await requireAdmin(); const expected=formData.get("expectedUpdatedAt"); if(typeof expected!=="string"||!expected||Number.isNaN(Date.parse(expected)))return {message:"자료를 다시 열어 수정해 주세요."};
   const parsed = parseInput(formData);
   if (!parsed.success) return parsed.state;
   const file = getProfileFile(formData);
@@ -129,7 +129,7 @@ export async function updatePersonAction(id: string, _state: PersonActionState, 
         replacedImage = Boolean(current.profileImageId);
       }
       const person = await tx.person.update({
-        where: { id },
+        where: { id, deletedAt:null, updatedAt:new Date(expected) },
         data: {
           name: parsed.data.name,
           position: parsed.data.position,
