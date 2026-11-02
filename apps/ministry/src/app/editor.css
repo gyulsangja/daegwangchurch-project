@@ -1,0 +1,30 @@
+.editor-page-host:empty{display:none}
+.editor-list-content[hidden]{display:none!important}
+.editor-page{min-width:0;outline:none;padding-bottom:24px}
+.editor-page-navigation{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:22px}
+.editor-page-navigation>span{font-size:13px;color:var(--muted)}
+.editor-page>.section-heading,.editor-page>form>.section-heading{padding:0 0 22px;align-items:start}
+.editor-page>.section-heading h2,.editor-page>form>.section-heading h2{font-size:28px;margin:0;letter-spacing:-.04em}
+.editor-page>.section-heading>button,.editor-page>form>.section-heading>button{display:none}
+.editor-page>form{min-width:0;margin:0}
+.editor-page>form.panel{padding:0;border:0;border-radius:0;background:none;overflow:visible}
+.editor-page .pastoral-fields,.editor-page .record-batch-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:20px;padding:28px;border:1px solid var(--border);border-radius:12px;background:var(--paper);min-width:0;margin:0;overflow:visible}
+.editor-page .pastoral-fields>*,.editor-page .record-batch-fields>*{min-width:0}
+.editor-page .pastoral-fields>label,.editor-page .record-batch-fields>label{display:grid;gap:8px;font-size:14px;font-weight:600;margin:0}
+.editor-page .pastoral-fields>label.check{display:flex;align-items:center;font-weight:400}
+.editor-page label:has(textarea),.editor-page label.check,.editor-page fieldset>p,.editor-page fieldset>h2,.editor-page fieldset>h3,.editor-page fieldset>div,.editor-page fieldset>fieldset,.editor-page fieldset>section,.editor-page fieldset>details,.editor-page fieldset>.editor-actions{grid-column:1/-1}
+.editor-page label input:not([type=checkbox]),.editor-page label select,.editor-page label textarea{width:100%;min-width:0;max-width:100%;font-weight:400}
+.editor-page textarea{font:inherit;color:var(--ink);border:1px solid #cad5cc;border-radius:6px;padding:12px;resize:vertical;min-height:90px}
+.editor-page p{margin:0;line-height:1.7}.editor-page p:empty{display:none}
+.editor-page details{border-top:1px solid var(--border);padding-top:18px}
+.editor-page details>summary{cursor:pointer;font-size:14px;font-weight:600;line-height:1.8}
+.editor-page details[open]>summary{margin-bottom:18px}
+.editor-page details label{display:grid;gap:8px;margin:12px 0}
+.editor-page details label.check{display:flex}
+.editor-page .form-grid{gap:20px}.editor-page .detail-body{background:white;border:1px solid var(--border);border-radius:10px;overflow:visible}
+.editor-page .record-batch-fields>h2{margin:12px 0 0;padding-top:20px;border-top:1px solid var(--border)}
+.editor-actions{position:sticky;bottom:12px;z-index:6;background:white;box-shadow:0 5px 24px #243a3512;border:1px solid var(--border);border-radius:9px;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 18px;margin-top:10px}
+.editor-actions>span{font-size:13px;color:var(--muted);line-height:1.6}.editor-actions>div{display:flex;gap:10px}.editor-actions .button{min-width:120px}
+.editor-page .batch-candidates,.editor-page .batch-selected{max-height:360px}
+@media(max-width:760px){.editor-page-navigation{margin-bottom:20px}.editor-page-navigation>span{display:none}.editor-page>.section-heading h2,.editor-page>form>.section-heading h2{font-size:24px}.editor-page .pastoral-fields,.editor-page .record-batch-fields{padding:18px;gap:18px;grid-template-columns:1fr}.editor-page input,.editor-page select,.editor-page textarea{font-size:16px}.editor-actions{bottom:8px;flex-wrap:wrap;padding:12px;gap:8px}.editor-actions>span{flex-basis:100%;font-size:12px}.editor-actions>div{width:100%}.editor-actions .button{width:100%}.editor-page .form-grid{gap:16px}.editor-page .detail-body{padding:18px}}
+@media print{.editor-page-navigation,.editor-actions{display:none}.editor-page .pastoral-fields{border:0;display:block}}
