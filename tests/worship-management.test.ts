@@ -2,7 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import type {PrismaClient,Prisma} from '@daegwang/database/generated/client';
 import {createWorshipManagement} from '../packages/server/src/features/church-content/worship-management';
-import {bulletinManagementSave,worshipMonthRange,worshipManagementBundle} from '../packages/contracts/src/worship-management';
+import {bulletinManagementSave,videoManagementSave,worshipMonthRange,worshipManagementBundle} from '../packages/contracts/src/worship-management';
+test('video publication uses explicit status without a separate channel confirmation',()=>{
+ const video={operation:'SAVE_VIDEO',id:'video1',expectedUpdatedAt:null,type:'SUNDAY_MORNING',title:'말씀',contentDate:'2026-11-03',youtubeUrl:'https://youtu.be/dQw4w9WgXcQ',status:'PUBLISHED',isPinned:false,preacher:'',scripture:'',description:'',summary:''};
+ assert.equal(videoManagementSave.safeParse(video).success,true);
+ assert.equal(videoManagementSave.safeParse({...video,youtubeUrl:'https://example.invalid'}).success,false);
+ assert.equal(videoManagementSave.safeParse({...video,expectedUpdatedAt:'invalid'}).success,false);
+});
 function fixture(){
  let row={id:'bulletin1',title:'Test',slug:'keep-slug',worshipDate:new Date('2026-10-25'),summary:null as string|null,status:'DRAFT',updatedAt:new Date('2026-10-29T00:00:00Z'),deletedAt:null,pdfMediaId:'keep-file',worshipContentId:null as string|null,publishedAt:null as Date|null};
  let logs:unknown[]=[];let active=true;let auditFails=false;let conflict=false;
