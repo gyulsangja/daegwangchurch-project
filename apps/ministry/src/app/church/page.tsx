@@ -1,3 +1,4 @@
+import {ListHeading} from '@/components/list-heading';
 import Link from 'next/link';
 import styles from './church.module.css';
 import {Suspense} from 'react';
@@ -32,9 +33,9 @@ export default async function Page({searchParams}:{searchParams:Promise<{month?:
   const month=monthSchema.safeParse(params.month).data??new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'}).slice(0,7);
   const eventPage=pageNumber(params.eventPage),noticePage=pageNumber(params.noticePage);
   const {actor}=await workspace();
-  return <><div className="page-heading"><div><h1>교회 일정·공지</h1><p>교회에 알린 소식과 이달의 목회 일정을 함께 확인합니다.</p></div></div>
+  return <><ListHeading icon="calendar"><div><h1>교회 일정·공지</h1><p>교회에 알린 소식과 이달의 목회 일정을 함께 확인합니다.</p></div>{['ADMIN','CONTENT'].includes(actor.role)&&<Link className="button primary" href="/church/manage">일정·공지 관리</Link>}</ListHeading>
     <form className="pastoral-toolbar" action="/church"><label>조회 월 <input type="month" name="month" defaultValue={month} required/></label><button className="button primary">조회</button></form>
-    {['ADMIN','CONTENT'].includes(actor.role)&&<details className={styles.management}><summary>일정·공지 등록과 수정</summary><div className="chips"><Link className="button primary" href="/church/manage">이곳에서 일정·공지 관리</Link></div><p className="muted">일정·공지 작성과 이미지 첨부를 통합 관리에서 처리합니다. 공개한 자료는 홈페이지와 앱에 함께 반영됩니다.</p></details>}
+
     <div className={styles.content}><Suspense key={`events-${month}-${eventPage}`} fallback={<PageLoading title="교회 공개 일정" cards/>}><Published kind="events" month={month} page={eventPage} otherPage={noticePage}/></Suspense>
     <Suspense key={`pastoral-${month}`} fallback={<p role="status">목회 일정을 불러오는 중…</p>}><Pastoral month={month}/></Suspense>
     <Suspense key={`notices-${noticePage}`} fallback={<PageLoading title="공개 공지사항" cards/>}><Published kind="notices" month={month} page={noticePage} otherPage={eventPage}/></Suspense></div>

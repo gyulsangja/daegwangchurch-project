@@ -1,4 +1,6 @@
 'use client';
+import {ListHeading} from '@/components/list-heading';
+
 import {EditorPage,EditorActions,type EditorPageHandle} from './editor-page';
 import {useRef,useState,useTransition} from 'react';
 import {useRouter} from 'next/navigation';
@@ -17,7 +19,7 @@ export function AccessWorkspace({data,currentUser,organizations,year,requiresPas
  }catch(e){setMessage(e instanceof Error?e.message:'저장하지 못했습니다.');}finally{setBusy(false);}}
  const matching=(r:{name:string;email:string})=>`${r.name} ${r.email}`.toLowerCase().includes(query.toLowerCase());
  const describe=(r:AccessFields|AccessUser|AccessInvitation)=>[roles[r.role],r.care?'상담·심방·기도 열람':'상담 열람 없음',...('cmsRole'in r&&r.cmsRole?[`홈페이지·앱: ${{NONE:'관리 권한 없음',ADMIN:'콘텐츠 관리자',SUPER_ADMIN:'최고관리자'}[r.cmsRole]}`]:[]),r.print?'문서 출력 허용':'문서 출력 제한',r.delete?'보관·삭제 허용':'보관·삭제 제한',...r.organizations.map(id=>organizations.find(o=>o.id===id)?.name??'이전 조직')].join(' · ');
- return <><div className="page-heading"><div><h1>사용자 및 권한</h1><p>직분·소속과 시스템 접근 권한은 별개입니다. 초대받은 계정만 목회시스템을 이용합니다.</p></div><button className="button primary" disabled={busy||pending} onClick={()=>open()}>사용자 초대</button></div>
+ return <><ListHeading icon="access"><div><h1>사용자 및 권한</h1><p>직분·소속과 시스템 접근 권한은 별개입니다. 초대받은 계정만 목회시스템을 이용합니다.</p></div><button className="button primary" disabled={busy||pending} onClick={()=>open()}>사용자 초대</button></ListHeading>
  <div className="pastoral-toolbar"><div className="chips">{[['users','사용 중'],['inactive','이용 중지'],['invitations','초대 관리'],['events','변경 이력']].map(([v,l])=><button key={v} className="button" aria-pressed={tab===v} onClick={()=>setTab(v)}>{l}</button>)}</div></div>
  {tab!=='events'&&<label className="pastoral-search">이름·이메일 검색<input value={query} onChange={e=>setQuery(e.target.value)}/></label>}
  <p role="status">{message}</p>{url&&<section className="panel detail-body"><h2>초대 링크</h2><p>7일 동안 유효합니다. 다시 발급하면 이전 링크는 만료됩니다. 대상 이메일의 본인 확인이 필요합니다.</p><label className="church-name">전달할 주소<input readOnly value={url} onFocus={e=>e.target.select()}/></label><button className="button" onClick={async()=>{try{await navigator.clipboard.writeText(url);setMessage('초대 링크를 복사했습니다.');}catch{setMessage('주소를 선택해 직접 복사해 주세요.');}}}>링크 복사</button><button className="button" onClick={()=>setUrl('')}>링크 닫기</button></section>}

@@ -1,0 +1,97 @@
+/* Collection pages share orientation and controls; editor and print layouts stay independent. */
+.list-workspace{--collection-accent:#2e6452;min-width:0}
+.list-workspace[data-list-page='/worship'],.list-workspace[data-list-page='/records']{--collection-accent:#58648b}
+.list-workspace[data-list-page='/care'],.list-workspace[data-list-page='/prayers'],.list-workspace[data-list-page='/plans'],.list-workspace[data-list-page='/intake']{--collection-accent:#8b6243}
+.list-heading{justify-content:flex-start;align-items:center;gap:16px;padding:0 0 20px;border-bottom:1px solid var(--border);margin-bottom:20px}
+.list-heading-icon{display:grid;place-items:center;width:52px;height:52px;flex-shrink:0;border-radius:14px;background:color-mix(in srgb,var(--collection-accent) 9%,white);color:var(--collection-accent);border:1px solid color-mix(in srgb,var(--collection-accent) 16%,white)}
+.list-heading>div:first-of-type{flex:1;min-width:0}
+.list-heading h1{font-size:28px;margin:0 0 5px;line-height:1.3}
+.list-heading .eyebrow{font-size:11px;margin:0 0 5px;letter-spacing:.03em}
+.list-heading p:not(.eyebrow){max-width:760px;font-size:13px;line-height:1.6}
+.list-heading>.button,.list-heading>.chips{margin-left:auto}
+.list-workspace .pastoral-toolbar{gap:10px;margin-bottom:12px;align-items:flex-end}
+.list-workspace .pastoral-toolbar label,.list-search{font-size:12px;font-weight:600;display:grid;gap:6px;min-width:0}
+.list-workspace .pastoral-toolbar .chips{align-self:center}
+.list-workspace>.pastoral-toolbar>.button.primary:last-child{margin-left:auto}
+.list-workspace form.pastoral-toolbar{padding:14px 16px;background:white;border:1px solid var(--border);border-radius:9px}
+.list-workspace form.pastoral-toolbar>label:first-child{flex:1}
+.list-workspace input,.list-workspace select{font-size:14px}
+.list-workspace .button[aria-pressed=true],.collection-tabs .button[aria-pressed=true]{background:var(--soft);color:var(--primary);border-color:#96b8a8;box-shadow:inset 0 -2px var(--primary)}
+.list-workspace .filters{padding:16px 20px;gap:12px}
+.list-workspace .list-meta{padding:0 20px 12px}
+.list-workspace .panel{margin-bottom:16px}
+.list-workspace .detail-body{padding:20px}
+.list-workspace .detail-body>.section-heading{padding:0 0 14px}
+.list-workspace .history-list{margin:12px 0}
+.list-workspace .history-list>li{padding:12px 0}
+.list-workspace .history-list>li>.section-heading{padding:0;gap:14px;align-items:center}
+.list-workspace .history-list>li>.section-heading>div:first-child{flex:1;min-width:0}
+.list-workspace .history-list strong{font-size:15px;line-height:1.5;overflow-wrap:anywhere}
+.list-workspace .history-list p{font-size:12px;line-height:1.6;margin:5px 0 0}
+.list-workspace .history-list .button{font-size:12px;padding:8px 12px;min-height:40px}
+.list-workspace .detail-body>.muted{margin:4px 0 12px;font-size:12px}
+.list-workspace>p:empty,.list-workspace p[role=status]:empty{display:none}
+.list-workspace>.feedback{font-size:12px;padding:10px 14px;margin-bottom:14px}
+.list-workspace .pastoral-cards{gap:14px;align-items:start}
+.list-workspace .pastoral-card{padding:18px;margin:0}
+.list-workspace .pastoral-card h2{font-size:17px;margin:10px 0 7px}
+.list-workspace .pastoral-card p{font-size:13px;line-height:1.6;margin:7px 0}
+.list-excerpt{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.list-workspace .pastoral-card-footer{margin-top:14px;padding-top:12px}
+.list-workspace .goal-progress{padding:12px;margin-top:12px}
+.list-workspace .pastoral-filter{margin-bottom:10px}
+.list-workspace .pastoral-search{font-size:12px;gap:6px;margin-bottom:12px}
+.list-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0;font-size:12px;color:var(--muted)}
+.list-pagination>div{display:flex;gap:12px;align-items:center}
+.list-pagination .button{font-size:12px;padding:7px 12px;min-height:38px}
+.list-pagination .button:disabled{cursor:default;opacity:.45}
+.list-search{max-width:560px;margin:12px 0}
+.collection-tabs{display:flex;gap:6px;padding:0 0 10px;margin:16px 0;border-bottom:1px solid var(--border)}
+.collection-tabs .button{flex:1;max-width:180px}
+.list-workspace [hidden]{display:none!important}
+.list-workspace .pastoral-cards>.detail-body h3{font-size:16px;margin:0 0 10px}
+.list-workspace .pastoral-cards>.detail-body p{font-size:13px;margin:7px 0}
+.list-workspace .pastoral-cards>.detail-body>.button{margin-top:10px}
+.list-workspace .roster-organizations{align-self:start;max-height:70vh;overflow-y:auto}
+.list-workspace .family-list{margin:12px 0 0}
+.list-workspace .family-list li{padding:12px 0}
+.list-workspace .member-table td,.list-workspace .member-table th{padding-top:12px;padding-bottom:12px}
+.list-filter-row{display:flex;gap:12px;align-items:flex-start;margin:12px 0}
+.list-filter-row>.pastoral-search{flex:1;margin:0;max-width:560px}
+.list-filter-row>.pastoral-filter{margin:0;border:0;flex:1}
+.list-filter-row>.pastoral-filter>summary{padding:27px 0 0;min-height:65px}
+.list-filter-row:has(details[open]){flex-wrap:wrap}
+.list-filter-row>details[open]{flex-basis:100%;order:2}
+.list-filter-row>details[open]>summary{padding-top:0;min-height:40px}
+@media(max-width:760px){
+ .list-heading{gap:12px;padding-bottom:16px;margin-bottom:16px}
+ .list-heading-icon{width:42px;height:42px;border-radius:11px}
+ .list-heading-icon svg{width:22px;height:22px}
+ .list-heading>div:first-of-type{flex-basis:calc(100% - 60px)}
+ .list-heading h1{font-size:23px}
+ .list-heading p:not(.eyebrow){font-size:12px}
+ .list-heading>.button,.list-heading>.chips{margin-left:54px}
+ .list-workspace .pastoral-toolbar{gap:8px}
+ .list-workspace .pastoral-toolbar>.button.primary:last-child{margin-left:0}
+ .list-workspace .pastoral-toolbar label{flex:1;min-width:130px}
+ .list-workspace input,.list-workspace select{font-size:16px}
+ .list-workspace .detail-body{padding:16px}
+ .list-workspace .history-list>li>.section-heading{flex-wrap:wrap;gap:10px}
+ .list-workspace .history-list>li>.section-heading>div:first-child{flex-basis:100%}
+ .list-workspace .history-list>li>.section-heading .button{min-height:42px}
+ .list-workspace .pastoral-card{padding:16px}
+ .list-workspace .roster-organizations{max-height:240px}
+ .collection-tabs .button{padding:9px 10px;font-size:13px}
+ .list-pagination{flex-wrap:wrap}
+ .list-workspace .filters{padding:16px}
+ .list-workspace .member-table tr{grid-template-columns:minmax(0,1fr) auto auto;gap:8px;padding:12px 16px;align-items:center}
+ .list-workspace .member-table td,.list-workspace .member-table td:nth-child(3){padding:0;font-size:13px}
+ .list-workspace .member-table td:first-child{grid-column:auto}
+ .list-workspace .member-table td:not(:first-child)::before{display:none}
+ .list-workspace .member-table td:last-child{grid-column:1/-1}
+ .list-workspace .member-table .person-link{font-size:14px;min-height:40px}
+ .list-workspace .member-table .chip{font-size:11px}
+ .list-filter-row{gap:10px}.list-filter-row>.pastoral-filter{flex:0 0 auto}
+ .list-filter-row>details[open]{flex-basis:100%}
+}
+@media print{.list-heading-icon,.collection-tabs,.list-pagination{display:none}.list-excerpt{display:block;overflow:visible}.list-heading{border:0}}
