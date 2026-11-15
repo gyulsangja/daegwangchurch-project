@@ -2,6 +2,8 @@
 
 ## 삭제 자동 처리·운영 사전 점검 (2026-11-16)
 
+- 코드·문서 커밋 `2c469bb`를 `codex/app-release-readiness`에 push 완료. 운영 활성화 조건을 확인한 뒤 main 병합과 배포를 진행한다. 기존 미추적 루트 app.json은 보존했다.
+
 - 실제 Expo 웹에서 가상 신규 가입→로그인→탈퇴 접수 완료. 새 `/api/internal/deletions` 인증 API 호출로 Supabase Auth 삭제 1건, 대기0, 실패0 확인. Auth 부재와 이전 비밀번호 로그인 거부 재확인.
 - 목회 전용 권한 계정 보호 SQL010 추가·테스트 Supabase 적용. 운영009/010 미적용. 비활성 이전 관리자 삭제 재시도 버그 수정. worker 인증 로직은 푸시와 공유하며 기존 푸시 응답 동작 유지.
 - 계정 출시 회귀5·푸시13·로컬 PostgreSQL52 통과. shared type·변경 파일 lint·경계 검사·관리자 production build 통과.
