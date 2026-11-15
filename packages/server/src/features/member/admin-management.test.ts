@@ -5,7 +5,7 @@ import { createAdminMemberManagement, AdminMemberError } from './admin-managemen
 const owner = '11111111-1111-4111-8111-111111111111';
 const actorOwner = '22222222-2222-4222-8222-222222222222';
 function fixture() {
-  const deleted: string[] = []; let active = false; let authorized = true; let pending = false; let completed = false;
+  const deleted: string[] = []; let active = false; let authorized = true; let pending = false; let completed = false; let retentionDays = 0;
   const tx = {
     $executeRaw: async () => 1,
     $queryRaw: async () => [{ email: 'member@example.invalid' }],
@@ -15,13 +15,13 @@ function fixture() {
       update: async ({ data }: { data: { isActive?: boolean } }) => { if (data.isActive === false) active = false; },
     },
     memberProfile: { findUnique: async () => null, deleteMany: async ({ where }: { where: {ownerId:string} }) => { assert.equal(where.ownerId, owner); deleted.push('profile'); } },
-    memberDeletion: { findUnique: async () => pending ? {} : null, create: async () => { pending = true; }, update: async () => { completed = true; } },
+    memberDeletion: { findUnique: async () => pending ? {} : null, create: async ({ data }: { data: { receiptRetentionDays: number } }) => { pending = true; retentionDays = data.receiptRetentionDays; }, update: async () => { completed = true; } },
     groupManager: { deleteMany: async () => ({count:0}) },
     activityLog: { create: async () => ({}) },
     ...Object.fromEntries(['memberRecord','memberBookmark','memberSchedule','memberPushDevice','memberNotification','memberNotificationPreference','memberCareRequest','groupMembership','groupPreference','pendingRegistration'].map(name => [name, { deleteMany: async ({where}: {where:{ownerId:string}}) => { assert.equal(where.ownerId,owner); deleted.push(name); } }])),
   };
   const db = { ...tx, $transaction: async (fn: (value: typeof tx) => Promise<unknown>) => fn(tx) } as unknown as PrismaClient;
-  return { db, deleted, setActive: (value: boolean) => { active = value; }, setAuthorized: (value: boolean) => { authorized = value; }, state: () => ({active,pending,completed}) };
+  return { db, deleted, setActive: (value: boolean) => { active = value; }, setAuthorized: (value: boolean) => { authorized = value; }, state: () => ({active,pending,completed}), retention: () => retentionDays };
 }
 test('administrator management blocks unauthorised, self and active-admin deletion before data changes', async () => {
   const f=fixture(); let providerCalls=0;
@@ -90,4 +90,21 @@ test('church details replace affiliations without revoking membership and guard 
   accountExists = true;
   await service.churchDetails('actor', { ...input, version: 0, groupIds: [] });
   assert.equal(hasRecord, true); assert.equal(version, 1); assert.equal(status, 'UNCONFIRMED');
+});
+
+
+test('administrative deletion uses the configured receipt retention and rejects invalid policy', async () => {
+  const prior = process.env.APP_ACCOUNT_DELETION_POLICY;
+  try {
+    const f = fixture();
+    const service = createAdminMemberManagement(f.db, { deleteIdentity: async () => {} });
+    process.env.APP_ACCOUNT_DELETION_POLICY = JSON.stringify({ version: 'fixture', notice: 'Fixture', scope: 'ALL_MEMBER_DATA', receiptRetentionDays: 1 });
+    await service.remove('actor', { ownerId: owner, email: 'member@example.invalid', confirm: 'DELETE' });
+    assert.equal(f.retention(), 1);
+    process.env.APP_ACCOUNT_DELETION_POLICY = '{}';
+    await assert.rejects(service.remove('actor', { ownerId: owner, email: 'member@example.invalid', confirm: 'DELETE' }), AdminMemberError);
+  } finally {
+    if (prior === undefined) delete process.env.APP_ACCOUNT_DELETION_POLICY;
+    else process.env.APP_ACCOUNT_DELETION_POLICY = prior;
+  }
 });

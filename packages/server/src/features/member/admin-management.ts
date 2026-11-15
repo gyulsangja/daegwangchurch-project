@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { PrismaClient, Prisma } from '@daegwang/database/generated/client';
 import type { DeletionProvider } from './deletion-service';
+import { deletionPolicySchema } from './deletion-service';
 export class AdminMemberError extends Error {}
 export function createAdminMemberManagement(db: PrismaClient, provider?: Pick<DeletionProvider, 'deleteIdentity'>) {
   async function actor(tx: Prisma.TransactionClient, actorId: string) {
@@ -51,6 +52,11 @@ export function createAdminMemberManagement(db: PrismaClient, provider?: Pick<De
     },
     async remove(actorId: string, input: unknown) {
       if (!provider) throw new AdminMemberError('서버 전용 Supabase 키를 먼저 설정해 주세요.');
+      let receiptRetentionDays = 90;
+      if (process.env.APP_ACCOUNT_DELETION_POLICY) {
+        try { receiptRetentionDays = deletionPolicySchema.parse(JSON.parse(process.env.APP_ACCOUNT_DELETION_POLICY)).receiptRetentionDays; }
+        catch { throw new AdminMemberError('계정 삭제 보관 정책을 확인해 주세요.'); }
+      }
       const value = z.object({ ownerId: z.uuid(), email: z.email(), confirm: z.literal('DELETE') }).parse(input);
       await db.$transaction(async tx => {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('admin-member-management', 0))`;
@@ -63,7 +69,7 @@ export function createAdminMemberManagement(db: PrismaClient, provider?: Pick<De
         if (await tx.memberDeletion.findUnique({ where: { ownerId: value.ownerId } })) return;
         // Retain attributable administrative audit history, not former contact details.
         if (oldAdmin) { await tx.adminProfile.update({ where: { id: oldAdmin.id }, data: { displayName: '삭제된 관리자', email: `deleted-${value.ownerId}@example.invalid` } }); await tx.groupManager.deleteMany({ where: { adminId: oldAdmin.id } }); }
-        await tx.memberDeletion.create({ data: { ownerId: value.ownerId, policyVersion: 'admin-delete-20261015', policySnapshot: { initiatedByAdmin: true, scope: 'ALL_MEMBER_DATA' }, receiptRetentionDays: 90 } });
+        await tx.memberDeletion.create({ data: { ownerId: value.ownerId, policyVersion: 'admin-delete-20261015', policySnapshot: { initiatedByAdmin: true, scope: 'ALL_MEMBER_DATA' }, receiptRetentionDays } });
         await tx.memberRecord.deleteMany({ where: { ownerId: value.ownerId } });
         await tx.memberBookmark.deleteMany({ where: { ownerId: value.ownerId } });
         await tx.memberSchedule.deleteMany({ where: { ownerId: value.ownerId } });
