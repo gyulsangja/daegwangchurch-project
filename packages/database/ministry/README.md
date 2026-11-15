@@ -1,5 +1,9 @@
 # 목회 PostgreSQL 적용 패키지
 
+## 회원탈퇴 연결 정리 (009, 운영 미적용)
+
+`009_member_deletion_links.sql`은 앱 프로필/상담 요청 삭제와 목회 계정 연결/인계/파생 일정 삭제를 연결한다. 공개 테이블 두 개가 먼저 있어야 하며 기존 고아 연결이 있으면 FK 검증에서 실패한다. 자동 보정·기존 교적 삭제는 하지 않는다. 로컬 `npm run test:account-release`로 PGlite 검증. 운영 적용은 별도 승인과 고아 연결 사전 확인 후 수행한다. 자세한 범위와 백업 제한은 `docs/account-deletion-verification.md` 참고.
+
 ## 콘텐츠 전용 역할 (004, 별도 운영 승인 필요)
 
 `004_content_operator.sql`은 CONTENT 역할 정의와 민감 권한 금지 제약만 추가한다. 사용자 계정·기존 권한·교적을 변경하지 않는다. `node scripts/provision-ministry-content-role.mjs`로 선행 조건 확인, 승인 후 `--apply`로 적용한다. 적용 후에만 목회 배포 환경의 `MINISTRY_CONTENT_ROLE_ENABLED=true`를 설정한다. 앱 코드가 먼저 배포되어도 기본 false에서는 새 역할 배정/초대가 열리지 않는다.
@@ -25,3 +29,7 @@ CMS 편집은 기존 CMS 관리자 자격을 별도로 확인한다. CONTENT 역
 `npx tsx --test tests/ministry-postgres.test.ts`는 독립 PGlite PostgreSQL에서 실제 SQL/RLS/FK/트랜잭션을 검증한다. 원격 PostgreSQL 연결·풀러·동시 연결 검증을 대신하지 않는다. 실제 Supabase 계정 로그인, 쿠키 갱신/로그아웃, 운영 DB 역할과 동시 수정, 백업 복원 검증 후 공개한다.
 
 계정 연결/접수 테이블은 준비되었지만 기존 회원·소속 승인과 상담 요청을 복제하거나 상태를 덮어쓰는 worker는 아직 활성화하지 않았다. 기존 앱은 계속 기존 CMS/API를 사용한다.
+
+## 010 회원 삭제와 목회 권한 보호
+
+`010_member_deletion_access.sql`은 활성 목회 권한 계정의 삭제 접수, 삭제 중 계정의 신규·재활성 권한을 같은 계정 advisory lock으로 차단한다. 기존 활성 권한과 삭제 기록의 충돌이 있으면 적용을 중단한다. 테스트 Supabase에 적용하고 SQL 회귀 검증했다. 운영 적용 전 009 연결 정리와 함께 사전 점검한다.

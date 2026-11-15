@@ -32,7 +32,7 @@ const events = [
   { id: 'event-preview-2', title: '[샘플] 지난 교회 모임', startsAt: new Date(Date.now() - 7 * 86400000).toISOString(), endsAt: null, isAllDay: true },
 ].map(item => ({ ...item, category: '샘플', location: '샘플 장소', ministryName: null, description: '화면 확인용 샘플 행사입니다. 실제 교회 일정이 아닙니다.\n일시와 장소는 실제 자료 연결 후 표시됩니다.' }));
 const bulletins = ['2026-10-04', '2026-09-27'].map((date, index) => ({ id: `bulletin-preview-${index + 1}`, title: `[샘플] ${date} 주보`, worshipDate: `${date}T00:00:00.000Z`, summary: '화면 확인용 샘플이며 실제 교회 주보가 아닙니다.', pdf: { name: 'sample-bulletin.pdf', sizeBytes: pdf.length, url: 'http://127.0.0.1:3210/sample-bulletin.pdf' } }));
-const members = createPreviewMembers({ worship: items, events });
+const members = createPreviewMembers({ worship: items, events }, () => Date.now(), { immediateSignup: true });
 const api = createServer(async (request, response) => {
   response.setHeader('Access-Control-Allow-Origin', '*');
   response.setHeader('Content-Type', 'application/json; charset=utf-8');

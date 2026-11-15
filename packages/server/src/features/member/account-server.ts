@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { getPrisma } from '@daegwang/database/prisma';
 import { Prisma } from '@daegwang/database/generated/client';
 import { requireSupabaseConfig } from '@daegwang/config/env';
-import { accountPolicySchema, createAccountService, AccountOperationError } from './account-service';
+import { accountPolicySchema, createAccountService, AccountOperationError, hasSignupPolicy } from './account-service';
 import { memberIdentity } from './record-server';
 import { deletionConfig } from './deletion-config';
 import { requestChurchOnSignup } from './church-membership';
@@ -18,12 +18,19 @@ export function configuredAccountPolicy() {
 }
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
 export function configuredRegistrationPolicy() {
-  if (process.env.APP_ACCOUNT_SIMPLE_SIGNUP !== 'true') return deletionConfig(process.env) ? configuredAccountPolicy() : null;
+  if (!deletionConfig(process.env)) return null;
+  if (process.env.APP_ACCOUNT_SIMPLE_SIGNUP !== 'true') {
+    const policy = configuredAccountPolicy();
+    return policy && hasSignupPolicy(policy) ? policy : null;
+  }
   if ((process.env.APP_ACCOUNT_RATE_LIMIT_SALT?.length ?? 0) < 32) return null;
   if (process.env.APP_ACCOUNT_POLICY) {
-    try { return withAgePolicy(accountPolicySchema.parse(JSON.parse(process.env.APP_ACCOUNT_POLICY))); } catch { return null; }
+    try {
+      const policy = accountPolicySchema.parse(JSON.parse(process.env.APP_ACCOUNT_POLICY));
+      return hasSignupPolicy(policy) ? withAgePolicy(policy) : null;
+    } catch { return null; }
   }
-  return withAgePolicy({ version: 'simple-signup-v1', terms: '', privacy: '', deletion: '', care: '' });
+  return null;
 }
 export async function accountHandler(request: Request, operation: string) {
   const headers = new Headers({ 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', Vary: 'Origin' });

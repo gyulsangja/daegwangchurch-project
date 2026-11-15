@@ -5,6 +5,10 @@ import type { ChurchDetails } from '@daegwang/contracts/features/member/church-m
 
 export const accountPolicySchema = z.object({ version: z.string().min(1).max(100), terms: z.string().max(30000), privacy: z.string().max(30000), deletion: z.string().max(10000).default(''), care: z.string().max(10000).default('') }).strict();
 export type AccountPolicy = z.infer<typeof accountPolicySchema>;
+
+export function hasSignupPolicy(policy: AccountPolicy) {
+  return !!policy.terms.trim() && !!policy.privacy.trim();
+}
 type Auth = Pick<GoTrueClient, 'signUp' | 'verifyOtp' | 'resend' | 'resetPasswordForEmail' | 'updateUser' | 'signOut'>;
 export class AccountOperationError extends Error { constructor(public status: number) { super('Account operation failed'); } }
 function check(error: { status?: number } | null) { if (error) throw new AccountOperationError(error.status === 429 ? 429 : 422); }
@@ -14,7 +18,8 @@ export function createAccountService(deps: { auth: () => Auth; policy: AccountPo
     if (operation === 'signup') {
       const value = signupSchema.parse(input);
       if (value.policyVersion !== deps.policy.version) throw new AccountOperationError(409);
-      if ((deps.policy.terms || deps.policy.privacy) && !value.consent) throw new AccountOperationError(422);
+      if (!hasSignupPolicy(deps.policy)) throw new AccountOperationError(503);
+      if (!value.consent) throw new AccountOperationError(422);
       const { data, error } = await auth.signUp({ email: value.email, password: value.password }); check(error);
       // With email confirmation disabled, do not pretend that the OTP flow is ready.
       if (data.session) {

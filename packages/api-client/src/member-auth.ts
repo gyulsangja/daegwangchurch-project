@@ -1,12 +1,24 @@
 import { createClient, processLock, type SupportedStorage } from '@supabase/supabase-js';
 export type { Session } from '@supabase/supabase-js';
 
+export function isPublicAuthKey(key: string) {
+  if (/^sb_publishable_[A-Za-z0-9_-]+$/.test(key)) return true;
+  // This is a configuration guard, not JWT signature verification. The server
+  // verifies user tokens; native bundles must never contain a service-role key.
+  try {
+    const parts = key.split('.');
+    if (parts.length !== 3 || parts.some(part => !/^[A-Za-z0-9_-]+$/.test(part))) return false;
+    const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(payload.padEnd(Math.ceil(payload.length / 4) * 4, '='))).role === 'anon';
+  } catch { return false; }
+}
+
 export function createMemberAuth(url?: string, publishableKey?: string, options?: { storage: SupportedStorage; storageKey: string; useProcessLock?: boolean }) {
   if (!url || !publishableKey) return null;
   let endpoint: URL;
   try { endpoint = new URL(url); } catch { return null; }
   if ((endpoint.protocol !== 'https:' && !(endpoint.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(endpoint.hostname))) || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) return null;
-  if (publishableKey.startsWith('sb_secret_')) return null;
+  if (!isPublicAuthKey(publishableKey)) return null;
   // Temporary OAuth clients remain in memory; the app supplies its persistent store.
   // Server APIs still verify identity independently on every request.
   return createClient(endpoint.href, publishableKey, { auth: { flowType: 'pkce', persistSession: !!options, autoRefreshToken: !!options, detectSessionInUrl: false, ...(options ? { storage: options.storage, storageKey: options.storageKey, ...(options.useProcessLock ? { lock: processLock } : {}) } : {}) } }).auth;

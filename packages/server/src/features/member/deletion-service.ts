@@ -56,7 +56,7 @@ export function createDeletionService(db: PrismaClient, provider: DeletionProvid
         const where = { ownerId: job.ownerId, status: 'PENDING', attempts: job.attempts + 1 };
         try {
           // Defense in depth; database triggers also prevent new admin assignments.
-          if (await db.adminProfile.findUnique({ where: { authUserId: job.ownerId }, select: { id: true } })) throw new Error('Protected identity');
+          if (await db.adminProfile.findFirst({ where: { authUserId: job.ownerId, isActive: true }, select: { id: true } })) throw new Error('Protected identity');
           await provider.deleteIdentity(job.ownerId);
           const completed = await db.memberDeletion.updateMany({ where, data: { status: 'COMPLETED', completedAt: now() } });
           result.completed += completed.count;

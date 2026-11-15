@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { GoTrueClient } from '@supabase/supabase-js';
-import { createAccountService, AccountOperationError } from './account-service';
+import { createAccountService, AccountOperationError, hasSignupPolicy } from './account-service';
 
 const policy = { version: 'test-policy', terms: 'Test terms', privacy: 'Test privacy', care: '', deletion: '' };
 const user = { id: 'd6972d1b-9428-4a8e-b055-a1cdd520b517', email: 'member@example.invalid', email_confirmed_at: '2026-10-05T00:00:00Z', identities: [{ id: 'identity' }] };
@@ -46,17 +46,20 @@ test('recovery responses do not enumerate users and provider limits remain visib
   await assert.rejects(fixture({ error: { status: 429 } }).service('recovery', { email: user.email }), (e: unknown) => e instanceof AccountOperationError && e.status === 429);
   await assert.rejects(fixture({ sessionOnSignup: true }).service('signup', signup), (e: unknown) => e instanceof AccountOperationError && e.status === 503);
 });
-test('simple signup accepts empty policies without consent and finalizes an immediate provider session', async () => {
+test('simple signup refuses missing policies before creating a provider account', async () => {
   const f = fixture({ immediateSignup: true, sessionOnSignup: true, emptyPolicy: true });
-  assert.deepEqual(await f.service('signup', { ...signup, consent: false }), { verificationRequired: false });
-  assert.deepEqual(f.counts(), { remembered: 1, confirmed: 1 });
-  assert.deepEqual(f.calls, ['signup', 'signout:local']);
+  await assert.rejects(f.service('signup', signup), (e: unknown) => e instanceof AccountOperationError && e.status === 503);
+  assert.deepEqual(f.calls, []);
+  assert.deepEqual(f.counts(), { remembered: 0, confirmed: 0 });
+  for (const patch of [{ terms: '' }, { privacy: '  ' }]) assert.equal(hasSignupPolicy({ ...policy, ...patch }), false);
 });
 test('simple signup still requires consent when policy text exists and reports provider verification', async () => {
   const f = fixture({ immediateSignup: true, sessionOnSignup: true });
   await assert.rejects(f.service('signup', { ...signup, consent: false }));
   assert.deepEqual(f.calls, []);
-  const confirmation = fixture({ immediateSignup: true, emptyPolicy: true });
-  assert.deepEqual(await confirmation.service('signup', { ...signup, consent: false }), { verificationRequired: true });
+  assert.deepEqual(await f.service('signup', signup), { verificationRequired: false });
+  assert.deepEqual(f.calls, ['signup', 'signout:local']);
+  const confirmation = fixture({ immediateSignup: true });
+  assert.deepEqual(await confirmation.service('signup', signup), { verificationRequired: true });
   assert.equal(confirmation.counts().confirmed, 0);
 });

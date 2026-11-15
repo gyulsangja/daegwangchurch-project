@@ -13,7 +13,7 @@ export const previewPolicy = { version: 'preview-only-v1', terms: '개발용 체
 type Account = { id: string; email: string; displayName: string; passwordHash: Buffer; salt: string; verified: boolean; consentVersion: string | null; version: number; churchRequest?: ChurchDetails };
 type Fixture = Record<string, unknown> & { id: string };
 type Owned = { records: Map<string, MemberRecord>; bookmarks: Map<string, Fixture>; schedules: Map<string, Fixture>; requests: Map<string, CareRequest>; keys: Map<string, { id: string; fingerprint: string }>; notifications: Map<string, MemberNotification>; preferences: NotificationPreferences };
-export function createPreviewMembers(content: { worship: Fixture[]; events: Fixture[] }, now = () => Date.now()) {
+export function createPreviewMembers(content: { worship: Fixture[]; events: Fixture[] }, now = () => Date.now(), options: { immediateSignup?: boolean } = {}) {
   const groupPreview = createGroupPreview();
   const accounts = new Map<string, Account>(); const sessions = new Map<string, { owner: string; expires: number; refresh: string }>(); const owners = new Map<string, Owned>();
   const challenges = new Map<string, { expires: number; attempts: number }>(); const sends = new Map<string, number>();
@@ -72,7 +72,17 @@ export function createPreviewMembers(content: { worship: Fixture[]; events: Fixt
         // Prevent mistaken use of real addresses in the explicitly local test service.
         if (!email.endsWith('@example.invalid')) return reply({ error: 'Use a fictional @example.invalid address.' }, 422);
         const account = accounts.get(email);
-        if (path.endsWith('/signup')) { const data = signupSchema.parse(input); if (data.policyVersion !== previewPolicy.version) return reply({}, 409); if (!account) { const created: Account = newAccount(email, data.password, false, data.displayName, data.policyVersion); created.churchRequest = data.churchRequest; } challenge(email, 'signup'); return reply({ accepted: true }); }
+        if (path.endsWith('/signup')) {
+          const data = signupSchema.parse(input);
+          if (data.policyVersion !== previewPolicy.version) return reply({}, 409);
+          if (!data.consent) return reply({}, 422);
+          if (!account) {
+            const created: Account = newAccount(email, data.password, !!options.immediateSignup, data.displayName, data.policyVersion);
+            created.churchRequest = data.churchRequest;
+          }
+          if (options.immediateSignup) return reply({ verificationRequired: false });
+          challenge(email, 'signup'); return reply({ accepted: true, verificationRequired: true });
+        }
         if (path.endsWith('/resend')) { challenge(email, 'signup'); return reply({ accepted: true }); }
         if (path.endsWith('/verify')) { verify(email, 'signup', z.string().parse(input.code)); if (account) account.verified = true; return reply({ verified: true }); }
         if (path.endsWith('/recovery')) { challenge(email, 'recovery'); return reply({ accepted: true }); }

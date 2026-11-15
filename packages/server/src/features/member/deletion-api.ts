@@ -34,6 +34,7 @@ export function createDeletionHandler(deps: {
       await deps.remove(identity, deletionInputSchema.parse(input), policy);
       return Response.json({ data: { status: 'accepted' } }, { status: 202, headers });
     } catch (cause) {
+      if (cause instanceof Error && cause.message.includes('Ministry access must be revoked before account deletion')) return error(403, '목회시스템 권한을 먼저 해제한 뒤 탈퇴해 주세요.');
       if (cause instanceof z.ZodError) return error(422, '입력을 확인해 주세요.');
       if (cause instanceof AccountOperationError) {
         const messages: Record<number, string> = { 403: '관리자 계정은 앱에서 탈퇴할 수 없습니다.', 409: '탈퇴 안내가 변경되었습니다. 다시 확인해 주세요.', 422: '현재 비밀번호 또는 이메일 인증번호를 확인해 주세요.', 429: '잠시 기다린 뒤 다시 시도해 주세요.' };

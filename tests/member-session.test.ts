@@ -1,7 +1,17 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createSessionStorage } from '../apps/mobile/src/lib/session-storage-core';
-import { createMemberAuth } from '../packages/api-client/src/member-auth';
+import { createMemberAuth, isPublicAuthKey } from '../packages/api-client/src/member-auth';
+
+test('mobile auth rejects server secrets including legacy service-role JWTs', () => {
+  const token = (role: string) => `e30.${Buffer.from(JSON.stringify({ role })).toString('base64url')}.fixture`;
+  assert.equal(isPublicAuthKey('sb_publishable_fixture'), true);
+  assert.equal(isPublicAuthKey(token('anon')), true);
+  for (const key of ['sb_secret_fixture', token('service_role'), token('authenticated'), 'broken']) {
+    assert.equal(isPublicAuthKey(key), false);
+    assert.equal(createMemberAuth('https://example.supabase.co', key), null);
+  }
+});
 
 function memoryStore() {
   const values = new Map<string, string>();

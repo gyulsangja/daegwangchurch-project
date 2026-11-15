@@ -1,5 +1,5 @@
-import { timingSafeEqual } from 'node:crypto';
 import { pushCredentialSchema } from '@daegwang/contracts/features/member/push';
+import { createWorkerHandler } from './worker-api';
 
 export function createPushRevokeHandler(revoke: (input: unknown) => Promise<void>, allowedOrigins: () => string[]) {
   return async (request: Request) => {
@@ -23,14 +23,5 @@ export function createPushRevokeHandler(revoke: (input: unknown) => Promise<void
   };
 }
 export function createPushWorkerHandler(config: () => { available: boolean; workerSecret: string }, run: () => Promise<unknown>) {
-  return async (request: Request) => {
-    const settings = config(); const token = request.headers.get('Authorization')?.replace(/^Bearer /, '') ?? '';
-    const headers = { 'Cache-Control': 'no-store' };
-    if (request.method !== 'POST') return new Response(null, { status: 405, headers });
-    const supplied = Buffer.from(token); const expected = Buffer.from(settings.workerSecret);
-    if (settings.workerSecret.length < 32 || supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) return new Response(null, { status: 401, headers });
-    if (!settings.available) return new Response(null, { status: 503, headers });
-    try { return Response.json(await run(), { headers }); }
-    catch { console.error('Push worker failed'); return Response.json({ error: 'Push worker failed' }, { status: 503, headers }); }
-  };
+  return createWorkerHandler(config, run, 'Push worker failed');
 }

@@ -11,6 +11,7 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "test:account-release": "node --test tests/url-parser-security.test.mjs && tsx --test tests/account-lifecycle-preview.test.ts tests/member-deletion-links.test.ts",
     "test:release-features": "tsx --test tests/app-release.test.ts tests/content-slug.test.ts tests/notice-attachments.test.ts tests/member-session.test.ts tests/social-auth.test.ts tests/public-cache.test.ts packages/server/src/features/member/admin-management.test.ts packages/server/src/features/member/record.test.ts packages/contracts/src/features/church/offering.test.ts",
     "dev": "npm run dev:website",
     "dev:website": "npm run dev --workspace @daegwang/website",
@@ -33,7 +34,7 @@
     "db:deploy": "npm run deploy --workspace @daegwang/database",
     "db:seed": "npm run seed --workspace @daegwang/database",
     "db:studio": "npm run studio --workspace @daegwang/database",
-    "postinstall": "npm run db:generate",
+    "postinstall": "patch-package --error-on-fail && npm run db:generate",
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "test:preview": "tsx --test tests/member-preview.test.ts tests/offline-ux.test.ts",
     "dev:admin:preview": "node scripts/preview-admin.mjs",
@@ -57,14 +58,18 @@
     "@types/node": "^26.1.1",
     "@types/pg": "^8.20.0",
     "@types/qrcode": "^1.5.6",
+    "decode-uri-component": "0.5.1",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.2.10",
+    "patch-package": "^8.0.1",
     "pg": "^8.22.0",
     "qrcode": "^1.5.4",
     "tsx": "^4.23.1",
     "typescript": "^6.0.3"
   },
   "overrides": {
+    "decode-uri-component": "0.5.1",
+    "query-string": { "decode-uri-component": "0.5.1" },
     "@hono/node-server": ">=1.19.13",
     "postcss": ">=8.5.10"
   }

@@ -57,7 +57,7 @@ export function createMemberExtrasClient(base: string | undefined, token: () => 
       }
       catch (cause) {
         if (cause instanceof ApiError) {
-          const messages: Record<number, string> = { 0: '접수 결과를 확인하지 못했습니다. 다시 로그인해 계정 상태를 확인해 주세요.', 403: '관리자 계정은 앱에서 탈퇴할 수 없습니다.', 409: '탈퇴 안내가 변경되었습니다. 화면을 다시 열어 확인해 주세요.', 422: '현재 비밀번호를 확인해 주세요.', 429: '시도 횟수가 많습니다. 잠시 후 다시 시도해 주세요.', 503: '탈퇴 요청 결과를 확인하지 못했습니다. 잠시 후 계정 상태를 확인해 주세요.' };
+          const messages: Record<number, string> = { 0: '접수 결과를 확인하지 못했습니다. 다시 로그인해 계정 상태를 확인해 주세요.', 403: '교회 관리자에게 관리·목회 권한 해제를 요청한 뒤 탈퇴해 주세요.', 409: '탈퇴 안내가 변경되었습니다. 화면을 다시 열어 확인해 주세요.', 422: '현재 비밀번호를 확인해 주세요.', 429: '시도 횟수가 많습니다. 잠시 후 다시 시도해 주세요.', 503: '탈퇴 요청 결과를 확인하지 못했습니다. 잠시 후 계정 상태를 확인해 주세요.' };
           throw new ApiError(cause.status, messages[cause.status] ?? cause.message);
         }
         throw cause;

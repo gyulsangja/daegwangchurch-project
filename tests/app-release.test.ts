@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { getAndroidUpdate } from '../packages/contracts/src/app-release';
+import { allowsApkUpdate, getAndroidUpdate } from '../packages/contracts/src/app-release';
+
+test('store and unclassified builds never offer APK sideload updates', () => {
+  assert.equal(allowsApkUpdate('internal'), true);
+  for (const distribution of ['store', 'production', '', undefined, null, true]) {
+    assert.equal(allowsApkUpdate(distribution), false);
+  }
+});
 
 const release = { applicationId: 'org.daegwangchurch.app', version: '1.0.1', build: 12, downloadUrl: 'https://expo.dev/artifacts/eas/example.apk', notes: '수정 사항' };
 test('only newer builds of the same app prompt for update', () => {

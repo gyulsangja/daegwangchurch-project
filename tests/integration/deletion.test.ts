@@ -15,7 +15,7 @@ const input = { password: 'test-password', policyVersion: policy.version, confir
 const identity = (id: string) => ({ id, email: 'isolated@example.invalid' });
 const provider: DeletionProvider = { reauthenticate: async () => {}, deleteIdentity: async () => {}, identityAbsent: async () => true };
 
-test('deletion atomically removes all ten private data types, preserving other members and shared content', async () => {
+test('deletion removes private data and church confirmation before care expiry, preserving other members and shared content', async () => {
   const ownerId = randomUUID(); const other = randomUUID(); const groupId = randomUUID();
   await db.churchGroup.create({ data: { id: groupId, name: 'Shared fixture' } });
   for (const owner of [ownerId, other]) {
@@ -25,8 +25,9 @@ test('deletion atomically removes all ten private data types, preserving other m
     await db.memberNotification.create({ data: { ownerId: owner, category: 'NEWS', title: 'Fixture', body: '', dedupeKey: 'fixture' } });
     await db.memberNotificationPreference.create({ data: { ownerId: owner, content: {} } });
     await db.memberProfile.create({ data: { ownerId: owner } });
+    await db.churchMembership.create({ data: { ownerId: owner, status: 'CONFIRMED', realName: 'Synthetic member', phone: '010-0000-0000', position: '성도' } });
     await db.pendingRegistration.create({ data: { ownerId: owner, emailHash: 'hash', displayName: '', policyVersion: 'v1', termsHash: 'hash', privacyHash: 'hash', policySnapshot: {}, expiresAt: new Date() } });
-    await db.memberCareRequest.create({ data: { ownerId: owner, content: {}, requestKey: randomUUID(), policyVersion: 'v1', expiresAt: new Date() } });
+    await db.memberCareRequest.create({ data: { ownerId: owner, content: {}, requestKey: randomUUID(), policyVersion: 'v1', expiresAt: new Date('2031-11-15T00:00:00Z') } });
     await db.groupMembership.create({ data: { ownerId: owner, groupId, approvedBy: 'test' } });
     await db.groupPreference.create({ data: { ownerId: owner } });
   }
@@ -38,6 +39,8 @@ test('deletion atomically removes all ten private data types, preserving other m
     assert.deepEqual(rows.map(row => row.ownerId), [other], table);
   }
   assert.ok(await db.churchGroup.findUnique({ where: { id: groupId } }));
+  assert.equal(await db.churchMembership.findUnique({ where: { ownerId } }), null);
+  assert.ok(await db.churchMembership.findUnique({ where: { ownerId: other } }));
   assert.equal(await db.memberDeletion.count({ where: { ownerId } }), 1);
   await assert.rejects(db.memberRecord.create({ data: { ownerId, kind: 'PRAYER', content: {} } }));
   await assert.rejects(db.memberProfile.create({ data: { ownerId } }));
@@ -109,4 +112,14 @@ test('a stale in-flight write cannot recreate data after an uncommitted tombston
   assert.equal(await db.memberNotification.count({ where: { ownerId } }), 0);
   const [row] = await db.$queryRaw<Array<{ relrowsecurity: boolean; readable: boolean }>>`SELECT relrowsecurity, (has_table_privilege('anon',oid,'SELECT') OR has_table_privilege('authenticated',oid,'SELECT')) AS readable FROM pg_class WHERE oid='public.member_deletions'::regclass`;
   assert.equal(row.relrowsecurity, true); assert.equal(row.readable, false);
+});
+
+test('retry completes an administrator-initiated deletion after the former administrator was deactivated', async () => {
+  const ownerId = randomUUID();
+  await db.adminProfile.create({ data: { authUserId: ownerId, email: `${ownerId}@example.invalid`, displayName: 'Deleted fixture', isActive: false } });
+  await db.memberDeletion.create({ data: { ownerId, policyVersion: policy.version, policySnapshot: policy, receiptRetentionDays: 1 } });
+  let deleted = false;
+  await createDeletionService(db, { ...provider, deleteIdentity: async owner => { if (owner === ownerId) deleted = true; } }).runBatch();
+  assert.equal(deleted, true);
+  assert.equal((await db.memberDeletion.findUnique({ where: { ownerId } }))?.status, 'COMPLETED');
 });

@@ -1,5 +1,56 @@
 # 작업 인수인계
 
+## 삭제 자동 처리·운영 사전 점검 (2026-11-16)
+
+- 실제 Expo 웹에서 가상 신규 가입→로그인→탈퇴 접수 완료. 새 `/api/internal/deletions` 인증 API 호출로 Supabase Auth 삭제 1건, 대기0, 실패0 확인. Auth 부재와 이전 비밀번호 로그인 거부 재확인.
+- 목회 전용 권한 계정 보호 SQL010 추가·테스트 Supabase 적용. 운영009/010 미적용. 비활성 이전 관리자 삭제 재시도 버그 수정. worker 인증 로직은 푸시와 공유하며 기존 푸시 응답 동작 유지.
+- 계정 출시 회귀5·푸시13·로컬 PostgreSQL52 통과. shared type·변경 파일 lint·경계 검사·관리자 production build 통과.
+- 운영 읽기 전용 점검에서 삭제 대기·고아 연결·권한 충돌 모두0, cron/net/Vault 설치 확인. Free 자동 백업 없음. 외부 수동 백업 유무 질문 답변 대기. 사용자 승인 기준은 실제 백업 기간 확인 후 최소 삭제 기록 기간 제안. 운영 활성화·복원 검증은 이 확인과 함께 이어간다.
+- 새 스케줄 SQL은 scripts/supabase-deletion-cron.sql. 키는 Git에 넣지 않는다. 상세는 docs/account-deletion-verification.md 및 release-test-2026-11-16.md.
+
+
+## 테스트 SMTP·앱 비밀번호 복구 완료 (2026-11-16 후속)
+
+- 사용자 승인으로 Resend Free 발송 전용·교회 도메인 제한 테스트 키와 Supabase 테스트 SMTP를 연결했다. 한국어 숫자 OTP 메일 저장 완료.
+- Expo 웹 8089 → Next API 3211 → 실제 테스트 Supabase → Resend Delivered → 앱 비밀번호 변경 → 새 비밀번호 로그인 성공. 이전 비밀번호 및 사용한 OTP 재사용 차단, 새로고침 후 로그인 유지 통과. 계정 출시 회귀4개·mobile type/lint 재검사 통과.
+- 최초 키가 도구 결과에 노출되어 폐기·재발급 후 연결했다. 현재 키와 비밀번호는 `.local/release-test/` Git 무시 경로에만 보관한다. 테스트 메일 총 2통(기본1, Resend1).
+- 상세 검증과 Dot 전달문은 [검증 기록](release-test-2026-11-16.md). 실기기·운영 배포·push·서명·스토어 제출은 미실행.
+
+## 실제 Supabase 테스트 프로젝트 검증 (2026-11-16)
+
+- 브라우저 연결 복구 후 사용자 승인으로 Free `daegwang-release-test` (`jaggdshwqkcygrnphkhm`, Tokyo Nano)를 생성했다. public 17개 및 ministry 001~009 적용, 즉시 가입 설정 완료. 공식 CA 검증으로 DB 연결 성공.
+- 실제 API 핸들러→Supabase Auth/Prisma 가입·탈퇴·기존 토큰 차단·worker Auth 삭제·목회 파생 자료 삭제와 다른 회원 보존 통과. 실제 recovery OTP reset도 성공했으며 OTP는 테스트 관리자 generateLink로 발급했다.
+- 사용자 승인 주소로 기본 복구 메일 1통 발송 HTTP 200 및 사용자 도착 확인 완료. Free 기본 SMTP는 템플릿 편집 제한이 있어 실제 메일 OTP와 앱 UI를 이어 검증하려면 테스트 SMTP가 필요하다.
+- 결과 및 Dot 전달문은 [11월 16일 검증 기록](release-test-2026-11-16.md). 비밀 설정/일회성 검증 스크립트는 `.local/release-test/`에만 있다. 운영 변경·push·서명 빌드 미실행. 아래 11월 15일의 ‘테스트 프로젝트 없음’은 과거 상태다.
+
+## Dot 전달 및 테스트 환경 준비 (2026-11-15)
+
+- [Dot 전달용 보고](DOT_HANDOFF_2026-11-15.md)를 작성했다. 완료 범위와 실제 인증/운영/스토어 미실행을 구분했다.
+- `scripts/check-release-test-env.mjs` 추가: 별도 JSON의 테스트 Auth/DB/로컬 API 대상 일치 여부를 검사하며 값 출력·네트워크 연결·변경은 하지 않는다. 실제 실행 설정/키 소속 확인을 대체하지 않는다. 사용법은 테스트 환경 구성안 참조.
+- 신규 사전 검사 회귀 테스트 3개 통과. 정상 격리 대상 허용, 운영/혼합/SSL 누락/DB host 덮어쓰기 거부, 오류의 비밀값 비출력을 검증했다.
+- 브라우저 제어가 현재 URL을 확인하지 못해 이전 턴에서 중단되었으므로 Supabase 콘솔 요금제·무료 슬롯은 미확인. 프로젝트 생성·운영 배포·메일 발송·Git push는 아직 수행하지 않았다.
+
+## 계정 검증·URL 파서 후속 (2026-11-15, 운영 미반영)
+
+- URL decoder를 공식 0.5.1로 고정하고 query-string7.1.3의 ESM default 호환 및 의존성 선언 패치를 추가했다. `npm ci --ignore-scripts` + `npm run postinstall` 검증, 패치 역적용/재적용 성공. 초기 npm 설치는 구형 하위 버전을 유지해 실패했으나 최종 lockfile과 실제 설치 경로를 맞췄다. 일반 npm ci에서는 postinstall이 자동 실행된다. [패치 유지 지침](../patches/README.md).
+- `npm audit` 최종 URL decoder/query-string/expo-router 관련 권고 없음. 전체 모노레포에는 moderate14/high5가 남음. 다른 의존성까지 보안 검증 완료한 것은 아님.
+- 기본95·출시30·격리 PostgreSQL51·추가 계정/목회연결/URL4 테스트 통과. 모바일 lint/type, shared type, Expo57 호환성, Android/iOS Hermes export 통과. 가상 앱 브라우저에서 가입→로그인→탈퇴 성공 및 pageerror0. 복구→기존 세션 거부는 가상 HTTP 연속 테스트로 검증.
+- 로컬 미리보기만 이메일 즉시 가입으로 맞췄으며 기존 OTP 테스트 경로는 보존. 운영 API를 목업으로 바꾸지 않았다.
+- `009_member_deletion_links.sql` 준비 및 PGlite 검증: 계정 연결·상담 인계·파생 목회 일정의 탈퇴/만료 삭제. 독립 교적·수기 기록은 유지. **운영 적용 승인 및 기존 고아 연결 사전 검사 필요**. 운영 DB/설정/배포/실제 삭제 수행 안 함.
+- 백업 실제 설정·복원과 Supabase 실제 메일/인증 삭제는 미검증. 사용자 확인: 별도 테스트 Supabase 프로젝트 없음. [테스트 환경 구성안](supabase-test-environment.md) 작성, 생성·결제·SMTP·발송 미실시. [삭제 검증·적용 조건](account-deletion-verification.md). 개인정보 결정은 재질문하지 않는다.
+- Git push/서명/스토어 제출/공개 출시 미실시. 기존 미추적 루트 app.json 보존. 로컬 가상 앱은 8088, API3210에서 실행 중(종료되었으면 npm run dev:mobile:preview).
+
+## Android·iOS 정식 출시 감사 (2026-11-15, 로컬 작업)
+
+- 기준 main `53b8a610c157f7c73cbc9524a3de3ad3500e58a3`. 기존 미추적 루트 `app.json` 보존. 상세는 [출시 감사](mobile-release-2026-11-15.md).
+- 내부 APK 업데이트 안내를 production에서 차단, 간편 가입 정책/삭제 준비 검증, 모바일 서버 키 유입 차단 및 회귀 테스트 추가. Expo57 권장 패치·Zod4.6.7 적용.
+- 자동 테스트 95 및 release 30, mobile lint/type/shared type, boundaries, Android/iOS Hermes export 통과. Chrome 가상 앱 5경로 360px 넘침/JS 오류 없음. 실기기·서명 AAB/IPA·콘솔은 미검증.
+- 운영 가입 true이나 삭제/복구 false. 수정본 단독 배포 시 가입이 닫히므로 정책·삭제 worker·복구 활성화 검증 및 별도 승인과 함께 배포해야 한다. 운영 데이터/설정은 변경하지 않았다.
+- 초기 라우터 하위 URL 파서 DoS 차단 항목은 위 후속의 공식 수정 버전·호환 패치로 해결. 나머지 모노레포 audit 범위는 별도 검토 필요.
+- 사용자 답변: 조직 증빙 확인 필요, 기존 개인정보 기준 유지. 추가 확정: 탈퇴 시 개인 묵상·기도·교인 확인·상담·심방 삭제, 상담·심방 일반 보관 상한 5년. 지원 수신 이메일 미정. 정책 초안과 출시 문서 반영 완료.
+- 기존 삭제 서비스의 owner별 개인 기록·상담·소속·프로필 삭제 및 교인 확인 FK cascade 확인. 목회시스템 연결/복사 자료와 백업의 삭제 검증은 별도로 남아 있다. 운영 삭제 활성화나 실제 회원 데이터 삭제는 수행하지 않았다.
+- 최신 사용자가 운영 배포·서명·테스트 배포·심사 제출·공개 출시에 각각 별도 승인을 요구했다. 과거 일괄 승인으로 진행하지 않는다. Git push가 운영 자동 배포를 유발하므로 아직 push하지 않았다.
+
 ## 목록 화면 정보 구조·밀도 개선 (2026-11-04)
 
 - 기능 커밋 `757df4da41bc70e92f08fb3f80bb2d51be5d53a5` Git main 반영, 변경 대상인 목회 통합 관리와 홈페이지 운영 배포 READY. 운영 로그인/API 보호, 테스트 모드 차단, 홈페이지 단일 관리 링크 및 기존 관리자 경로 연결 검증 통과. 관리자/API 소스 변경은 없으며 Git으로 함께 시작된 해당 프로젝트 재빌드는 최종 기록 시 진행 중이다.

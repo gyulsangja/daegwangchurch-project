@@ -1,12 +1,12 @@
 import * as Application from 'expo-application';
 import { useEffect } from 'react';
 import { Alert, AppState, Linking, Platform } from 'react-native';
-import { getAndroidUpdate } from '@daegwang/contracts/app-release';
+import { allowsApkUpdate, getAndroidUpdate } from '@daegwang/contracts/app-release';
 
 // At most once per foreground session; failed network checks never block the app.
 export function AppUpdate() {
   useEffect(() => {
-    if (Platform.OS !== 'android' || __DEV__) return;
+    if (Platform.OS !== 'android' || __DEV__ || !allowsApkUpdate(process.env.EXPO_PUBLIC_APP_DISTRIBUTION)) return;
     let disposed = false;
     let busy = false;
     let lastCheck = 0;

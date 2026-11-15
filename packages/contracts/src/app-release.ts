@@ -1,5 +1,10 @@
 import { z } from 'zod';
 
+// Only explicitly marked internal APK builds may offer a sideload download.
+export function allowsApkUpdate(distribution: unknown) {
+  return distribution === 'internal';
+}
+
 export const androidReleaseSchema = z.object({
   applicationId: z.literal('org.daegwangchurch.app'),
   version: z.string().min(1).max(30),

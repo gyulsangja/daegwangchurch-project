@@ -14,9 +14,10 @@ export function SignupScreen() {
   const [accepted, setAccepted] = useState(false); const [showPolicy, setShowPolicy] = useState(false);
   const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [done, setDone] = useState(false);
   const lock = useRef(false);
-  const needsConsent = !!(policy?.terms || policy?.privacy);
+  const needsConsent = !!policy?.terms.trim() && !!policy?.privacy.trim();
+  const registrationReady = !!options.data?.registration && !!options.data?.deletion && needsConsent;
   async function submit() {
-    if (lock.current || !policy || !ageConfirmed) return;
+    if (lock.current || !policy || !ageConfirmed || !registrationReady || !accepted) return;
     lock.current = true; setBusy(true); setError('');
     try {
       const result = await accountClient.signup({ email: email.trim(), password, confirm: password, displayName: '', policyVersion: policy.version, ageConfirmed: true, consent: needsConsent && accepted });
@@ -39,8 +40,8 @@ export function SignupScreen() {
       <Text style={styles.caption}>만 14세 미만은 가입할 수 없어요. 공개 말씀·주보는 가입 없이 볼 수 있어요.</Text>
       {needsConsent && <Check label="이용약관 및 개인정보 안내에 동의합니다" value={accepted} onChange={setAccepted} />}
       {!!error && <Text accessibilityRole="alert" style={styles.caption}>{error}</Text>}
-      {!options.loading && !options.error && !options.data?.registration && <Text style={styles.caption}>가입 서버 연결을 확인하고 있습니다. 잠시 후 새로고침해 주세요.</Text>}
-      <Action title={busy ? '가입 중…' : '가입하기'} disabled={busy || !ageConfirmed || !options.data?.registration || (needsConsent && !accepted) || !email.trim() || password.length < 8} onPress={() => void submit()} />
+      {!options.loading && !options.error && !registrationReady && <Text style={styles.caption}>회원가입 안내와 계정 삭제 절차를 준비하고 있어요. 공개 말씀·주보는 가입 없이 볼 수 있어요.</Text>}
+      <Action title={busy ? '가입 중…' : '가입하기'} disabled={busy || !ageConfirmed || !registrationReady || !accepted || !email.trim() || password.length < 8} onPress={() => void submit()} />
     </>}
     <DraftGuard dirty={!done && !!password} busy={busy} />
   </AppScreen>;
