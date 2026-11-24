@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { FinanceTax } from './finance-tax';
 import { LogoutButton } from './logout-button';
 import { useEffect, useRef, useState } from 'react';
 import { financeCsv, financeRoles, financeTotals, type FinanceEntry, type FinanceSnapshot } from '@daegwang/contracts/finance';
@@ -10,10 +11,10 @@ const won = (value: number) => `${value.toLocaleString('ko-KR')}원`;
 const today = () => new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
 const kinds = { INCOME: '수입 · 헌금', EXPENSE: '지출', TRANSFER: '계좌 이체' };
 const states = { DRAFT: '승인 대기', POSTED: '집행 완료', VOID: '취소' };
-type Tab = 'overview' | 'entries' | 'giving' | 'budget' | 'settings' | 'access';
+type Tab = 'tax' | 'overview' | 'entries' | 'giving' | 'budget' | 'settings' | 'access';
 const tabs: { id: Tab; title: string }[] = [
   { id: 'overview', title: '재정 현황' }, { id: 'entries', title: '수입·지출 장부' },
-  { id: 'giving', title: '헌금 내역' }, { id: 'budget', title: '예산·결산' },
+  { id: 'giving', title: '헌금 내역' }, { id: 'tax', title: '기부금·사례비' }, { id: 'budget', title: '예산·결산' },
   { id: 'settings', title: '연도·계좌·항목' }, { id: 'access', title: '재정 접근 권한' },
 ];
 
@@ -75,7 +76,7 @@ export function FinanceWorkspace() {
   const detail = !!data?.role && data.role !== 'REPORTER';
   const enabled = !!data?.version && !data.closed && !loading && !busy;
   const activeTab = data && !data.role && data.canManageAccess ? 'access' : tab;
-  const visibleTabs = tabs.filter(item => item.id === 'access' ? data?.canManageAccess : item.id === 'settings' ? manager : ['entries', 'giving'].includes(item.id) ? detail : !!data?.role);
+  const visibleTabs = tabs.filter(item => item.id === 'access' ? data?.canManageAccess : ['settings','tax'].includes(item.id) ? manager : ['entries', 'giving'].includes(item.id) ? detail : !!data?.role);
   const totals = data ? financeTotals(data) : { income: 0, expense: 0, budget: 0, balance: 0 };
   const accountName = (id: string | null) => data?.accounts.find(a => a.id === id)?.name ?? '';
   const categoryName = (id: string | null) => data?.categories.find(c => c.id === id)?.name ?? '계좌 이체';
@@ -123,6 +124,7 @@ export function FinanceWorkspace() {
           <div className="finance-table"><table><thead><tr><th>날짜·상태</th><th>항목·적요</th><th>계좌</th><th>헌금자·지급처</th><th>금액</th><th>처리</th></tr></thead><tbody>{filtered.slice(page * 20, page * 20 + 20).map(entry => <tr key={entry.id}><td>{entry.date}<small>{states[entry.status]}</small></td><td>{categoryName(entry.categoryId)}<small>{entry.memo}</small>{entry.receipt && <small>증빙 {entry.receipt}</small>}</td><td>{accountName(entry.accountId)}{entry.destinationId && ` → ${accountName(entry.destinationId)}`}</td><td>{partyName(entry)}</td><td>{won(entry.amount)}</td><td>{writer && entry.status === 'DRAFT' && <button className="button" disabled={!enabled} onClick={() => setEditing(entry)}>수정</button>}{manager && entry.status !== 'VOID' && <button className="button" disabled={!enabled} onClick={() => setReview(entry)}>승인·취소</button>}</td></tr>)}</tbody></table>{!filtered.length && <p>조건에 맞는 전표가 없습니다.</p>}</div><div className="finance-actions"><span>{filtered.length}건 · {page + 1}페이지</span><button className="button" disabled={!page} onClick={() => setPage(page - 1)}>이전</button><button className="button" disabled={(page + 1) * 20 >= filtered.length} onClick={() => setPage(page + 1)}>다음</button></div>
         </>}
       </>}
+      {activeTab === 'tax' && manager && <FinanceTax key={year} data={data} download={download}/>} 
       {activeTab === 'giving' && detail && <GivingReport data={data} partyName={partyName} download={download}/>}
       {activeTab === 'budget' && data.role && <section className="panel detail-body finance-print"><div className="finance-actions"><h2>{year}년 예산·결산</h2><button className="button" onClick={() => window.print()}>인쇄</button><button className="button" onClick={() => download([['구분', '항목', '예산', '집행', '잔여'], ...data.categories.map(c => [kinds[c.kind], c.name, c.budget, c.actual, c.budget - c.actual])], '예산결산')}>CSV 내려받기</button></div><p>수입 {won(totals.income)} · 지출 {won(totals.expense)} · 잔액 {won(totals.balance)}</p><div className="finance-table"><table><thead><tr><th>구분</th><th>항목</th><th>예산</th><th>집행</th><th>잔여</th></tr></thead><tbody>{data.categories.map(c => <tr key={c.id}><td>{kinds[c.kind]}</td><td>{c.name}</td><td>{won(c.budget)}</td><td>{won(c.actual)}</td><td>{won(c.budget - c.actual)}</td></tr>)}</tbody></table></div>{manager && <form className="finance-form finance-no-print" onSubmit={e => formAction(e, f => ({ action: 'BUDGET_SAVE', categoryId: f.get('categoryId'), amount: Number(f.get('amount')), reason: f.get('reason') }))}><label>예산 항목<select name="categoryId" required>{data.categories.map(c => <option key={c.id} value={c.id}>{kinds[c.kind]} · {c.name}</option>)}</select></label><label>연간 예산 · 원<input name="amount" type="number" step={1} min={0} max={1_000_000_000_000} required/></label><label>편성·추경 사유<input name="reason" maxLength={300} required/></label><button className="button primary" disabled={!enabled}>예산 저장</button></form>}</section>}
       {activeTab === 'settings' && manager && <div className="finance-columns">
