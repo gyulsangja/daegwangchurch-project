@@ -1,5 +1,6 @@
 'use client';
 
+import { PeriodPicker, type Period } from './finance-period';
 import Link from 'next/link';
 import { FinanceTax } from './finance-tax';
 import { LogoutButton } from './logout-button';
@@ -22,6 +23,10 @@ export function FinanceWorkspace() {
   const [year, setYear] = useState(Number(today().slice(0, 4)));
   const [data, setData] = useState<FinanceSnapshot | null>(null);
   const [tab, setTab] = useState<Tab>('overview');
+  const [period, setPeriod] = useState<Period | null>(null);
+  const range = ['settings','access'].includes(tab) ? null : period;
+  const periodQuery = range ? '&'+new URLSearchParams(range).toString() : '';
+  const periodLabel = range ? range.start+' ~ '+range.end : year+'년 전체';
   const [reload, setReload] = useState(0);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -39,7 +44,7 @@ export function FinanceWorkspace() {
     async function load() {
       setLoading(true); setError('');
       try {
-        const response = await fetch(`/api/v1/finance?year=${year}`, { cache: 'no-store', signal: controller.signal });
+        const response = await fetch(`/api/v1/finance?year=${year}${periodQuery}`, { cache: 'no-store', signal: controller.signal });
         const value = await response.json();
         if (!response.ok) throw new Error(value.message);
         if (!controller.signal.aborted) setData(value);
@@ -49,7 +54,7 @@ export function FinanceWorkspace() {
     }
     void load();
     return () => controller.abort();
-  }, [year, reload]);
+  }, [year, reload, periodQuery]);
 
   async function save(command: Record<string, unknown>) {
     if (lock.current || !data) return false;
@@ -84,25 +89,27 @@ export function FinanceWorkspace() {
   const filtered = data?.entries.filter(entry => (status === 'ALL' || entry.status === status) && `${entry.date} ${partyName(entry)} ${entry.memo} ${categoryName(entry.categoryId)} ${entry.receipt}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())) ?? [];
   function download(rows: (string | number)[][], name: string) {
     const url = URL.createObjectURL(new Blob([financeCsv(rows)], { type: 'text/csv;charset=utf-8' }));
-    const link = document.createElement('a'); link.href = url; link.download = `${year}-${name}.csv`; link.click();
+    const link = document.createElement('a'); link.href = url; link.download = `${periodLabel}-${name}.csv`; link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   function newEntry() {
     setReview(null);
-    setEditing({ id: crypto.randomUUID(), date: year === Number(today().slice(0, 4)) ? today() : `${year}-01-01`, kind: 'INCOME', accountId: data?.accounts[0]?.id ?? '', destinationId: null, categoryId: data?.categories.find(c => c.kind === 'INCOME')?.id ?? null, amount: 0, memberId: null, party: '', memo: '', receipt: '', status: 'DRAFT', createdBy: '', approvedBy: null });
+    setEditing({ id: crypto.randomUUID(), date: range ? (range.start<=today() && today()<=range.end ? today() : range.start) : year === Number(today().slice(0, 4)) ? today() : `${year}-01-01`, kind: 'INCOME', accountId: data?.accounts[0]?.id ?? '', destinationId: null, categoryId: data?.categories.find(c => c.kind === 'INCOME')?.id ?? null, amount: 0, memberId: null, party: '', memo: '', receipt: '', status: 'DRAFT', createdBy: '', approvedBy: null });
   }
   return <section className="finance-page">
-    <header className="finance-heading"><div><p className="eyebrow">대한예수교장로회 대광교회</p><h1>재정 관리</h1><p>헌금과 집행 내역을 기록하고, 연간 예산과 결산을 함께 확인합니다.</p></div><div className="finance-actions"><label>회계연도<select value={year} disabled={busy || !!editing} onChange={event => { setYear(Number(event.target.value)); setData(null); setPage(0); setReview(null); }}>{Array.from(new Set([...(data?.years ?? []), ...Array.from({ length: Number(today().slice(0, 4)) + 6 - 2000 }, (_, index) => 2000 + index)])).sort((a, b) => b - a).map(value => <option key={value}>{value}</option>)}</select></label><Link className="button" href="/">통합 관리</Link><LogoutButton /></div></header>
+    <header className="finance-heading"><div><p className="eyebrow">대한예수교장로회 대광교회</p><h1>재정 관리</h1><p>헌금과 집행 내역을 기록하고, 연간 예산과 결산을 함께 확인합니다.</p></div><div className="finance-actions"><label>회계연도<select value={year} disabled={busy || !!editing} onChange={event => { setPeriod(null); setYear(Number(event.target.value)); setData(null); setPage(0); setReview(null); }}>{Array.from(new Set([...(data?.years ?? []), ...Array.from({ length: Number(today().slice(0, 4)) + 6 - 2000 }, (_, index) => 2000 + index)])).sort((a, b) => b - a).map(value => <option key={value}>{value}</option>)}</select></label><Link className="button" href="/">통합 관리</Link><LogoutButton /></div></header>
     {data && <p className="finance-role">{data.role ? financeRoles[data.role] : '재정 권한 지정'} · {data.version ? data.closed ? '마감된 연도' : '장부 작성 중' : '회계연도 개설 전'}</p>}
     <nav className="finance-tabs" aria-label="재정 업무">{visibleTabs.map(item => <button key={item.id} disabled={busy || !!editing} aria-current={activeTab === item.id ? 'page' : undefined} onClick={() => { setTab(item.id); setReview(null); }}>{item.title}</button>)}</nav>
+    <div hidden={!data?.role || ['settings','access'].includes(activeTab)}><PeriodPicker key={year} year={year} disabled={busy || !!editing} onChange={next=>{setPeriod(next);setReview(null);setPage(0);}}/></div>
+    {data?.role && !['settings','access'].includes(activeTab) && <p className="finance-period-caption">{periodLabel}</p>}
     {loading && <p role="status">재정 자료를 불러오는 중…</p>}
     {error && <div className="finance-error" role="alert"><p>{error}</p><button className="button" disabled={busy} onClick={() => setReload(value => value + 1)}>새로고침</button> <Link href="/login?next=/finance">다시 로그인</Link></div>}
     <p role="status">{notice}</p>
     {data && !loading && <>
       {data.role && !data.version && <div className="panel detail-body"><h2>{year}년 장부를 시작하세요</h2><p>재정 책임자가 회계연도를 개설하고 입출금 계좌의 기초잔액을 입력하면 기록할 수 있습니다.</p>{manager && <form onSubmit={e => formAction(e, f => ({ action: 'YEAR_CREATE', carry: f.get('carry') === 'on' }))}><label className="check"><input type="checkbox" name="carry"/>마감된 전년도 잔액·항목·예산 이월</label><button className="button primary" disabled={busy}>회계연도 개설</button></form>}</div>}
       {activeTab === 'overview' && data.role && <>
-        <div className="finance-metrics">{[['수입 합계', totals.income], ['지출 합계', totals.expense], ['지출 예산', totals.budget], ['현재 잔액', totals.balance]].map(([label, value]) => <article className="panel" key={label}><span>{label}</span><strong>{won(Number(value))}</strong></article>)}</div>
-        <div className="finance-columns"><section className="panel detail-body"><h2>계좌별 잔액</h2>{data.accounts.map(account => <div className="finance-line" key={account.id}><span>{account.name}</span><strong>{won(account.balance)}</strong></div>)}{!data.accounts.length && <p>등록된 계좌가 없습니다.</p>}</section><section className="panel detail-body"><h2>예산 집행 현황</h2>{data.categories.filter(c => c.kind === 'EXPENSE').map(category => <div className="finance-progress" key={category.id}><div className="finance-line"><span>{category.name}</span><strong>{category.budget ? Math.round(category.actual / category.budget * 100) : category.actual ? '예산 미등록' : 0}{category.budget ? '%' : ''}</strong></div><progress aria-label={`${category.name} 집행률`} max={Math.max(category.budget, category.actual, 1)} value={category.actual}/><small>{won(category.actual)} / {won(category.budget)}{category.actual > category.budget && ' · 예산 초과'}</small></div>)}</section></div>
+        <div className="finance-metrics">{[['수입 합계', totals.income], ['지출 합계', totals.expense], ['연간 지출 예산', totals.budget], ['기간 말 잔액', totals.balance]].map(([label, value]) => <article className="panel" key={label}><span>{label}</span><strong>{won(Number(value))}</strong></article>)}</div>
+        <div className="finance-columns"><section className="panel detail-body"><h2>기간 말 계좌 잔액</h2>{data.accounts.map(account => <div className="finance-line" key={account.id}><span>{account.name}</span><strong>{won(account.balance)}</strong></div>)}{!data.accounts.length && <p>등록된 계좌가 없습니다.</p>}</section><section className="panel detail-body"><h2>기간 집행 / 연간 예산</h2>{data.categories.filter(c => c.kind === 'EXPENSE').map(category => <div className="finance-progress" key={category.id}><div className="finance-line"><span>{category.name}</span><strong>{category.budget ? Math.round(category.actual / category.budget * 100) : category.actual ? '예산 미등록' : 0}{category.budget ? '%' : ''}</strong></div><progress aria-label={`${category.name} 집행률`} max={Math.max(category.budget, category.actual, 1)} value={category.actual}/><small>{won(category.actual)} / {won(category.budget)}{category.actual > category.budget && ' · 예산 초과'}</small></div>)}</section></div>
         {detail && <section className="panel detail-body"><h2>승인 대기 {data.entries.filter(e => e.status === 'DRAFT').length}건</h2><p>승인된 전표가 수입·지출과 잔액에 반영됩니다. 계좌 간 이체는 수입·지출 합계에서 제외됩니다.</p><button className="button" onClick={() => { setStatus('DRAFT'); setTab('entries'); }}>승인 대기 확인</button></section>}
       </>}
       {activeTab === 'entries' && detail && <>
@@ -124,9 +131,9 @@ export function FinanceWorkspace() {
           <div className="finance-table"><table><thead><tr><th>날짜·상태</th><th>항목·적요</th><th>계좌</th><th>헌금자·지급처</th><th>금액</th><th>처리</th></tr></thead><tbody>{filtered.slice(page * 20, page * 20 + 20).map(entry => <tr key={entry.id}><td>{entry.date}<small>{states[entry.status]}</small></td><td>{categoryName(entry.categoryId)}<small>{entry.memo}</small>{entry.receipt && <small>증빙 {entry.receipt}</small>}</td><td>{accountName(entry.accountId)}{entry.destinationId && ` → ${accountName(entry.destinationId)}`}</td><td>{partyName(entry)}</td><td>{won(entry.amount)}</td><td>{writer && entry.status === 'DRAFT' && <button className="button" disabled={!enabled} onClick={() => setEditing(entry)}>수정</button>}{manager && entry.status !== 'VOID' && <button className="button" disabled={!enabled} onClick={() => setReview(entry)}>승인·취소</button>}</td></tr>)}</tbody></table>{!filtered.length && <p>조건에 맞는 전표가 없습니다.</p>}</div><div className="finance-actions"><span>{filtered.length}건 · {page + 1}페이지</span><button className="button" disabled={!page} onClick={() => setPage(page - 1)}>이전</button><button className="button" disabled={(page + 1) * 20 >= filtered.length} onClick={() => setPage(page + 1)}>다음</button></div>
         </>}
       </>}
-      {activeTab === 'tax' && manager && <FinanceTax key={year} data={data} download={download}/>} 
+      {activeTab === 'tax' && manager && <FinanceTax key={periodLabel} data={data} download={download}/>} 
       {activeTab === 'giving' && detail && <GivingReport data={data} partyName={partyName} download={download}/>}
-      {activeTab === 'budget' && data.role && <section className="panel detail-body finance-print"><div className="finance-actions"><h2>{year}년 예산·결산</h2><button className="button" onClick={() => window.print()}>인쇄</button><button className="button" onClick={() => download([['구분', '항목', '예산', '집행', '잔여'], ...data.categories.map(c => [kinds[c.kind], c.name, c.budget, c.actual, c.budget - c.actual])], '예산결산')}>CSV 내려받기</button></div><p>수입 {won(totals.income)} · 지출 {won(totals.expense)} · 잔액 {won(totals.balance)}</p><div className="finance-table"><table><thead><tr><th>구분</th><th>항목</th><th>예산</th><th>집행</th><th>잔여</th></tr></thead><tbody>{data.categories.map(c => <tr key={c.id}><td>{kinds[c.kind]}</td><td>{c.name}</td><td>{won(c.budget)}</td><td>{won(c.actual)}</td><td>{won(c.budget - c.actual)}</td></tr>)}</tbody></table></div>{manager && <form className="finance-form finance-no-print" onSubmit={e => formAction(e, f => ({ action: 'BUDGET_SAVE', categoryId: f.get('categoryId'), amount: Number(f.get('amount')), reason: f.get('reason') }))}><label>예산 항목<select name="categoryId" required>{data.categories.map(c => <option key={c.id} value={c.id}>{kinds[c.kind]} · {c.name}</option>)}</select></label><label>연간 예산 · 원<input name="amount" type="number" step={1} min={0} max={1_000_000_000_000} required/></label><label>편성·추경 사유<input name="reason" maxLength={300} required/></label><button className="button primary" disabled={!enabled}>예산 저장</button></form>}</section>}
+      {activeTab === 'budget' && data.role && <section className="panel detail-body finance-print"><div className="finance-actions"><h2>예산·결산</h2><button className="button" onClick={() => window.print()}>인쇄</button><button className="button" onClick={() => download([['구분', '항목', '연간 예산', '기간 집행', '연간 잔여'], ...data.categories.map(c => [kinds[c.kind], c.name, c.budget, c.actual, c.budget - (c.annualActual ?? c.actual)])], '예산결산')}>CSV 내려받기</button></div><p>수입 {won(totals.income)} · 지출 {won(totals.expense)} · 잔액 {won(totals.balance)}</p><div className="finance-table"><table><thead><tr><th>구분</th><th>항목</th><th>연간 예산</th><th>기간 집행</th><th>연간 잔여</th></tr></thead><tbody>{data.categories.map(c => <tr key={c.id}><td>{kinds[c.kind]}</td><td>{c.name}</td><td>{won(c.budget)}</td><td>{won(c.actual)}</td><td>{won(c.budget - (c.annualActual ?? c.actual))}</td></tr>)}</tbody></table></div>{manager && <form className="finance-form finance-no-print" onSubmit={e => formAction(e, f => ({ action: 'BUDGET_SAVE', categoryId: f.get('categoryId'), amount: Number(f.get('amount')), reason: f.get('reason') }))}><label>예산 항목<select name="categoryId" required>{data.categories.map(c => <option key={c.id} value={c.id}>{kinds[c.kind]} · {c.name}</option>)}</select></label><label>연간 예산 · 원<input name="amount" type="number" step={1} min={0} max={1_000_000_000_000} required/></label><label>편성·추경 사유<input name="reason" maxLength={300} required/></label><button className="button primary" disabled={!enabled}>예산 저장</button></form>}</section>}
       {activeTab === 'settings' && manager && <div className="finance-columns">
         <section className="panel detail-body"><h2>입출금 계좌</h2><p>현금·보통예금 등 이름과 연초 기초잔액을 기록하세요.</p>{data.accounts.map(account => <div className="finance-line" key={account.id}><span>{account.name}</span><strong>기초 {won(account.opening)}</strong></div>)}<form className="finance-form" onSubmit={e => formAction(e, f => ({ action: 'ACCOUNT_SAVE', id: f.get('id') || crypto.randomUUID(), name: f.get('name'), opening: Number(f.get('opening')) }))}><label>새 계좌 · 기존 수정<select name="id"><option value="">새 계좌</option>{data.accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label><label>계좌 이름<input name="name" maxLength={100} required/></label><label>기초잔액 · 원<input name="opening" type="number" min={0} step={1} max={1_000_000_000_000} required defaultValue={0}/></label><button className="button" disabled={!enabled}>계좌 저장</button></form></section>
         <section className="panel detail-body"><h2>수입·지출 항목</h2><p>기본 항목에 필요한 헌금과 사업 항목을 추가하세요.</p><form className="finance-form" onSubmit={e => formAction(e, f => ({ action: 'CATEGORY_SAVE', id: crypto.randomUUID(), name: f.get('name'), kind: f.get('kind'), offering: f.get('offering') === 'on' }))}><label>구분<select name="kind"><option value="INCOME">수입</option><option value="EXPENSE">지출</option></select></label><label>항목 이름<input name="name" maxLength={100} required/></label><label className="check"><input name="offering" type="checkbox"/>개인별 헌금 집계에 포함</label><button className="button" disabled={!enabled}>항목 추가</button></form></section>

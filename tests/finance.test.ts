@@ -26,6 +26,7 @@ async function fixture() {
     INSERT INTO ministry.members VALUES('one','member1','{"name":"가상교인"}'),('two','member2','{"name":"다른교회"}');
   `);
   await db.exec(readFileSync('packages/database/ministry/011_finance.sql', 'utf8'));
+  await db.exec(readFileSync('packages/database/ministry/012_finance_period.sql', 'utf8'));
   await db.exec('SET ROLE daegwang_ministry_runtime');
   const as = async (user = manager, church = 'one', verified = true) => {
     await db.query("SELECT set_config('ministry.user_id',$1,false),set_config('ministry.church_id',$2,false),set_config('ministry.aal','aal1',false),set_config('ministry.reauthenticated',$3,false)", [user, church, String(verified)]);
@@ -103,6 +104,14 @@ test('finance postings, budgets, transfers, close and carry preserve balances an
     await assert.rejects(f.write({ action: 'YEAR_CLOSE', reason: '마감' }), /FINANCE_DRAFTS/);
     await f.write({ action: 'ENTRY_VOID', id: excessive.id, reason: '잘못된 입력 취소' });
     await f.as(reporter);
+    const period = async (start:string,end:string) => (await f.db.query<{s:FinanceSnapshot}>('select finance.read_period(2026,$1,$2) s',[start,end])).rows[0].s;
+    const october = await period('2026-10-01','2026-10-31');
+    assert.equal(financeTotals(october).balance,1000);
+    assert.equal(financeTotals(october).income,0);
+    const day = await period('2026-11-25','2026-11-25');
+    assert.equal(financeTotals(day).expense,300);
+    assert.equal(day.entries.length,0);
+    await assert.rejects(period('2025-12-31','2026-01-01'),/FINANCE_INVALID/);
     const report = await f.read(); assert.deepEqual(report.entries, []); assert.deepEqual(report.members, []); assert.deepEqual(report.events, []);
     assert.equal(JSON.stringify(report).includes('가상교인'), false);
     assert.equal(financeTotals(report).income, 800);

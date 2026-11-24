@@ -6,7 +6,9 @@ import { financeSnapshot, saveFinance, financeError } from '@/lib/finance';
 export async function GET(request: Request) {
   try {
     const year = z.coerce.number().int().min(2000).max(2200).parse(new URL(request.url).searchParams.get('year'));
-    return Response.json(await financeSnapshot(year), { headers: { 'Cache-Control': 'private, no-store' } });
+    const params = new URL(request.url).searchParams;
+    const period = params.has('start') || params.has('end') ? z.object({ start:z.iso.date(),end:z.iso.date() }).refine(p=>p.start<=p.end && [p.start,p.end].every(d=>Number(d.slice(0,4))===year)).parse({start:params.get('start'),end:params.get('end')}) : undefined;
+    return Response.json(await financeSnapshot(year, period), { headers: { 'Cache-Control': 'private, no-store' } });
   } catch (error) { return financeError(error); }
 }
 export async function POST(request: Request) {

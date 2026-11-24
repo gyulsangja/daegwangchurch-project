@@ -15,8 +15,9 @@ export const financeSession = cache(async () => {
   if (session.nextLevel === 'aal2' && session.aal !== 'aal2') throw new Error('MINISTRY_MFA_REQUIRED');
   return session;
 });
-export async function financeSnapshot(year: number) {
+export async function financeSnapshot(year: number, period?: {start:string; end:string}) {
   const { user, aal } = await financeSession();
+  if (period) return accessQuery<FinanceSnapshot>(user.id, aal, 'SELECT finance.read_period($1::integer,$2::date,$3::date) AS result', [year,period.start,period.end]);
   return accessQuery<FinanceSnapshot>(user.id, aal, 'SELECT finance.read_year($1::integer) AS result', [year]);
 }
 export async function saveFinance(raw: Record<string, unknown>) {

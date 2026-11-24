@@ -31,7 +31,7 @@ export const financeCommand = z.discriminatedUnion('action', [
 export type FinanceCommand = z.infer<typeof financeCommand>;
 export type FinanceRole = z.infer<typeof financeRole>;
 export type FinanceAccount = { id: string; name: string; opening: number; balance: number };
-export type FinanceCategory = { id: string; name: string; kind: 'INCOME' | 'EXPENSE'; offering: boolean; budget: number; actual: number };
+export type FinanceCategory = { id: string; name: string; kind: 'INCOME' | 'EXPENSE'; offering: boolean; budget: number; actual: number; annualActual?: number };
 export type FinanceEntry = { id: string; date: string; kind: 'INCOME' | 'EXPENSE' | 'TRANSFER'; accountId: string; destinationId: string | null; categoryId: string | null; amount: number; memberId: string | null; party: string; memo: string; receipt: string; status: 'DRAFT' | 'POSTED' | 'VOID'; createdBy: string; approvedBy: string | null };
 export type FinanceSnapshot = {
   role: FinanceRole | null; canManageAccess: boolean; year: number; version: number; closed: boolean; years: number[];
