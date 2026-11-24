@@ -23,6 +23,8 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
+    // Uploaded photos are already resized. Serve originals without Vercel's metered optimizer.
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",

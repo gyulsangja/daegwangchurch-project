@@ -16,10 +16,22 @@ import './responsive.css';
 import './loading.css';
 import './lists.css';
 import {ListWorkspace} from '@/components/list-workspace';
+import {financeSession} from '@/lib/finance';
 export const metadata: Metadata = { title: { default: '대광교회 통합 관리', template: '%s · 대광교회 통합 관리' }, robots: { index: false, follow: false } };
 export const dynamic = 'force-dynamic';
 export default async function Layout({ children }: { children: React.ReactNode }) {
   const requestHeaders=await headers();const operational=operationalEnabled();
+  if(requestHeaders.get('x-ministry-path')==='/finance') {
+    if(operational) {
+      try { await financeSession(); }
+      catch(error) {
+        if(error instanceof Error&&error.message==='MINISTRY_LOGIN_REQUIRED')redirect('/login?next=/finance');
+        if(error instanceof Error&&error.message==='MINISTRY_MFA_REQUIRED')redirect('/account/security');
+        throw error;
+      }
+    }
+    return <html lang="ko"><body><main className="finance-shell">{children}</main></body></html>;
+  }
   const publicPage=operational&&['/login','/access-denied','/invite','/forgot-password','/account/security'].includes(requestHeaders.get('x-ministry-path')??'');
   if(publicPage)return <html lang="ko"><body>{children}</body></html>;
   const active = operational||enabled(requestHeaders.get('host'));
