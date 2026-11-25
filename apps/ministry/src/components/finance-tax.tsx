@@ -5,12 +5,13 @@ import { useState } from 'react';
 import type { FinanceSnapshot } from '@daegwang/contracts/finance';
 
 type Props = {
+  mode:'tax'|'payroll';
   data: FinanceSnapshot;
   save:(command:Record<string,unknown>)=>Promise<boolean>;
   download: (rows: (string | number)[][], name: string) => void;
 };
 
-export function FinanceTax({ data, download, save }: Props) {
+export function FinanceTax({ data, download, save, mode }: Props) {
   const [popupError,setPopupError]=useState(false);
   const [person, setPerson] = useState('');
   const [issue,setIssue]=useState('');
@@ -25,7 +26,7 @@ export function FinanceTax({ data, download, save }: Props) {
   const expense = expenses.find(e => e.id === payment);
   const gross = (expense?.amount ?? 0) + Number(national) + Number(local);
   return <section className="panel detail-body">
-    <h2>기부금영수증 발급 검토</h2>
+    {mode==='tax' ? <><h2>기부금영수증 발급 검토</h2>
     <p>교적에 연결된 승인 헌금을 확인하고, 공제 대상과 실제 기부자를 확인한 뒤 홈택스에서 발급하세요.</p>
     <label>기부자 선택<select value={person} onChange={e => {setPerson(e.target.value);setIssue('');}}><option value="">교인 선택</option>{data.members.map(m => <option key={m.id} value={m.id}>{m.name} · {m.id.slice(-6)}</option>)}</select></label>
     <p>확인 대상 {gifts.length}건 · {gifts.reduce((sum, e) => sum + e.amount, 0).toLocaleString()}원</p>
@@ -39,7 +40,7 @@ export function FinanceTax({ data, download, save }: Props) {
       <label>발급할 헌금 전표<select required value={issue} onChange={e=>setIssue(e.target.value)}><option value="">선택</option>{gifts.filter(g=>!data.receipts?.some(r=>r.id===g.id)).map(g=><option key={g.id} value={g.id}>{g.date} · {g.amount.toLocaleString()}원 · {g.id.slice(-6)}</option>)}</select></label>
       <label><input key={issue} required type="checkbox"/> 실제 기부자와 공제 대상 여부, 홈택스 중복 발급 여부 확인</label><button className="button" disabled={!issue}>일련번호 발급</button></form> : <p>이 연도의 교회 발급 자격·고유번호·서면 발급 가능 여부를 확인하면 발급을 열 수 있습니다.</p>}
     {data.receipts?.filter(r=>r.memberId===person).map(r=><p key={r.serial}>{r.issued} · 제{r.serial}호 · {r.amount.toLocaleString()}원 <button className="button" onClick={()=>setPopupError(!previewGiftForm(r.name,[r],r))}>발급본 인쇄·재인쇄</button></p>)}
-    <h2>목회자 사례비 지급 검토표</h2>
+    </> : <><h2>목회자 사례비 지급 검토표</h2>
     <p>실수령액으로 기록한 지출 전표를 선택하세요. 다른 공제가 없는 지급 건에 사용하며, 확인한 세액을 입력해 검토표를 내려받습니다.</p>
     <form className="finance-form" onSubmit={e => {
       e.preventDefault();
@@ -54,5 +55,5 @@ export function FinanceTax({ data, download, save }: Props) {
       <button className="button" disabled={!expense}>지급 검토표 내려받기</button>
     </form>
     <a href="https://nts.go.kr/nts/cm/cntnts/cntntsView.do?cntntsId=238899&amp;mi=40170">국세청 지급명세서 서식 안내</a>
-  </section>;
+  </>}</section>;
 }

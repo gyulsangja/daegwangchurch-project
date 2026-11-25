@@ -22,3 +22,6 @@
  .finance-menu-toggle{display:block;border:1px solid #8ca998}.finance-rail-body:not(.is-open){display:none}
 }
 @media print{.finance-layout{display:block;min-height:0}.finance-rail{display:none}.finance-content{padding:0}}
+.finance-nav-group{display:grid;gap:2px}.finance-nav-group p{font-size:.78rem;font-weight:650;color:#d4e4da;padding:0 12px;margin:14px 0 4px}.finance-rail .finance-nav-group button{min-height:42px;padding:8px 12px}
+.finance-entry-start{margin:1rem 0;padding:1rem 1.25rem}.finance-entry-start h2{margin:0 0 .7rem}.finance-entry-start .button{border-color:#557461}.finance-entry-start .finance-actions .button:first-child{background:#244733;color:white}
+@media print{.finance-entry-start{display:none}}@media(max-width:600px){.finance-entry-start .finance-actions{display:grid;grid-template-columns:1fr 1fr}}
