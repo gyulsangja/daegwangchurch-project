@@ -7,7 +7,7 @@ import { headers } from 'next/headers';
 import { notFound,redirect } from 'next/navigation';
 import {asyncDirectory} from '@daegwang/ministry-core/async-directory';
 import {invokeDirectory} from '@daegwang/ministry-core/directory-dispatch';
-import {operationalEnabled,operationalOrigin} from './operational-config';
+import {operationalEnabled,trustedOrigin} from './operational-config';
 import {operationalDirectory} from './operational-directory';
 import {authenticatedSession} from './auth-security';
 import { type Actor } from '@daegwang/ministry-core/directory';
@@ -22,7 +22,7 @@ export function directory(host: string | null) {
 }
 export async function requestWorkspace(host:string|null){
  if(operationalEnabled()){
-  if(host!==new URL(operationalOrigin()).host)throw new Error('MINISTRY_INVALID_HOST');
+  if(!trustedOrigin(host))throw new Error('MINISTRY_INVALID_HOST');
   const session=await authenticatedSession();const {user,aal,nextLevel}=session;if(nextLevel==='aal2'&&aal!=='aal2')throw new Error('MINISTRY_MFA_REQUIRED');
   if(!process.env.MINISTRY_CHURCH_ID)throw new Error('MINISTRY_NOT_CONFIGURED');
   return {...await operationalDirectory(user.id,process.env.MINISTRY_CHURCH_ID,aal),session};

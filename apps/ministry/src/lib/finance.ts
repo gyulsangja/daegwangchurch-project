@@ -6,11 +6,11 @@ import { ZodError } from 'zod';
 import { financeCommand, type FinanceSnapshot } from '@daegwang/contracts/finance';
 import { accessQuery } from './access-management';
 import { authenticatedSession } from './auth-security';
-import { operationalEnabled, operationalOrigin } from './operational-config';
+import { operationalEnabled, trustedOrigin } from './operational-config';
 
 export const financeSession = cache(async () => {
   if (!operationalEnabled()) throw new Error('FINANCE_SETUP');
-  if ((await headers()).get('host') !== new URL(operationalOrigin()).host) throw new Error('FINANCE_FORBIDDEN');
+  if (!trustedOrigin((await headers()).get('host'))) throw new Error('FINANCE_FORBIDDEN');
   const session = await authenticatedSession();
   if (session.nextLevel === 'aal2' && session.aal !== 'aal2') throw new Error('MINISTRY_MFA_REQUIRED');
   return session;

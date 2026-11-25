@@ -18,7 +18,7 @@ const tabs: { id: Tab; title: string }[] = [
   { id: 'settings', title: '마감·계좌·항목' }, { id: 'access', title: '재정 접근 권한' },
 ];
 
-export function FinanceWorkspace() {
+export function FinanceWorkspace({ministryUrl}:{ministryUrl:string}) {
   const [year, setYear] = useState(Number(today().slice(0, 4)));
   const [data, setData] = useState<FinanceSnapshot | null>(null);
   const [tab, setTab] = useState<Tab>('overview');
@@ -96,7 +96,7 @@ export function FinanceWorkspace() {
     setEditing({ id: crypto.randomUUID(), date: range ? (range.start<=today() && today()<=range.end ? today() : range.start) : year === Number(today().slice(0, 4)) ? today() : `${year}-01-01`, kind: 'INCOME', accountId: data?.accounts[0]?.id ?? '', destinationId: null, categoryId: data?.categories.find(c => c.kind === 'INCOME' && c.active!==false)?.id ?? null, amount: 0, memberId: null, party: '', memo: '', receipt: '', status: 'DRAFT', createdBy: '', approvedBy: null });
   }
   return <section className="finance-page">
-    <header className="finance-heading"><div><p className="eyebrow">대한예수교장로회 대광교회</p><h1>재정 관리</h1><p>헌금과 집행 내역을 기록하고, 연간 예산과 결산을 함께 확인합니다.</p></div><div className="finance-actions"><label>회계연도<select value={year} disabled={busy || !!editing} onChange={event => { setPeriod(null); setYear(Number(event.target.value)); setData(null); setPage(0); setReview(null); }}>{Array.from(new Set([...(data?.years ?? []), ...Array.from({ length: Number(today().slice(0, 4)) + 6 - 2000 }, (_, index) => 2000 + index)])).sort((a, b) => b - a).map(value => <option key={value}>{value}</option>)}</select></label><a className="button" href="/">목회시스템으로 돌아가기</a><LogoutButton /></div></header>
+    <header className="finance-heading"><div><p className="eyebrow">대한예수교장로회 대광교회</p><h1>재정 관리</h1><p>헌금과 집행 내역을 기록하고, 연간 예산과 결산을 함께 확인합니다.</p></div><div className="finance-actions"><label>회계연도<select value={year} disabled={busy || !!editing} onChange={event => { setPeriod(null); setYear(Number(event.target.value)); setData(null); setPage(0); setReview(null); }}>{Array.from(new Set([...(data?.years ?? []), ...Array.from({ length: Number(today().slice(0, 4)) + 6 - 2000 }, (_, index) => 2000 + index)])).sort((a, b) => b - a).map(value => <option key={value}>{value}</option>)}</select></label><a className="button" href={ministryUrl}>목회시스템으로 돌아가기</a><LogoutButton /></div></header>
     {data && <p className="finance-role">{data.role ? financeRoles[data.role] : '재정 권한 지정'} · {data.version ? data.closed ? '마감된 연도' : '장부 작성 중' : '회계연도 개설 전'}</p>}
     <div className="finance-layout"><nav className="finance-tabs" aria-label="재정 업무">{visibleTabs.map(item => <button key={item.id} disabled={busy || !!editing} aria-current={activeTab === item.id ? 'page' : undefined} onClick={() => { setTab(item.id); setReview(null); }}>{item.title}</button>)}</nav><div className="finance-content">
     <div hidden={!data?.role || ['settings','access'].includes(activeTab)}><PeriodPicker key={year} year={year} disabled={busy || !!editing} onChange={next=>{setPeriod(next);setReview(null);setPage(0);}}/></div>
