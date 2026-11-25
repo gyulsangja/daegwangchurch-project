@@ -26,7 +26,7 @@ export function previewGiftForm(name: string, entries: Pick<FinanceEntry,"date"|
     const page=sheet('/receipt-2026.png');
     function field(left:number,top:number,text:string){const span=doc.createElement('span');span.style.left=left+'%';span.style.top=top+'%';span.textContent=text;page.append(span);}
     field(20,19,name);field(20,28.7,receipt?.issuer.name??'대광교회');
-    if(receipt){field(20,10,receipt.serial);field(76,28.8,receipt.issuer.registration);field(17,33,receipt.issuer.address);field(60,35,receipt.issuer.legal_basis);field(14,57.85,receipt.issuer.gift_code);field(62,89,receipt.issued);field(51,92,receipt.issuer.name);}
+    if(receipt){field(20,10,receipt.serial);field(76,28.8,receipt.issuer.registration);field(17,33,receipt.issuer.address);field(60,35,receipt.issuer.legal_basis);field(14,57.85,receipt.issuer.gift_code);const [year,month,day]=receipt.issued.split('-');field(76,88.4,year);field(82.7,88.4,month);field(88.2,88.4,day);field(51,92,receipt.issuer.name);}
     sorted.slice(pos,pos+6).forEach((e,i)=>{const y=57.85+i*2.37;field(28,y,'금전');field(37.6,y,e.date);field(83.4,y,e.amount.toLocaleString());});
     const mark=doc.createElement('strong');mark.textContent='검토용 · 미발급';if(!receipt)page.append(mark);
   }

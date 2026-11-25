@@ -17,7 +17,7 @@ export const financeSession = cache(async () => {
 });
 export async function financeSnapshot(year: number, period?: {start:string; end:string}) {
   const { user, aal } = await financeSession();
-  return accessQuery<FinanceSnapshot>(user.id, aal, 'SELECT finance.workspace($1::integer,$2::date,$3::date) AS result',[year,period?.start??null,period?.end??null]);
+  return accessQuery<FinanceSnapshot>(user.id, aal, 'SELECT finance.giving_workspace($1::integer,$2::date,$3::date) AS result',[year,period?.start??null,period?.end??null]);
 }
 export async function saveFinance(raw: Record<string, unknown>) {
   const { password, ...body } = raw;
@@ -33,12 +33,12 @@ export async function saveFinance(raw: Record<string, unknown>) {
       verified = true;
     } finally { await verifier.auth.signOut({ scope: 'local' }).catch(() => {}); }
   }
-  return accessQuery<{ saved: boolean }>(user.id, aal, ['MONTH_CLOSE','MONTH_REOPEN','CATEGORY_CONFIG','ISSUE_PAPER'].includes(input.action) ? 'SELECT finance.manage($1::jsonb) AS result' : 'SELECT finance.command($1::jsonb) AS result', [JSON.stringify(input)], verified);
+  return accessQuery<{ saved: boolean }>(user.id, aal, ['ISSUER_SETUP','RECEIPT_SHARE','RECEIPT_CANCEL'].includes(input.action)?'SELECT finance.receipt_command($1::jsonb) AS result' : ['MONTH_CLOSE','MONTH_REOPEN','CATEGORY_CONFIG','ISSUE_PAPER'].includes(input.action) ? 'SELECT finance.manage($1::jsonb) AS result' : 'SELECT finance.command($1::jsonb) AS result', [JSON.stringify(input)], verified);
 }
 export function financeError(error: unknown) {
   const message = error instanceof Error ? error.message : '';
   const messages: Record<string, string> = {
-    PAPER_DISABLED:'이 연도는 서면 발급 자격 확인이 필요합니다.', RECEIPT_ISSUED:'발급된 영수증의 원본 전표입니다. 발급 내역을 먼저 확인하세요.',
+    SHARE_AMOUNT:'전표의 미발급 잔액을 확인하세요.', PAPER_DISABLED:'이 연도는 서면 발급 자격 확인이 필요합니다.', RECEIPT_ISSUED:'발급된 영수증의 원본 전표입니다. 발급 내역을 먼저 확인하세요.',
     MONTH_LOCKED:'마감된 월입니다. 마감 해제 후 처리하세요.', CATEGORY_INACTIVE:'사용 중지된 항목입니다.',
     FINANCE_FORBIDDEN: '재정 접근 권한이 없습니다. 통합 관리 최고관리자에게 재정 권한을 요청하세요.',
     FINANCE_SETUP: '재정 데이터베이스 연결을 준비하고 있습니다.', ACCESS_SETUP: '권한 관리 연결 설정을 확인하세요.',

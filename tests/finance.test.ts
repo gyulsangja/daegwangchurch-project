@@ -27,7 +27,9 @@ async function fixture() {
   `);
   await db.exec(readFileSync('packages/database/ministry/011_finance.sql', 'utf8'));
   await db.exec(readFileSync('packages/database/ministry/012_finance_period.sql', 'utf8'));
+  await db.exec('CREATE TABLE ministry.families(church_id text,id text,payload jsonb);CREATE TABLE ministry.organizations(church_id text,id text,payload jsonb)');
   await db.exec(readFileSync('packages/database/ministry/013_month_categories.sql','utf8'));
+  await db.exec(readFileSync('packages/database/ministry/014_giving_receipts.sql','utf8'));
   await db.exec('SET ROLE daegwang_ministry_runtime');
   const as = async (user = manager, church = 'one', verified = true) => {
     await db.query("SELECT set_config('ministry.user_id',$1,false),set_config('ministry.church_id',$2,false),set_config('ministry.aal','aal1',false),set_config('ministry.reauthenticated',$3,false)", [user, church, String(verified)]);
@@ -120,7 +122,18 @@ test('finance postings, budgets, transfers, close and carry preserve balances an
     await manage('CATEGORY_CONFIG',{kind:'INCOME',id:income.id,name:income.name,offering:true,section:'헌금',active:false});
     await assert.rejects(f.write({...entry,id:randomUUID()}),/CATEGORY_INACTIVE/);
     await assert.rejects(manage('ISSUE_PAPER',{id:entry.id}),/PAPER_DISABLED/);
-    await f.db.exec("RESET ROLE; INSERT INTO finance.paper_issuers VALUES('one',2026,'가상 단체','가상 주소','가상 번호','테스트 근거','테스트 코드','격리 테스트'); SET ROLE daegwang_ministry_runtime");
+    const receipt=async(action:string,fields:Record<string,unknown>)=>f.db.query('select finance.receipt_command($1::jsonb)',[JSON.stringify({action,requestId:randomUUID(),year:2026,version:(await f.read()).version,reason:'가상 확인',...fields})]);
+    await receipt('ISSUER_SETUP',{name:'가상',address:'가상 주소',registration:'0000000000',legalBasis:'가상 근거',giftCode:'41',confirmed:true});
+    await assert.rejects(receipt('RECEIPT_SHARE',{id:entry.id,amount:100,memberId:'member2'}),/FINANCE_INVALID/);
+    await receipt('RECEIPT_SHARE',{id:entry.id,amount:300,memberId:'member1'});
+    await assert.rejects(receipt('RECEIPT_SHARE',{id:entry.id,amount:501,memberId:'member1'}),/SHARE_AMOUNT/);
+    await assert.rejects(manage('ISSUE_PAPER',{id:entry.id}),/RECEIPT_ISSUED/);
+    const desk=async()=>(await f.db.query<{s:FinanceSnapshot}>('select finance.giving_workspace(2026,null,null) s')).rows[0].s;
+    const first=(await desk()).receipts![0];assert.equal(first.amount,300);
+    await f.as(writer);await assert.rejects(receipt('RECEIPT_CANCEL',{serial:first.serial}),/FINANCE_FORBIDDEN/);
+    assert.equal((await desk()).receipts,undefined);await f.as();
+    await receipt('RECEIPT_CANCEL',{serial:first.serial});assert.equal((await desk()).receipts![0].voided,true);
+
     await manage('ISSUE_PAPER',{id:entry.id});
     await assert.rejects(manage('ISSUE_PAPER',{id:entry.id}),/duplicate key/);
     await assert.rejects(f.write({action:'ENTRY_VOID',id:entry.id,reason:'검증'}),/RECEIPT_ISSUED/);
