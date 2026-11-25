@@ -27,6 +27,7 @@ async function fixture() {
   `);
   await db.exec(readFileSync('packages/database/ministry/011_finance.sql', 'utf8'));
   await db.exec(readFileSync('packages/database/ministry/012_finance_period.sql', 'utf8'));
+  await db.exec(readFileSync('packages/database/ministry/013_month_categories.sql','utf8'));
   await db.exec('SET ROLE daegwang_ministry_runtime');
   const as = async (user = manager, church = 'one', verified = true) => {
     await db.query("SELECT set_config('ministry.user_id',$1,false),set_config('ministry.church_id',$2,false),set_config('ministry.aal','aal1',false),set_config('ministry.reauthenticated',$3,false)", [user, church, String(verified)]);
@@ -103,7 +104,30 @@ test('finance postings, budgets, transfers, close and carry preserve balances an
     assert.equal((await f.read()).entries.find(e => e.id === excessive.id)?.status, 'DRAFT');
     await assert.rejects(f.write({ action: 'YEAR_CLOSE', reason: '마감' }), /FINANCE_DRAFTS/);
     await f.write({ action: 'ENTRY_VOID', id: excessive.id, reason: '잘못된 입력 취소' });
+    const manage=async (action:string,rest:Record<string,unknown>)=>f.db.query('select finance.manage($1::jsonb)',[JSON.stringify({action,year:2026,version:(await f.read()).version,requestId:randomUUID(),...rest})]);
+    const pending={...entry,id:randomUUID(),date:'2026-10-15'};
+    await f.write(pending);
+    await assert.rejects(manage('MONTH_CLOSE',{month:10,reason:'대기 검증'}),/FINANCE_DRAFTS/);
+    await manage('MONTH_CLOSE',{month:11,reason:'가상 검증'});
+    await assert.rejects(f.write({...entry,id:randomUUID()}),/MONTH_LOCKED/);
+    await assert.rejects(f.write({action:'ENTRY_VOID',id:entry.id,reason:'시도'}),/MONTH_LOCKED/);
+    await assert.rejects(f.write({...pending,date:'2026-11-01'}),/MONTH_LOCKED/);
+    await f.write({action:'ENTRY_VOID',id:pending.id,reason:'검증'});
+    await f.as(writer);
+    await assert.rejects(manage('MONTH_REOPEN',{month:11,reason:'권한 검증'}),/FINANCE_FORBIDDEN/);
+    await f.as();
+    await manage('MONTH_REOPEN',{month:11,reason:'해제 검증'});
+    await manage('CATEGORY_CONFIG',{kind:'INCOME',id:income.id,name:income.name,offering:true,section:'헌금',active:false});
+    await assert.rejects(f.write({...entry,id:randomUUID()}),/CATEGORY_INACTIVE/);
+    await assert.rejects(manage('ISSUE_PAPER',{id:entry.id}),/PAPER_DISABLED/);
+    await f.db.exec("RESET ROLE; INSERT INTO finance.paper_issuers VALUES('one',2026,'가상 단체','가상 주소','가상 번호','테스트 근거','테스트 코드','격리 테스트'); SET ROLE daegwang_ministry_runtime");
+    await manage('ISSUE_PAPER',{id:entry.id});
+    await assert.rejects(manage('ISSUE_PAPER',{id:entry.id}),/duplicate key/);
+    await assert.rejects(f.write({action:'ENTRY_VOID',id:entry.id,reason:'검증'}),/RECEIPT_ISSUED/);
+    const issued=(await f.db.query<{s:FinanceSnapshot}>('select finance.workspace(2026,null,null) s')).rows[0].s.receipts!;
+    assert.equal(issued.length,1);assert.equal(issued[0].amount,800);assert.equal(issued[0].id,entry.id);
     await f.as(reporter);
+    assert.equal((await f.db.query<{s:FinanceSnapshot}>('select finance.workspace(2026,null,null) s')).rows[0].s.receipts,undefined);
     const period = async (start:string,end:string) => (await f.db.query<{s:FinanceSnapshot}>('select finance.read_period(2026,$1,$2) s',[start,end])).rows[0].s;
     const october = await period('2026-10-01','2026-10-31');
     assert.equal(financeTotals(october).balance,1000);
