@@ -2,12 +2,10 @@
 
 import { PeriodPicker, type Period } from './finance-period';
 import {MonthClose, CategoryEditor} from './finance-controls';
-import Link from 'next/link';
 import { FinanceTax } from './finance-tax';
 import { LogoutButton } from './logout-button';
 import { useEffect, useRef, useState } from 'react';
 import { financeCsv, financeRoles, financeTotals, type FinanceEntry, type FinanceSnapshot } from '@daegwang/contracts/finance';
-import './finance.css';
 
 const won = (value: number) => `${value.toLocaleString('ko-KR')}원`;
 const today = () => new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
@@ -98,13 +96,13 @@ export function FinanceWorkspace() {
     setEditing({ id: crypto.randomUUID(), date: range ? (range.start<=today() && today()<=range.end ? today() : range.start) : year === Number(today().slice(0, 4)) ? today() : `${year}-01-01`, kind: 'INCOME', accountId: data?.accounts[0]?.id ?? '', destinationId: null, categoryId: data?.categories.find(c => c.kind === 'INCOME' && c.active!==false)?.id ?? null, amount: 0, memberId: null, party: '', memo: '', receipt: '', status: 'DRAFT', createdBy: '', approvedBy: null });
   }
   return <section className="finance-page">
-    <header className="finance-heading"><div><p className="eyebrow">대한예수교장로회 대광교회</p><h1>재정 관리</h1><p>헌금과 집행 내역을 기록하고, 연간 예산과 결산을 함께 확인합니다.</p></div><div className="finance-actions"><label>회계연도<select value={year} disabled={busy || !!editing} onChange={event => { setPeriod(null); setYear(Number(event.target.value)); setData(null); setPage(0); setReview(null); }}>{Array.from(new Set([...(data?.years ?? []), ...Array.from({ length: Number(today().slice(0, 4)) + 6 - 2000 }, (_, index) => 2000 + index)])).sort((a, b) => b - a).map(value => <option key={value}>{value}</option>)}</select></label><Link className="button" href="/">통합 관리</Link><LogoutButton /></div></header>
+    <header className="finance-heading"><div><p className="eyebrow">대한예수교장로회 대광교회</p><h1>재정 관리</h1><p>헌금과 집행 내역을 기록하고, 연간 예산과 결산을 함께 확인합니다.</p></div><div className="finance-actions"><label>회계연도<select value={year} disabled={busy || !!editing} onChange={event => { setPeriod(null); setYear(Number(event.target.value)); setData(null); setPage(0); setReview(null); }}>{Array.from(new Set([...(data?.years ?? []), ...Array.from({ length: Number(today().slice(0, 4)) + 6 - 2000 }, (_, index) => 2000 + index)])).sort((a, b) => b - a).map(value => <option key={value}>{value}</option>)}</select></label><a className="button" href="/">목회시스템으로 돌아가기</a><LogoutButton /></div></header>
     {data && <p className="finance-role">{data.role ? financeRoles[data.role] : '재정 권한 지정'} · {data.version ? data.closed ? '마감된 연도' : '장부 작성 중' : '회계연도 개설 전'}</p>}
     <div className="finance-layout"><nav className="finance-tabs" aria-label="재정 업무">{visibleTabs.map(item => <button key={item.id} disabled={busy || !!editing} aria-current={activeTab === item.id ? 'page' : undefined} onClick={() => { setTab(item.id); setReview(null); }}>{item.title}</button>)}</nav><div className="finance-content">
     <div hidden={!data?.role || ['settings','access'].includes(activeTab)}><PeriodPicker key={year} year={year} disabled={busy || !!editing} onChange={next=>{setPeriod(next);setReview(null);setPage(0);}}/></div>
     {data?.role && !['settings','access'].includes(activeTab) && <p className="finance-period-caption">{periodLabel}</p>}
     {loading && <p role="status">재정 자료를 불러오는 중…</p>}
-    {error && <div className="finance-error" role="alert"><p>{error}</p><button className="button" disabled={busy} onClick={() => setReload(value => value + 1)}>새로고침</button> <Link href="/login?next=/finance">다시 로그인</Link></div>}
+    {error && <div className="finance-error" role="alert"><p>{error}</p><button className="button" disabled={busy} onClick={() => setReload(value => value + 1)}>새로고침</button> <a href="/login?next=/finance">다시 로그인</a></div>}
     <p role="status">{notice}</p>
     {data && !loading && <>
       {data.role && !data.version && <div className="panel detail-body"><h2>{year}년 장부를 시작하세요</h2><p>재정 책임자가 회계연도를 개설하고 입출금 계좌의 기초잔액을 입력하면 기록할 수 있습니다.</p>{manager && <form onSubmit={e => formAction(e, f => ({ action: 'YEAR_CREATE', carry: f.get('carry') === 'on' }))}><label className="check"><input type="checkbox" name="carry"/>마감된 전년도 잔액·항목·예산 이월</label><button className="button primary" disabled={busy}>회계연도 개설</button></form>}</div>}
