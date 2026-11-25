@@ -22,7 +22,7 @@ export async function getAdminAlbums(query = "") {
       ] } : {}),
     },
     include: albumMediaInclude,
-    orderBy: [{ eventDate: "desc" }, { createdAt: "desc" }],
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: 100,
   });
 }
@@ -42,14 +42,14 @@ export async function getPublishedAlbums(query = "", take = 30) {
   try {
     return await getPrisma().album.findMany({
       where: {
-        ...publishedWhere(),
+        AND: [publishedWhere()],
         ...(keyword ? { OR: [
           { title: { contains: keyword, mode: "insensitive" as const } },
           { category: { contains: keyword, mode: "insensitive" as const } },
         ] } : {}),
       },
       include: albumMediaInclude,
-      orderBy: [{ showOnMain: "desc" }, { eventDate: "desc" }, { publishedAt: "desc" }],
+      orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }, { id: "desc" }],
       take,
     });
   } catch (error) {

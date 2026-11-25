@@ -4,7 +4,21 @@
 .month-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.5rem}.month-grid button{min-height:50px;background:white;color:#263e30;border:1px solid #687e6f;border-radius:.5rem}.month-grid [aria-pressed=true]{background:#244733;color:white}.month-grid [aria-pressed=true] small{color:white}
 .finance-content{min-width:0}.finance-heading h1{letter-spacing:-.04em}.finance-tabs button:focus-visible,.month-grid button:focus-visible{outline:3px solid #865400;outline-offset:2px}
 @media screen and (max-width:600px){.finance-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.finance-metrics article{padding:12px}.finance-actions button{white-space:normal}}
-.finance-shell{width:100%;max-width:none;box-sizing:border-box;margin:0;padding:clamp(16px,3vw,48px)}
-.finance-layout{display:block}.finance-content{width:100%}
-@media screen and (min-width:601px){.finance-tabs{display:flex;gap:.35rem;background:#f2f5ef;border-radius:.7rem;padding:.45rem;margin:1rem 0}.finance-tabs button{background:transparent;border-color:transparent}.finance-tabs [aria-current=page]{background:#244733;color:white}}
-@media print{.finance-shell{padding:0}.finance-layout{display:block}}
+
+.finance-shell{max-width:none;width:100%;padding:0;margin:0}
+.finance-layout{display:grid;grid-template-columns:clamp(188px,17vw,248px) minmax(0,1fr);min-height:100dvh}
+.finance-rail{background:#203f35;color:white;padding:28px 16px;align-self:start;position:sticky;top:0;max-height:100dvh;min-height:100dvh;overflow:auto;box-sizing:border-box}
+.finance-brand{padding:0 10px 20px}.finance-brand strong{display:block;font-size:24px}.finance-brand small{color:#d4e4da}
+.finance-rail .finance-tabs{display:grid;grid-template-columns:1fr;gap:4px;border:0;padding:0;margin:12px 0}
+.finance-rail .finance-tabs button,.finance-rail-links a,.finance-rail-links button,.finance-menu-toggle{color:white;background:transparent;text-align:left;border:0;border-radius:7px;min-height:44px;padding:10px 12px;font:inherit}
+.finance-rail .finance-tabs button:hover,.finance-rail-links a:hover{background:#335848}
+.finance-rail .finance-tabs [aria-current=page]{background:#edf5ef;color:#203f35;font-weight:700}
+.finance-rail :focus-visible{outline:3px solid #efcb79;outline-offset:1px}
+.finance-rail-links{display:grid;border-top:1px solid #688274;margin-top:24px;padding-top:12px}
+.finance-content{padding:clamp(16px,3vw,48px);min-width:0}.finance-menu-toggle{display:none}
+@media screen and (max-width:850px){
+ .finance-layout{display:block}.finance-rail{position:static;min-height:0;max-height:none;padding:12px 16px}
+ .finance-brand{display:flex;align-items:center;justify-content:space-between;padding:0}.finance-brand strong{font-size:20px}
+ .finance-menu-toggle{display:block;border:1px solid #8ca998}.finance-rail-body:not(.is-open){display:none}
+}
+@media print{.finance-layout{display:block;min-height:0}.finance-rail{display:none}.finance-content{padding:0}}

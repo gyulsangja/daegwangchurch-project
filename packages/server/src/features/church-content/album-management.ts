@@ -11,7 +11,7 @@ export function createAlbumManagement(db:Pick<PrismaClient,'$transaction'>,url:s
   async list(user:string,raw:unknown){const input=albumQuery.parse(raw);return db.$transaction(async tx=>{
    await admin(tx,user);
    if(input.id){const row=await tx.album.findFirst({where:{id:input.id,deletedAt:null},include:{coverImage:true,_count:{select:{images:true}},images:{where:{media:selectableMedia},include:{media:true},orderBy:{sortOrder:'asc'}}}});if(!row)throw new ContentManagementError(404,'사진첩을 찾을 수 없습니다.');return {data:{...summary(row),description:row.description??'',images:row.images.map(i=>({media:mediaDto(i.media,url),caption:i.caption??''}))}};}
-   const rows=await tx.album.findMany({where:{deletedAt:null,...(input.q?{title:{contains:input.q,mode:'insensitive'}}:{})},omit:{description:true},include:{coverImage:true,_count:{select:{images:true}}},orderBy:[{eventDate:'desc'},{id:'desc'}],skip:input.page*20,take:21});return {data:rows.slice(0,20).map(summary),nextPage:rows.length>20?input.page+1:null};
+   const rows=await tx.album.findMany({where:{deletedAt:null,...(input.q?{title:{contains:input.q,mode:'insensitive'}}:{})},omit:{description:true},include:{coverImage:true,_count:{select:{images:true}}},orderBy:[{createdAt:'desc'},{id:'desc'}],skip:input.page*20,take:21});return {data:rows.slice(0,20).map(summary),nextPage:rows.length>20?input.page+1:null};
   });},
   async save(user:string,raw:unknown){const input=albumCommand.parse(raw);return db.$transaction(async tx=>{
    const actor=await admin(tx,user);const current=await tx.album.findUnique({where:{id:input.id}});
