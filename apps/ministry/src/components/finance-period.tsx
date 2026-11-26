@@ -1,36 +1,29 @@
 'use client';
-import { useState } from 'react';
-
-export type Period = { start: string; end: string };
-
-export function PeriodPicker({ year, disabled, onChange }: {
-  year: number; disabled: boolean; onChange: (range: Period | null) => void;
-}) {
-  const [mode, setMode] = useState('year');
-  const [month, setMonth] = useState(new Date().toLocaleDateString('sv-SE', {timeZone:'Asia/Seoul'}).slice(5,7));
-  const [start, setStart] = useState(year + '-01-01');
-  const [end, setEnd] = useState(year + '-12-31');
-  function monthly(value: string) {
-    const last = new Date(Date.UTC(year, Number(value), 0)).getUTCDate();
-    onChange({start: year+'-'+value+'-01', end: year+'-'+value+'-'+last});
-  }
-  return <fieldset className="finance-period finance-no-print" disabled={disabled}>
-    <legend>조회 기간</legend>
-    <div className="finance-actions">
-      <label>조회 단위<select value={mode} onChange={e => {
-        const next=e.target.value; setMode(next);
-        if (next==='year') onChange(null);
-        if (next==='month') monthly(month);
-        if (next==='range' && start && end && start<=end) onChange({start,end});
-      }}><option value="year">연간</option><option value="month">월별</option><option value="range">기간 지정</option></select></label>
-      {mode==='month' && <label>조회 월<select value={month} onChange={e=>{setMonth(e.target.value);monthly(e.target.value);}}>
-        {Array.from({length:12},(_,i)=><option key={i} value={String(i+1).padStart(2,'0')}>{i+1}월</option>)}
-      </select></label>}
-      {mode==='range' && <form className="finance-actions" onSubmit={e=>{e.preventDefault();onChange({start,end});}}>
-        <label>시작일<input required type="date" min={year+'-01-01'} max={end || year+'-12-31'} value={start} onChange={e=>setStart(e.target.value)}/></label>
-        <label>종료일<input required type="date" min={start || year+'-01-01'} max={year+'-12-31'} value={end} onChange={e=>setEnd(e.target.value)}/></label>
-        <button className="button">기간 적용</button>
-      </form>}
-    </div>
-  </fieldset>;
+import {useRef,useState} from 'react';
+export type Period={start:string;end:string};
+function monthRange(year:number,month:number){
+  const base=year+'-'+String(month).padStart(2,'0');
+  return {start:base+'-01',end:base+'-'+new Date(Date.UTC(year,month,0)).getUTCDate()};
+}
+export function PeriodPicker({year,value,disabled,onChange}:{year:number;value:Period|null;disabled:boolean;onChange:(p:Period|null)=>void}){
+  const [editing,setEditing]=useState(false);
+  const [start,setStart]=useState(''),[end,setEnd]=useState('');
+  const picker=useRef<HTMLSelectElement>(null);
+  const month=value?Number(value.start.slice(5,7)):0;
+  const full=monthRange(year,month);
+  const active=!value?'year':value.start===full.start&&value.end===full.end?String(month):'range';
+  function close(){setEditing(false);picker.current?.focus();}
+  return <div className="period-control" onKeyDown={e=>{if(editing&&e.key==='Escape'){e.preventDefault();close();}}}>
+    <label>조회 기간<select ref={picker} value={editing?'custom':active} disabled={disabled} onChange={e=>{
+      const choice=e.target.value;
+      if(choice==='custom'){setStart(value?.start??year+'-01-01');setEnd(value?.end??year+'-12-31');setEditing(true);}
+      else{setEditing(false);onChange(choice==='year'?null:monthRange(year,Number(choice)));}
+    }}><option value="year">연간 전체</option>{Array.from({length:12},(_,i)=><option key={i} value={i+1}>{i+1}월</option>)}
+    {active==='range'&&<option value="range" disabled>{value?.start.slice(5)} ~ {value?.end.slice(5)}</option>}<option value="custom">기간 직접 지정…</option></select></label>
+    {editing&&<form className="period-dates" onSubmit={e=>{e.preventDefault();onChange({start,end});close();}}>
+      <label>시작일<input type="date" autoFocus required min={year+'-01-01'} max={end||year+'-12-31'} value={start} onChange={e=>setStart(e.target.value)}/></label>
+      <label>종료일<input type="date" required min={start||year+'-01-01'} max={year+'-12-31'} value={end} onChange={e=>setEnd(e.target.value)}/></label>
+      <div><button className="button" type="button" onClick={close}>취소</button> <button className="button primary">기간 적용</button></div>
+    </form>}
+  </div>;
 }

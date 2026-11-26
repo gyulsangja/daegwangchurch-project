@@ -36,9 +36,9 @@ type Tab = typeof tabs[number]['id'];
 const annualTabs:readonly Tab[]=['closing','audit','accounts','categories','access'];
 const actionLabels: Record<string,string>={ENTRY_RECORD:'거래 즉시 반영',RECEIPT_WRITE:'서면 영수증 발급',ENTRY_SAVE:'전표 작성·수정',ENTRY_POST:'전표 승인',ENTRY_VOID:'전표 취소',YEAR_CREATE:'회계연도 개설',YEAR_CLOSE:'연도 마감',YEAR_REOPEN:'연도 마감 해제',MONTH_CLOSE:'월 마감',MONTH_REOPEN:'월 마감 해제',CATEGORY_CONFIG:'항목 설정',CATEGORY_SAVE:'항목 저장',ACCOUNT_SAVE:'계좌 저장',ACCESS_SAVE:'권한 변경',ADMIN_PROVISION:'최초 권한 지정',ISSUER_SETUP:'발급 단체 설정',RECEIPT_SHARE:'개인 영수증 발급',RECEIPT_CANCEL:'영수증 취소',ISSUE_PAPER:'영수증 발급',BUDGET_SAVE:'예산 변경'};
 
-export function FinanceWorkspace({ministryUrl}:{ministryUrl:string}) {
-  const [year, setYear] = useState(Number(today().slice(0, 4)));
-  const [data, setData] = useState<FinanceSnapshot | null>(null);
+export function FinanceWorkspace({ministryUrl,initialData,initialError}:{ministryUrl:string;initialData?:FinanceSnapshot;initialError?:string}) {
+  const [year, setYear] = useState(initialData?.year??Number(today().slice(0, 4)));
+  const [data, setData] = useState<FinanceSnapshot | null>(initialData??null);
   const [menuOpen,setMenuOpen]=useState(false);
   const menuToggle=useRef<HTMLButtonElement>(null);
   const [tab, setTab] = useState<Tab>('overview');
@@ -47,9 +47,9 @@ export function FinanceWorkspace({ministryUrl}:{ministryUrl:string}) {
   const periodQuery = range ? '&'+new URLSearchParams(range).toString() : '';
   const periodLabel = range ? range.start+' ~ '+range.end : year+'년 전체';
   const [reload, setReload] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialData&&!initialError);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(initialError??'');
   const [notice, setNotice] = useState('');
   const [flow,setFlow]=useState<Workflow>('gift');
   const [editing, setEditing] = useState<FinanceEntry | null>(null);
@@ -58,10 +58,13 @@ export function FinanceWorkspace({ministryUrl}:{ministryUrl:string}) {
   const [entryKind,setEntryKind]=useState('ALL');
   const [status, setStatus] = useState('ALL');
   const [page, setPage] = useState(0);
-  const loadedKey=useRef('');
+  const loadedKey=useRef(initialData?String(initialData.year):'');
+  const initialYear=useRef(initialData?.year??(initialError?year:undefined));
   const lock = useRef(false);
   const pending = useRef<{ signature: string; id: string } | null>(null);
   useEffect(() => {
+    if(initialYear.current===year && !reload && !periodQuery)return;
+    initialYear.current=undefined;
     const controller = new AbortController();
     async function load() {
       setLoading(true); setError('');
@@ -108,7 +111,7 @@ export function FinanceWorkspace({ministryUrl}:{ministryUrl:string}) {
   const accountName = (id: string | null) => data?.accounts.find(a => a.id === id)?.name ?? '';
   const categoryName = (id: string | null) => data?.categories.find(c => c.id === id)?.name ?? '계좌 이체';
   const partyName = (entry: FinanceEntry) => (data?.members.find(m => m.id === entry.memberId)?.name ?? entry.party) || '무명';
-  const filtered = data?.entries.filter(entry => (entryKind==='ALL'||entry.kind===entryKind) && (status === 'ALL' || entry.status === status) && `${entry.date} ${partyName(entry)} ${entry.memo} ${categoryName(entry.categoryId)} ${entry.receipt}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())) ?? [];
+  const filtered = activeTab!=='entries'||editing?[]:data?.entries.filter(entry => (entryKind==='ALL'||entry.kind===entryKind) && (status === 'ALL' || entry.status === status) && (!query.trim() || `${entry.date} ${partyName(entry)} ${entry.memo} ${categoryName(entry.categoryId)} ${entry.receipt}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))) ?? [];
   function download(rows: (string | number)[][], name: string) {
     const url = URL.createObjectURL(new Blob([financeCsv(rows)], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a'); link.href = url; link.download = `${periodLabel}-${name}.csv`; link.click();
@@ -139,13 +142,11 @@ export function FinanceWorkspace({ministryUrl}:{ministryUrl:string}) {
         </div>
       </aside>
       <div className="finance-content">
-    <header className="finance-heading"><div><h1>{tabs.find(item=>item.id===activeTab)?.title ?? '재정 관리'}</h1></div><div className="finance-actions"><label>회계연도<select value={year} disabled={busy || !!editing} onChange={event => { setPeriod(null); setYear(Number(event.target.value)); setData(null); setPage(0); setReview(null); }}>{Array.from(new Set([...(data?.years ?? []), ...Array.from({ length: Number(today().slice(0, 4)) + 6 - 2000 }, (_, index) => 2000 + index)])).sort((a, b) => b - a).map(value => <option key={value}>{value}</option>)}</select></label></div></header>
-    {data && <p className="finance-role">{data.role ? financeRoles[data.role] : '재정 권한 지정'} · {data.version ? data.closed ? '마감된 연도' : '장부 작성 중' : '회계연도 개설 전'}</p>}
-    <div hidden={!!editing || !data?.role || annualTabs.includes(activeTab)}><PeriodPicker key={year} year={year} disabled={busy || !!editing} onChange={next=>{setPeriod(next);setReview(null);setPage(0);}}/></div>
-    {data?.role && !annualTabs.includes(activeTab) && <p className="finance-period-caption">{periodLabel}</p>}
+    <header className="finance-command"><div><h1>{editing?workflows[flow].label:tabs.find(item=>item.id===activeTab)?.title??'재정 관리'}</h1>{data && <p className="finance-role">{data.role ? financeRoles[data.role] : '재정 권한 지정'} · {data.version ? data.closed ? '마감된 연도' : '장부 작성 중' : '회계연도 개설 전'}</p>}</div><div className="finance-command-filters"><label>회계연도<select value={year} disabled={busy || !!editing} onChange={event => { setPeriod(null); setYear(Number(event.target.value)); setData(null); setPage(0); setReview(null); }}>{Array.from(new Set([...(data?.years ?? []), ...Array.from({ length: Number(today().slice(0, 4)) + 6 - 2000 }, (_, index) => 2000 + index)])).sort((a, b) => b - a).map(value => <option key={value}>{value}</option>)}</select></label>{!editing&&data?.role&&!annualTabs.includes(activeTab)&&<PeriodPicker key={year} year={year} value={period} disabled={busy || !!editing} onChange={next=>{setPeriod(next);setReview(null);setPage(0);}}/>}</div></header>
+    {data?.role&&!annualTabs.includes(activeTab)&&<p className="finance-print-period">{periodLabel}</p>}
     {loading && <p role="status">재정 자료를 불러오는 중…</p>}
     {error && <div className="finance-error" role="alert"><p>{error}</p><button className="button" disabled={busy} onClick={() => setReload(value => value + 1)}>새로고침</button> <a href="/login?next=/finance">다시 로그인</a></div>}
-    <p role="status">{notice}</p>
+    {notice&&<p role="status">{notice}</p>}
     {data && loadedKey.current===String(year)+periodQuery && <>
       {data.role && !data.version && <div className="panel detail-body"><h2>{year}년 장부를 시작하세요</h2><p>재정 책임자가 회계연도를 개설하고 입출금 계좌의 기초잔액을 입력하면 기록할 수 있습니다.</p>{manager && <form onSubmit={e => formAction(e, f => ({ action: 'YEAR_CREATE', carry: f.get('carry') === 'on' }))}><label className="check"><input type="checkbox" name="carry"/>마감된 전년도 잔액·항목·예산 이월</label><button className="button primary" disabled={busy}>회계연도 개설</button></form>}</div>}
       {writer && !editing && (activeTab==='overview' || activeTab==='entries') && <section className="finance-entry-start panel">

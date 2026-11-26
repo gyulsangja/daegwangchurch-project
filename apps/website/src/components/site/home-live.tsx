@@ -13,18 +13,20 @@ export function HomeLive() {
   useEffect(() => {
     let disposed = false;
     let controller: AbortController | undefined;
+    let lastSuccess=0;
     const refresh = async () => {
-      if (document.hidden) return;
-      controller?.abort(); controller = new AbortController();
+      if (document.hidden || controller || Date.now()-lastSuccess<15000) return;
+      controller = new AbortController();
       const request = controller;
       const timeout = setTimeout(() => request.abort(), 15000);
       try {
         const response = await fetch('/api/live', { cache: 'no-store', signal: controller.signal });
         if (!response.ok) throw new Error('Unavailable');
         const data = await response.json() as LiveStatus;
+        if (!disposed) lastSuccess=Date.now();
         if (!disposed) setState(Date.now() - Date.parse(data.checkedAt) < 180000 ? data : null);
       } catch { if (!disposed) setState(null); }
-      finally { clearTimeout(timeout); }
+      finally { clearTimeout(timeout); controller=undefined; }
     };
     void refresh();
     const timer = setInterval(() => void refresh(), 60000);

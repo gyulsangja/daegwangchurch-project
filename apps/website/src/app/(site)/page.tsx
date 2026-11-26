@@ -33,7 +33,7 @@ export default function HomePage(){return <>
  <Suspense fallback={<PageLoading title="우리 공동체의 소식" section/>}><HomeNews/></Suspense>
  <Suspense fallback={<PageLoading title="대광교회 이야기" section/>}><HomeChurch/></Suspense>
 </>;}
-async function HomeIntro(){const [home,schedules]=await Promise.all([homeContent(),getPublicSchedules()]);return <HomeHero content={home.content} schedules={schedules.slice(0,3)}/>;}
+async function HomeIntro(){const [home,schedules]=await Promise.all([homeContent(),getPublicSchedules(3)]);return <HomeHero content={home.content} schedules={schedules}/>;}
 async function HomeWord(){
  const {content}=await homeContent();if(!content.showWorship)return null;
  const [sunday,firstHour]=await Promise.all([getPublishedWorshipContents('SUNDAY_MORNING',1),getPublishedWorshipContents('FIRST_HOUR',1)]);
