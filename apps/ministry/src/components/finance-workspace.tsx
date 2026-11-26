@@ -5,6 +5,7 @@ import {MonthClose, CategoryEditor} from './finance-controls';
 import { GiftSource,PaperDesk } from './finance-paper-desk';
 import {groupedAccounts} from './finance-account-groups';
 import { MeetingReport } from './finance-meeting-report';
+import {GivingReport} from './finance-giving-report';
 import { FinanceTax } from './finance-tax';
 import { LogoutButton } from './logout-button';
 import { useEffect, useRef, useState } from 'react';
@@ -22,7 +23,7 @@ const states = { DRAFT: '승인 대기', POSTED: '집행 완료', VOID: '취소'
 const tabs = [
   {id:'overview', title:'재정 현황', group:'장부'},
   {id:'entries', title:'수입·지출 장부', group:'장부'},
-  {id:'giving', title:'개인별 헌금 내역', group:'헌금·세무'},
+  {id:'giving', title:'헌금 내역 조회', group:'헌금·세무'},
   {id:'tax', title:'기부금영수증', group:'헌금·세무'},
   {id:'payroll', title:'목회자 사례비', group:'헌금·세무'},
   {id:'budget', title:'예산·결산', group:'결산'},
@@ -186,7 +187,7 @@ export function FinanceWorkspace({ministryUrl,initialData,initialError}:{ministr
       </>}
       {activeTab==='tax' && manager && <PaperDesk key={periodLabel} data={data} save={save}/>}
       {activeTab === 'payroll' && manager && <FinanceTax key={periodLabel} data={data} download={download}/>} 
-      {activeTab === 'giving' && detail && <GivingReport data={data} partyName={partyName} download={download}/>}
+      {activeTab === 'giving' && detail && <GivingReport key={periodLabel} data={data} download={download}/>}
       {activeTab === 'budget' && data.role && <>
         <div className="finance-actions finance-no-print">
           <button className="button" onClick={() => download([['구분', '항목', '연간 예산', '기간 집행', '연간 잔여'], ...data.categories.map(c => [kinds[c.kind], c.name, c.budget, c.actual, c.budget - (c.annualActual ?? c.actual)])], '예산결산')}>CSV 내려받기</button>
@@ -202,11 +203,4 @@ export function FinanceWorkspace({ministryUrl,initialData,initialError}:{ministr
       {activeTab === 'access' && data.canManageAccess && <section className="panel detail-body"><h2>재정 접근 권한</h2><p>기존 가입 계정의 이메일로 권한을 지정합니다. 헌금자별 내역은 재정 책임자·입력 담당·감사만 열람합니다. 결산 요약 역할에는 개인별 내역이 제공되지 않습니다.</p><div className="finance-table"><table><thead><tr><th>계정</th><th>역할</th><th>상태</th></tr></thead><tbody>{data.grants.map(g => <tr key={g.email}><td>{g.email}</td><td>{financeRoles[g.role]}</td><td>{g.active ? '사용' : '중지'}</td></tr>)}</tbody></table></div><details className="finance-edit-panel finance-no-print"><summary>사용자 권한 설정</summary><form className="finance-form" onSubmit={e => formAction(e, f => { const email = String(f.get('email')).trim().toLowerCase(); return { action: 'ACCESS_SAVE', email, role: f.get('role'), active: f.get('active') === 'true', version: data.grants.find(g => g.email.toLowerCase() === email)?.version ?? 0, reason: f.get('reason'), password: f.get('password') }; })}><label>가입 이메일<input name="email" type="email" autoComplete="off" required/></label><label>재정 역할<select name="role">{Object.entries(financeRoles).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label>접근 상태<select name="active"><option value="true">사용</option><option value="false">중지</option></select></label><label>변경 사유<input name="reason" required maxLength={300}/></label><label>현재 관리자 비밀번호<input name="password" type="password" autoComplete="current-password"/><small>2단계 인증을 완료한 세션에서는 생략할 수 있습니다.</small></label><button className="button primary" disabled={busy}>권한 저장</button></form></details></section>}
     </>}
   </div></div></section>;
-}
-
-function GivingReport({ data, partyName, download }: { data: FinanceSnapshot; partyName: (entry: FinanceEntry) => string; download: (rows: (string | number)[][], name: string) => void }) {
-  const [member, setMember] = useState('');
-  const rows = data.entries.filter(e => e.status === 'POSTED' && e.kind === 'INCOME' && data.categories.some(c => c.id === e.categoryId && c.offering) && (!member || e.memberId === member));
-  const columns = [['날짜', '헌금자', '항목', '금액'], ...rows.map(e => [e.date, partyName(e), data.categories.find(c => c.id === e.categoryId)?.name ?? '', e.amount])];
-  return <section className="panel detail-body finance-print"><div className="finance-actions"><h2>{data.year}년 헌금 내역</h2><label>교인 선택<select value={member} onChange={e => setMember(e.target.value)}><option value="">전체 헌금</option>{data.members.map(m => <option key={m.id} value={m.id}>{m.name} · {m.id.slice(-6)}</option>)}</select></label><button className="button" onClick={() => window.print()}>인쇄</button><button className="button" onClick={() => download(columns, '헌금내역')}>CSV 내려받기</button></div><p>{rows.length}건 · 합계 {won(rows.reduce((sum, e) => sum + e.amount, 0))}</p><p>교회 내부 확인용 내역입니다. 세무용 기부금영수증은 별도 발급 절차를 거칩니다.</p><div className="finance-table"><table><thead><tr>{columns[0].map((value, i) => <th key={i}>{value}</th>)}</tr></thead><tbody>{columns.slice(1).map((row, i) => <tr key={i}>{row.map((value, j) => <td key={j}>{j === 3 ? won(Number(value)) : value}</td>)}</tr>)}</tbody></table></div></section>;
 }
