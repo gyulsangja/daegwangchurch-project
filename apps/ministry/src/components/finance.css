@@ -38,3 +38,4 @@
 @media(max-width:640px){.finance-command{align-items:start;flex-wrap:wrap;gap:8px}.finance-command-filters{margin-left:auto}.finance-command-filters select{font-size:16px}.finance-entry-start .finance-actions{width:100%}}
 @media print{.finance-command{display:none}.finance-print-period{display:block}}
 .finance-meeting .finance-group-total>*{background:#eaf1eb;font-weight:700}.finance-meeting .finance-account-name{padding-inline-start:22px;background:transparent;font-weight:400}.finance-meeting td:not(:first-child){font-variant-numeric:tabular-nums}.finance-meeting section td{text-align:right}
+.finance-output-options{margin-inline-start:auto}.finance-output-options summary{cursor:pointer;list-style:none}.finance-output-options[open]>div{margin-top:.65rem}.finance-meeting h2{margin-top:.4rem}@media(max-width:600px){.finance-output-options{margin-inline-start:0}.finance-meeting .finance-view-switch button{flex:1}}

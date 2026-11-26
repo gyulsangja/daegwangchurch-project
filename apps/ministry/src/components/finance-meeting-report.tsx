@@ -7,8 +7,10 @@ const won = (value: number) => value.toLocaleString('ko-KR');
 const titles = { settlement: '세입·세출 결산서', budget: '세입·세출 예산안', journal: '현금거래 분개장' };
 type DocumentKind = keyof typeof titles;
 
-export function MeetingReport({data, period}: {data: FinanceSnapshot; period: string}) {
+type ReportProps={data:FinanceSnapshot;period:string;enabled:boolean;save:(command:Record<string,unknown>)=>Promise<boolean>;editAccounts:()=>void;closeBooks:()=>void;download:(rows:(string|number)[][],name:string)=>void};
+export function MeetingReport({data,period,enabled,save,editAccounts,closeBooks,download}:ReportProps) {
   const [kind, setKind] = useState<DocumentKind>('settlement');
+  const [editId,setEditId]=useState('');
   const [meeting, setMeeting] = useState('제직회');
   const [date, setDate] = useState(() => new Date().toLocaleDateString('sv-SE', {timeZone:'Asia/Seoul'}));
   const detail = !!data.role && data.role !== 'REPORTER';
@@ -22,14 +24,18 @@ export function MeetingReport({data, period}: {data: FinanceSnapshot; period: st
   const journalTotal = posted.reduce((sum,e) => sum + e.amount, 0);
   const incomeBudget = data.categories.filter(c => c.kind === 'INCOME').reduce((sum,c) => sum + c.budget, 0);
   return <section className="panel detail-body finance-print finance-meeting">
+    <div className="finance-view-switch finance-no-print" aria-label="재정 자료 선택">{(Object.keys(titles) as DocumentKind[]).filter(k=>k!=='journal'||detail).map(k=><button type="button" key={k} className="button" aria-pressed={documentKind===k} onClick={()=>{setKind(k);setEditId('')}}>{k==='settlement'?'결산':k==='budget'?'예산안':'분개장'}</button>)}</div>
     <div className="finance-actions finance-no-print">
-      <label>회의 자료<select value={documentKind} onChange={e => setKind(e.target.value as DocumentKind)}>
-        <option value="settlement">{titles.settlement}</option><option value="budget">{titles.budget}</option>
-        {detail && <option value="journal">{titles.journal}</option>}
-      </select></label>
-      <label>회의<select value={meeting} onChange={e => setMeeting(e.target.value)}><option>제직회</option><option>공동의회</option></select></label>
-      <label>회의일<input type="date" value={date} onChange={e => setDate(e.target.value)}/></label>
-      <button className="button primary" disabled={!data.version} onClick={() => window.print()}>선택한 자료 인쇄 / PDF 저장</button>
+      {data.role==='MANAGER'&&budgetOnly&&<button className="button" onClick={editAccounts}>예산 항목 관리</button>}
+      {data.role==='MANAGER'&&documentKind==='settlement'&&<button className="button" onClick={closeBooks}>장부 마감 관리</button>}
+      <details className="finance-output-options"><summary className="button">인쇄·내려받기</summary><div className="finance-actions">
+      <label>회의<select value={meeting} onChange={e=>setMeeting(e.target.value)}><option>제직회</option><option>공동의회</option></select></label>
+      <label>회의일<input type="date" value={date} onChange={e=>setDate(e.target.value)}/></label>
+      <button className="button primary" disabled={!data.version} onClick={()=>window.print()}>인쇄 / PDF 저장</button>
+      <button className="button" disabled={!data.version} onClick={()=>{
+        if(documentKind==='journal'){download([['거래일','차변','차변 금액','대변','대변 금액'],...posted.map(e=>{const source=accounts.get(e.accountId)??'';const category=categories.get(e.categoryId??'')??'';return [e.date,e.kind==='TRANSFER'?accounts.get(e.destinationId??'')??'':e.kind==='INCOME'?source:category,e.amount,e.kind==='INCOME'?category:source,e.amount]})],titles.journal);return;}
+        download([[budgetOnly?'회계연도':'보고 기간','구분','상위 분류','항목','연간 예산',...(budgetOnly?[]:['기간 결산'])],...data.categories.map(c=>[budgetOnly?data.year:period,c.kind==='EXPENSE'?'세출':c.offering?'세입 · 헌금':'세입 · 기타 수입',c.section??'',c.name,c.budget,...(budgetOnly?[]:[c.actual])])],titles[documentKind]);
+      }}>CSV 저장</button></div></details>
     </div>
     <small>대한예수교장로회 대광교회 · {meeting}</small>
     <h2>{titles[documentKind]}</h2>
@@ -56,8 +62,8 @@ export function MeetingReport({data, period}: {data: FinanceSnapshot; period: st
         const actual = rows.reduce((sum,c) => sum+c.actual,0);
         const values = (b:number,a:number) => <><td>{won(b)}</td>{!budgetOnly && <><td>{won(a)}</td><td>{won(type==='INCOME' ? a-b : b-a)}</td><td>{b ? (100*a/b).toFixed(1)+'%' : '—'}</td></>}</>;
         return <section key={type}><h3>{type==='INCOME' ? '세입' : '세출'} {budgetOnly ? '예산안' : '결산 명세'}</h3>
-          <div className="finance-table"><table><thead><tr><th>항목</th><th>연간 예산액</th>{!budgetOnly && <><th>기간 결산액</th><th>{type==='INCOME' ? '예산 대비 증감' : '예산 잔액'}</th><th>예산 대비율</th></>}</tr></thead>
-          <tbody>{groupedAccounts(rows).map(group=><Fragment key={group.name}><tr className="finance-group-total"><th scope="row">{group.name} 소계</th>{values(group.budget,group.actual)}</tr>{group.items.map(c=><tr key={c.id}><th scope="row" className="finance-account-name">{c.name}{c.active===false?' (사용 중지)':''}</th>{values(c.budget,c.actual)}</tr>)}</Fragment>)}</tbody><tfoot><tr><th>합계</th>{values(budget,actual)}</tr></tfoot></table></div></section>;
+          <div className="finance-table"><table><thead><tr><th>항목</th><th>연간 예산액</th>{budgetOnly&&data.role==='MANAGER'&&<th className="finance-no-print">편성</th>}{!budgetOnly && <><th>기간 결산액</th><th>{type==='INCOME' ? '예산 대비 증감' : '예산 잔액'}</th><th>예산 대비율</th></>}</tr></thead>
+          <tbody>{groupedAccounts(rows).map(group=><Fragment key={group.name}><tr className="finance-group-total"><th scope="row">{group.name} 소계</th>{values(group.budget,group.actual)}{budgetOnly&&data.role==='MANAGER'&&<td className="finance-no-print"/>}</tr>{group.items.map(c=><Fragment key={c.id}><tr><th scope="row" className="finance-account-name">{c.name}{c.active===false?' (사용 중지)':''}</th>{values(c.budget,c.actual)}{budgetOnly&&data.role==='MANAGER'&&<td className="finance-no-print"><button type="button" className="button" disabled={!enabled} aria-label={c.name+' 예산 수정'} onClick={()=>setEditId(c.id)}>수정</button></td>}</tr>{editId===c.id&&budgetOnly&&data.role==='MANAGER'&&<tr className="finance-no-print"><td colSpan={3}><form className="finance-actions" onSubmit={async e=>{e.preventDefault();const f=new FormData(e.currentTarget);if(await save({action:'BUDGET_SAVE',categoryId:c.id,amount:Number(f.get('amount')),reason:f.get('reason')}))setEditId('')}}><label>{c.name} 연간 예산 · 원<input autoFocus required type="number" name="amount" min="0" max="1000000000000" defaultValue={c.budget}/></label><label>편성·추경 사유<input required name="reason" maxLength={300}/></label><button className="button primary" disabled={!enabled}>예산 저장</button><button type="button" className="button" onClick={()=>setEditId('')}>취소</button></form></td></tr>}</Fragment>)}</Fragment>)}</tbody><tfoot><tr><th>합계</th>{values(budget,actual)}</tr></tfoot></table></div></section>;
       })}
       {!budgetOnly && <><h3>계좌별 기말 잔액</h3><div className="finance-table"><table><thead><tr><th>계좌</th><th>잔액</th></tr></thead><tbody>{data.accounts.map(a => <tr key={a.id}><td>{a.name}</td><td>{won(a.balance)}</td></tr>)}</tbody><tfoot><tr><th>합계</th><td>{won(sums.balance)}</td></tr></tfoot></table></div></>}
     </>}

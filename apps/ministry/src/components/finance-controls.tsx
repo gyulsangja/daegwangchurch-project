@@ -3,8 +3,8 @@ import {useState} from 'react';
 import type {FinanceSnapshot} from '@daegwang/contracts/finance';
 type Props={data:FinanceSnapshot;enabled:boolean;save:(command:Record<string,unknown>)=>Promise<boolean>};
 
-export function MonthClose({data,enabled,save}:Props){
- const [month,setMonth]=useState(Number(new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'}).slice(5,7)));
+export function MonthClose({data,enabled,save,initialMonth}:Props&{initialMonth?:number}){
+ const [month,setMonth]=useState(initialMonth??Number(new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'}).slice(5,7)));
  const [reason,setReason]=useState('');
  const closed=data.months?.includes(month);
  const drafts=data.entries.filter(e=>Number(e.date.slice(5,7))===month && e.status==='DRAFT').length;

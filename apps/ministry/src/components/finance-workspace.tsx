@@ -26,8 +26,8 @@ const tabs = [
   {id:'giving', title:'헌금 내역 조회', group:'헌금·세무'},
   {id:'tax', title:'기부금영수증', group:'헌금·세무'},
   {id:'payroll', title:'목회자 사례비', group:'헌금·세무'},
-  {id:'budget', title:'예산·결산', group:'결산'},
-  {id:'audit', title:'처리 이력', group:'결산'},
+  {id:'budget', title:'예산·결산', group:'장부'},
+  {id:'audit', title:'처리 이력', group:'재정 설정'},
   {id:'accounts', title:'입출금 계좌', group:'재정 설정'},
   {id:'categories', title:'계정과목·헌금 종류', group:'재정 설정'},
   {id:'access', title:'사용자 권한', group:'재정 설정'},
@@ -43,6 +43,7 @@ export function FinanceWorkspace({ministryUrl,initialData,initialError}:{ministr
   const menuToggle=useRef<HTMLButtonElement>(null);
   const [tab, setTab] = useState<Tab>('overview');
   const [period, setPeriod] = useState<Period | null>(null);
+  const [closeLevel,setCloseLevel]=useState<'month'|'year'>('month');
   const [closingOpen, setClosingOpen] = useState(false);
   const annualView = annualTabs.includes(tab) || (tab === 'budget' && closingOpen);
   const range = annualView ? null : period;
@@ -188,15 +189,10 @@ export function FinanceWorkspace({ministryUrl,initialData,initialError}:{ministr
       {activeTab==='tax' && manager && <PaperDesk key={periodLabel} data={data} save={save}/>}
       {activeTab === 'payroll' && manager && <FinanceTax key={periodLabel} data={data} download={download}/>} 
       {activeTab === 'giving' && detail && <GivingReport key={periodLabel} period={periodLabel} data={data} download={download}/>}
-      {activeTab === 'budget' && data.role && <>
-        <div className="finance-actions finance-no-print">
-          <button className="button" onClick={() => download([['구분', '항목', '연간 예산', '기간 집행', '연간 잔여'], ...data.categories.map(c => [kinds[c.kind], c.name, c.budget, c.actual, c.budget - (c.annualActual ?? c.actual)])], '예산결산')}>CSV 내려받기</button>
-          {manager && <details className="finance-edit-panel finance-no-print"><summary>예산 편성·수정</summary><button type="button" className="button" onClick={()=>setTab('categories')}>예산 항목 추가·정리</button><form className="finance-form finance-no-print" onSubmit={e => formAction(e, f => ({ action: 'BUDGET_SAVE', categoryId: f.get('categoryId'), amount: Number(f.get('amount')), reason: f.get('reason') }))}><label>예산 항목<select name="categoryId" required>{groupedAccounts(data.categories).map(group=><optgroup label={group.name} key={group.name}>{group.items.map(c=><option key={c.id} value={c.id}>{c.name}{c.active===false?' (사용 중지)':''}</option>)}</optgroup>)}</select></label><label>연간 예산 · 원<input name="amount" type="number" step={1} min={0} max={1_000_000_000_000} required/></label><label>편성·추경 사유<input name="reason" maxLength={300} required/></label><button className="button primary" disabled={!enabled}>예산 저장</button></form></details>}
-          {manager && <button className="button" aria-expanded={closingOpen} onClick={()=>setClosingOpen(!closingOpen)}>{closingOpen ? '마감 관리 닫기' : '월·연도 마감 관리'}</button>}
-          {manager && closingOpen && <div className="finance-columns"><MonthClose data={data} enabled={enabled} save={save}/><section className="panel detail-body"><h2>연도 마감</h2><p>전표와 계좌 잔액을 확인한 뒤 마감합니다. 마감하면 해당 연도의 입력이 잠깁니다.</p><form onSubmit={e => formAction(e, f => ({ action: data.closed ? 'YEAR_REOPEN' : 'YEAR_CLOSE', reason: f.get('reason') }))}><label>사유<input name="reason" maxLength={300} required/></label><button className="button" disabled={busy || !data.version}>{data.closed ? '마감 해제' : `${year}년 마감`}</button></form></section></div>}
-        </div>
-        <MeetingReport data={data} period={periodLabel}/>
-      </>}
+      {activeTab === 'budget' && data.role && (closingOpen && manager ? <section>
+        <button className="button" onClick={()=>setClosingOpen(false)}>← 결산으로 돌아가기</button>
+        <h2>장부 마감</h2><div className="finance-view-switch" aria-label="마감 단위"><button className="button" aria-pressed={closeLevel==='month'} onClick={()=>setCloseLevel('month')}>월 마감</button><button className="button" aria-pressed={closeLevel==='year'} onClick={()=>setCloseLevel('year')}>연도 마감</button></div>{closeLevel==='month'?<MonthClose initialMonth={period ? Number(period.end.slice(5,7)) : undefined} data={data} enabled={enabled} save={save}/>:<section className="panel detail-body"><h2>연도 마감</h2><p>전표와 계좌 잔액을 확인한 뒤 마감합니다. 마감하면 해당 연도의 입력이 잠깁니다.</p><form onSubmit={e => formAction(e, f => ({ action: data.closed ? 'YEAR_REOPEN' : 'YEAR_CLOSE', reason: f.get('reason') }))}><label>사유<input name="reason" maxLength={300} required/></label><button className="button" disabled={busy || !data.version}>{data.closed ? '마감 해제' : `${year}년 마감`}</button></form></section>}
+      </section> : <MeetingReport key={year} data={data} period={periodLabel} enabled={enabled} save={save} editAccounts={()=>setTab('categories')} closeBooks={()=>{setCloseLevel('month');setClosingOpen(true)}} download={download}/> )}
       {activeTab==='accounts' && manager && <section className="panel detail-body"><h2>입출금 계좌</h2><p>현금·보통예금 등 이름과 연초 기초잔액을 기록하세요.</p>{data.accounts.map(account => <div className="finance-line" key={account.id}><span>{account.name}</span><strong>기초 {won(account.opening)}</strong></div>)}<details className="finance-edit-panel finance-no-print"><summary>계좌 등록·수정</summary><form className="finance-form" onSubmit={e => formAction(e, f => ({ action: 'ACCOUNT_SAVE', id: f.get('id') || crypto.randomUUID(), name: f.get('name'), opening: Number(f.get('opening')) }))}><label>새 계좌 · 기존 수정<select name="id"><option value="">새 계좌</option>{data.accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label><label>계좌 이름<input name="name" maxLength={100} required/></label><label>기초잔액 · 원<input name="opening" type="number" min={0} step={1} max={1_000_000_000_000} required defaultValue={0}/></label><button className="button" disabled={!enabled}>계좌 저장</button></form></details></section>}
       {activeTab==='categories' && manager && <CategoryEditor data={data} enabled={enabled} save={save}/>}
       {activeTab==='audit' && (manager || data.role==='AUDITOR') && <section className="panel detail-body"><h2>최근 처리 이력</h2>{!data.events.length && <p>기록된 변경이 없습니다.</p>}<ul>{data.events.map((event, index) => <li key={index}>{new Date(event.at).toLocaleString('ko-KR')} · {actionLabels[event.action] ?? event.action}<small>{event.reason}</small></li>)}</ul></section>}
