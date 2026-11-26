@@ -1,5 +1,6 @@
 'use client';
-import { useState } from 'react';
+import {groupedAccounts} from './finance-account-groups';
+import { Fragment, useState } from 'react';
 import { financeTotals, type FinanceSnapshot } from '@daegwang/contracts/finance';
 
 const won = (value: number) => value.toLocaleString('ko-KR');
@@ -56,7 +57,7 @@ export function MeetingReport({data, period}: {data: FinanceSnapshot; period: st
         const values = (b:number,a:number) => <><td>{won(b)}</td>{!budgetOnly && <><td>{won(a)}</td><td>{won(type==='INCOME' ? a-b : b-a)}</td><td>{b ? (100*a/b).toFixed(1)+'%' : '—'}</td></>}</>;
         return <section key={type}><h3>{type==='INCOME' ? '세입' : '세출'} {budgetOnly ? '예산안' : '결산 명세'}</h3>
           <div className="finance-table"><table><thead><tr><th>항목</th><th>연간 예산액</th>{!budgetOnly && <><th>기간 결산액</th><th>{type==='INCOME' ? '예산 대비 증감' : '예산 잔액'}</th><th>예산 대비율</th></>}</tr></thead>
-          <tbody>{rows.map(c => <tr key={c.id}><td>{categories.get(c.id)}</td>{values(c.budget,c.actual)}</tr>)}</tbody><tfoot><tr><th>합계</th>{values(budget,actual)}</tr></tfoot></table></div></section>;
+          <tbody>{groupedAccounts(rows).map(group=><Fragment key={group.name}><tr className="finance-group-total"><th scope="row">{group.name} 소계</th>{values(group.budget,group.actual)}</tr>{group.items.map(c=><tr key={c.id}><th scope="row" className="finance-account-name">{c.name}{c.active===false?' (사용 중지)':''}</th>{values(c.budget,c.actual)}</tr>)}</Fragment>)}</tbody><tfoot><tr><th>합계</th>{values(budget,actual)}</tr></tfoot></table></div></section>;
       })}
       {!budgetOnly && <><h3>계좌별 기말 잔액</h3><div className="finance-table"><table><thead><tr><th>계좌</th><th>잔액</th></tr></thead><tbody>{data.accounts.map(a => <tr key={a.id}><td>{a.name}</td><td>{won(a.balance)}</td></tr>)}</tbody><tfoot><tr><th>합계</th><td>{won(sums.balance)}</td></tr></tfoot></table></div></>}
     </>}
