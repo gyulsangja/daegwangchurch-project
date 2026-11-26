@@ -1,3 +1,4 @@
+import {financeTotals} from '@daegwang/contracts/finance';
 import { z } from 'zod';
 import { authOrigin } from '@/lib/auth-security';
 import { readInput } from '@/lib/http';
@@ -12,7 +13,13 @@ export async function GET(request: Request) {
       return Response.json(await receiptRegister(year,basis==='issue'),{headers:{'Cache-Control':'private, no-store'}});
     }
     const period = params.has('start') || params.has('end') ? z.object({ start:z.iso.date(),end:z.iso.date() }).refine(p=>p.start<=p.end && [p.start,p.end].every(d=>Number(d.slice(0,4))===year)).parse({start:params.get('start'),end:params.get('end')}) : undefined;
-    return Response.json(await financeSnapshot(year, period), { headers: { 'Cache-Control': 'private, no-store' } });
+    const snapshot=await financeSnapshot(year, period);
+    if(params.get('summary')==='1'){
+      if(!snapshot.role)return new Response(null,{status:403,headers:{'Cache-Control':'no-store'}});
+      const {income,expense,balance}=financeTotals(snapshot);
+      return Response.json({available:!!snapshot.version,totals:{income,expense,balance}},{headers:{'Cache-Control':'private, no-store'}});
+    }
+    return Response.json(snapshot, { headers: { 'Cache-Control': 'private, no-store' } });
   } catch (error) { return financeError(error); }
 }
 export async function POST(request: Request) {
