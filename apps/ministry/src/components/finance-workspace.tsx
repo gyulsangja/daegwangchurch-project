@@ -187,7 +187,7 @@ export function FinanceWorkspace({ministryUrl,initialData,initialError}:{ministr
       </>}
       {activeTab==='tax' && manager && <PaperDesk key={periodLabel} data={data} save={save}/>}
       {activeTab === 'payroll' && manager && <FinanceTax key={periodLabel} data={data} download={download}/>} 
-      {activeTab === 'giving' && detail && <GivingReport key={periodLabel} data={data} download={download}/>}
+      {activeTab === 'giving' && detail && <GivingReport key={periodLabel} period={periodLabel} data={data} download={download}/>}
       {activeTab === 'budget' && data.role && <>
         <div className="finance-actions finance-no-print">
           <button className="button" onClick={() => download([['구분', '항목', '연간 예산', '기간 집행', '연간 잔여'], ...data.categories.map(c => [kinds[c.kind], c.name, c.budget, c.actual, c.budget - (c.annualActual ?? c.actual)])], '예산결산')}>CSV 내려받기</button>
