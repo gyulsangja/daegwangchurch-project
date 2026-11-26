@@ -1,4 +1,4 @@
-import { PDFDocument, rgb, type PDFPage } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb, type PDFPage } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import type { PaperReceipt } from '@daegwang/contracts/finance';
 
@@ -17,17 +17,20 @@ export async function createReceiptPdf(input:ReceiptInput, number='', address=''
   const source=await PDFDocument.load(original);
   const pdf=await PDFDocument.create();pdf.registerFontkit(fontkit);
   const font=await pdf.embedFont(ttf,{subset:false});
+  const digits=await pdf.embedFont(StandardFonts.Helvetica);
   const {receipt,name}=input, org=receipt?.issuer??input.issuer;
   const stamp=receipt&&org?.seal?await pdf.embedPng(org.seal):null;
   pdf.setTitle(receipt?'기부금 영수증 '+receipt.serial:'기부금 영수증 검토용');
   // Field bounds in PDF points measured on the unaltered 595 × 841 point government form.
-  function field(page:PDFPage,value:string|undefined,x:number,top:number,width:number,height=17,align:'left'|'center'|'right'='left'){
+  function field(page:PDFPage,value:string|undefined,x:number,top:number,width:number,height=17,align:'left'|'center'|'right'='left',singleLine=false){
     const text=value?.trim();if(!text)return;
-    for(let size=10;size>=6;size-=0.5){
+    const face=/^[ -~]+$/.test(text)?digits:font;
+    for(let size=9.5;size>=5.5;size-=0.25){
+      if(singleLine && face.widthOfTextAtSize(text,size)>width)continue;
       const rows:string[]=[];let row='';
-      for(const ch of text){if(row&&font.widthOfTextAtSize(row+ch,size)>width){rows.push(row);row='';}row+=ch;}if(row)rows.push(row);
+      for(const ch of text){if(row&&face.widthOfTextAtSize(row+ch,size)>width){rows.push(row);row='';}row+=ch;}if(row)rows.push(row);
       if(rows.length*size*1.18>height)continue;
-      rows.forEach((v,i)=>{const w=font.widthOfTextAtSize(v,size);page.drawText(v,{font,size,x:x+(align==='right'?width-w:align==='center'?(width-w)/2:0),y:page.getHeight()-top-(height-rows.length*size*1.18)/2-size-i*size*1.18});});return;
+      rows.forEach((v,i)=>{const w=face.widthOfTextAtSize(v,size);page.drawText(v,{font:face,size,x:x+(align==='right'?width-w:align==='center'?(width-w)/2:0),y:page.getHeight()-top-(height-rows.length*size*1.18)/2-size-i*size*1.18});});return;
     }
     throw Error('입력한 내용이 공식 서식의 칸보다 깁니다. 명칭 또는 주소 표기를 줄여 주세요.');
   }
@@ -43,10 +46,15 @@ export async function createReceiptPdf(input:ReceiptInput, number='', address=''
     field(page,org?.name,103,239,239,17);field(page,org?.registration,472,239,82,17);
     field(page,org?.address,108,274,233,20);field(page,org?.legal_basis,443,274,111,37);
     entries.slice(i,i+6).forEach((item,j)=>{
-      const y=482+20*j;field(page,org?.gift_code,61,y,72,19,'center');field(page,item.goods?'현물':'금전',139,y,78,19,'center');
-      field(page,item.date,223,y,66,19,'center');
-      if(item.goods){field(page,item.description,294,y,51,19,'center');field(page,won(item.goods.quantity),349,y,78,19,'right');field(page,won(item.goods.unitPrice),431,y,60,19,'right');}
-      field(page,won(item.amount),495,y,60,19,'right');
+      const boundaries=[58,136,220,292,347,429,493,558];
+      const rowEdges=[482,502,521,541,562,582,602];
+      function cell(column:number,value:string|undefined,align:'center'|'right'|'left'='center',singleLine=true){
+        const inset=align==='right'?6:4;
+        field(page,value,boundaries[column]+inset,rowEdges[j],boundaries[column+1]-boundaries[column]-inset*2,rowEdges[j+1]-rowEdges[j],align,singleLine);
+      }
+      cell(0,org?.gift_code);cell(1,item.goods?'현물':'금전');cell(2,item.date);
+      if(item.goods){cell(3,item.description,'center',false);cell(4,won(item.goods.quantity),'right');cell(5,won(item.goods.unitPrice),'right');}
+      cell(6,won(item.amount),'right');
     });
     for(const y of [657,741]){field(page,day[0],445,y,30,16,'right');field(page,String(Number(day[1])),489,y,16,16,'right');field(page,String(Number(day[2])),520,y,17,16,'right');}
     field(page,name,305,676,178,29,'right');
