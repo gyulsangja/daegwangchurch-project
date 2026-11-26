@@ -3,6 +3,9 @@ import {legacyManagementPaths} from '@daegwang/contracts/management-routes';
 
 const nextConfig: NextConfig = {
   transpilePackages: ['@daegwang/contracts', '@daegwang/database', '@daegwang/server', '@daegwang/config', '@daegwang/web-ui', '@daegwang/design-tokens'],
+  async rewrites() {
+    return {beforeFiles:[],afterFiles:[],fallback:[{source:'/mobile/:path*',destination:'/mobile/index.html'}]};
+  },
   async redirects() {
     const ministry = new URL(process.env.MINISTRY_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:3002' : 'https://daegwangchurch-ministry.vercel.app'));
     if (!['https:', 'http:'].includes(ministry.protocol) || ministry.username || ministry.password || ministry.pathname !== '/' || ministry.search || ministry.hash) throw new Error('MINISTRY_URL must be an HTTP(S) origin');

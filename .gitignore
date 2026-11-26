@@ -57,3 +57,5 @@ GoogleService-Info.plist
 *service-account*.json
 *firebase-adminsdk*.json
 /.local/
+
+/apps/website/public/mobile/

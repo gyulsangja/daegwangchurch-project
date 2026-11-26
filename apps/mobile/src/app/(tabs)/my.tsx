@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { router } from 'expo-router';
 import { AppScreen, IntroCard, MenuCard, useFeatureNotice } from '../../components/app-screen';
 import { Action } from '../../components/ui';
@@ -19,6 +20,7 @@ export default function MyGuest() {
     <MenuCard title="우리 모임 소식" description="관심 모임 선택 · 확인된 소속 안내" onPress={() => router.push('/groups')} />
     {options.data?.churchMembership && <MenuCard title="교인 확인 및 소속" description="교인 확인 요청 · 승인 상태와 소속 보기" onPress={() => router.push('/account/church')} />}
     <MenuCard title="계정관리" onPress={() => router.push('/account')} />
+    {Platform.OS==='web'&&<MenuCard title="홈 화면에 추가하기" description="아이폰 Safari에서 공유 → 홈 화면에 추가 → 추가를 누르세요." onPress={()=>notice('홈 화면에 추가하기','Safari에서 이 웹앱을 열고 공유 버튼을 누르세요. 홈 화면에 추가를 선택한 뒤 추가를 누르면 대광교회 아이콘이 생깁니다.')}/>}
     <MenuCard title="앱 이용 안내" description="처음 이용하는 분을 위한 도움말" onPress={() => router.push('/help')} />
     <Action title="로그아웃" onPress={() => { void signOut().catch(cause => notice('로그아웃 안내', cause.message)); }} />
   </AppScreen>;
@@ -27,6 +29,7 @@ export default function MyGuest() {
     <Action title="로그인" onPress={() => router.push('/login')} />
     <MenuCard title="회원가입" onPress={() => router.push('/signup')} />
     <MenuCard title="첫시간 주님께 먼저 보기" description="로그인 없이 볼 수 있어요." onPress={() => router.push('/devotional')} />
+    {Platform.OS==='web'&&<MenuCard title="홈 화면에 추가하기" description="아이폰 Safari에서 공유 → 홈 화면에 추가 → 추가를 누르세요." onPress={()=>notice('홈 화면에 추가하기','Safari에서 이 웹앱을 열고 공유 버튼을 누르세요. 홈 화면에 추가를 선택한 뒤 추가를 누르면 대광교회 아이콘이 생깁니다.')}/>}
     <MenuCard title="앱 이용 안내" onPress={() => router.push('/help')} />
   </AppScreen>;
 }

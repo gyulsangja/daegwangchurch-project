@@ -6,6 +6,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ...config, name: config.name ?? '대광교회', slug: config.slug ?? 'daegwang-church',
     android: { ...config.android, package: process.env.APP_ANDROID_PACKAGE ?? 'org.daegwangchurch.app', ...(process.env.GOOGLE_SERVICES_JSON ? { googleServicesFile: process.env.GOOGLE_SERVICES_JSON } : {}) },
     ios: { ...config.ios, bundleIdentifier: process.env.APP_IOS_BUNDLE_ID ?? 'org.daegwangchurch.app' },
+    ...(process.env.DAEGWANG_WEB_PATH ? { experiments: { ...config.experiments, baseUrl: process.env.DAEGWANG_WEB_PATH } } : {}),
     extra: { ...config.extra, ...(projectId ? { eas: { projectId } } : {}) },
   };
 };
