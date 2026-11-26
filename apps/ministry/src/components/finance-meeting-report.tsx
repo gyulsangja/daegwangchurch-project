@@ -29,7 +29,7 @@ export function MeetingReport({data,period,range,enabled,save,editAccounts,close
   const incomeBudget = data.categories.filter(c => c.kind === 'INCOME').reduce((sum,c) => sum + c.budget, 0);
   return <section className="panel detail-body finance-print finance-meeting">
     <div className="finance-view-switch finance-no-print" aria-label="재정 자료 선택">{(Object.keys(titles) as DocumentKind[]).filter(k=>k!=='journal'||detail).map(k=><button type="button" key={k} className="button" aria-pressed={!committee&&documentKind===k} onClick={()=>{setCommittee(false);setKind(k);setEditId('')}}>{k==='settlement'?'결산':k==='budget'?'예산안':'분개장'}</button>)}<button type="button" className="button" aria-pressed={committee} onClick={()=>setCommittee(true)}>위원회 자료</button></div>
-    {committee?<><label className="finance-no-print">위원회 회의일<input type="date" value={date} onChange={e=>setDate(e.target.value)}/></label><FinanceCommittee key={data.year} year={data.year} version={data.version} meetingDate={date}/></>:<>
+    {committee?<><label className="finance-no-print">위원회 회의일<input type="date" value={date} onChange={e=>setDate(e.target.value)}/></label><FinanceCommittee manager={data.role==='MANAGER'} key={data.year} year={data.year} version={data.version} meetingDate={date}/></>:<>
     <div className="finance-actions finance-no-print">
       {data.role==='MANAGER'&&budgetOnly&&<button className="button" onClick={editAccounts}>예산 항목 관리</button>}
       {data.role==='MANAGER'&&documentKind==='settlement'&&<button className="button" onClick={closeBooks}>장부 마감 관리</button>}

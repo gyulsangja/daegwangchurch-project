@@ -19,6 +19,14 @@ export async function financeSnapshot(year: number, period?: {start:string; end:
   const { user, aal } = await financeSession();
   return accessQuery<FinanceSnapshot>(user.id, aal, 'SELECT finance.giving_workspace($1::integer,$2::date,$3::date) AS result',[year,period?.start??null,period?.end??null]);
 }
+export async function committeeFiles(year:number,id:string|null){
+  const {user,aal}=await financeSession();
+  return accessQuery(user.id,aal,'SELECT finance.committee_files($1::int,$2::uuid) AS result',[year,id]);
+}
+export async function archiveCommittee(input:Record<string,unknown>){
+  const {user,aal}=await financeSession();
+  return accessQuery(user.id,aal,'SELECT finance.archive_committee($1::jsonb) AS result',[JSON.stringify(input)]);
+}
 export async function receiptRegister(year:number, byIssue:boolean) {
   const {user,aal}=await financeSession();
   return accessQuery<NonNullable<FinanceSnapshot['receipts']>>(user.id,aal,'SELECT finance.receipt_register($1,$2) AS result',[year,byIssue]);

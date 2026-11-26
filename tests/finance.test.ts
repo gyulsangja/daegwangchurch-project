@@ -32,6 +32,7 @@ async function fixture() {
   await db.exec(readFileSync('packages/database/ministry/014_giving_receipts.sql','utf8'));
   await db.exec(readFileSync('packages/database/ministry/015_direct_finance.sql','utf8'));
   await db.exec(readFileSync('packages/database/ministry/016_receipt_register.sql','utf8'));
+  await db.exec(readFileSync('packages/database/ministry/017_committee_archives.sql','utf8'));
   await db.exec('SET ROLE daegwang_ministry_runtime');
   const as = async (user = manager, church = 'one', verified = true) => {
     await db.query("SELECT set_config('ministry.user_id',$1,false),set_config('ministry.church_id',$2,false),set_config('ministry.aal','aal1',false),set_config('ministry.reauthenticated',$3,false)", [user, church, String(verified)]);
@@ -211,4 +212,28 @@ test('finance input uses whole won, calendar dates and safe CSV cells', () => {
   for (const change of [{ amount: 0 }, { amount: 0.1 }, { date: '2025-11-25' }, { date: '2026-02-30' }, { memberId: 'member1' }]) assert.equal(financeCommand.safeParse({ ...input, ...change }).success, false);
   const csv = financeCsv([['=SUM(A1)', '+cmd', '@value', '"quote"', '한글', -123]]);
   assert.ok(csv.includes('"\'=SUM(A1)"')); assert.ok(csv.includes('"\'+cmd"')); assert.ok(csv.includes('""quote""')); assert.ok(csv.includes('"-123"'));
+});
+
+test('committee evidence freezes both fiscal years and restricts creation to the finance manager',async()=>{
+  const f=await fixture();
+  try{
+    await f.grant('manager@example.invalid','MANAGER');
+    await f.grant('reporter@example.invalid','REPORTER');
+    await f.write({action:'YEAR_CREATE',carry:false});
+    const year=await f.read();
+    const input={year:2026,version:year.version,nextVersion:0,requestId:randomUUID(),meetingDate:'2026-11-27',reference:'가상 안건 1',note:'가상 심의 메모'};
+    const save=(v:typeof input)=>f.db.query('select finance.archive_committee($1::jsonb)',[JSON.stringify(v)]);
+    const get=async(id:string|null)=>(await f.db.query<{r:{revision:number;reports:FinanceSnapshot[];archives:unknown[]}}>('select finance.committee_files(2026,$1::uuid) r',[id])).rows[0].r;
+    await save(input);await save(input);
+    assert.equal((await get(null)).archives.length,1);
+    const frozen=await get(input.requestId);
+    const category=year.categories[0];
+    await f.write({action:'BUDGET_SAVE',categoryId:category.id,amount:500,reason:'가상 변경'});
+    assert.deepEqual(await get(input.requestId),frozen);
+    await assert.rejects(save({...input,requestId:randomUUID()}),/FINANCE_CONFLICT/);
+    await f.as(reporter);assert.equal((await get(input.requestId)).revision,1);
+    await assert.rejects(save(input),/FINANCE_FORBIDDEN/);
+    await assert.rejects(f.db.query('select finance.committee_report(2026)'),/permission denied/);
+    await f.as(outsider);await assert.rejects(get(null),/FINANCE_FORBIDDEN/);
+  }finally{await f.db.close()}
 });

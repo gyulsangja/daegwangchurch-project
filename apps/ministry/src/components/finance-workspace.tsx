@@ -34,7 +34,7 @@ const tabs = [
 ] as const;
 type Tab = typeof tabs[number]['id'];
 const annualTabs:readonly Tab[]=['audit','accounts','categories','access'];
-const actionLabels: Record<string,string>={ENTRY_RECORD:'거래 즉시 반영',RECEIPT_WRITE:'서면 영수증 발급',ENTRY_SAVE:'전표 작성·수정',ENTRY_POST:'전표 승인',ENTRY_VOID:'전표 취소',YEAR_CREATE:'회계연도 개설',YEAR_CLOSE:'연도 마감',YEAR_REOPEN:'연도 마감 해제',MONTH_CLOSE:'월 마감',MONTH_REOPEN:'월 마감 해제',CATEGORY_CONFIG:'항목 설정',CATEGORY_SAVE:'항목 저장',ACCOUNT_SAVE:'계좌 저장',ACCESS_SAVE:'권한 변경',ADMIN_PROVISION:'최초 권한 지정',ISSUER_SETUP:'발급 단체 설정',RECEIPT_SHARE:'개인 영수증 발급',RECEIPT_CANCEL:'영수증 취소',ISSUE_PAPER:'영수증 발급',BUDGET_SAVE:'예산 변경'};
+const actionLabels: Record<string,string>={COMMITTEE_ARCHIVE:'위원회 자료 보존',ENTRY_RECORD:'거래 즉시 반영',RECEIPT_WRITE:'서면 영수증 발급',ENTRY_SAVE:'전표 작성·수정',ENTRY_POST:'전표 승인',ENTRY_VOID:'전표 취소',YEAR_CREATE:'회계연도 개설',YEAR_CLOSE:'연도 마감',YEAR_REOPEN:'연도 마감 해제',MONTH_CLOSE:'월 마감',MONTH_REOPEN:'월 마감 해제',CATEGORY_CONFIG:'항목 설정',CATEGORY_SAVE:'항목 저장',ACCOUNT_SAVE:'계좌 저장',ACCESS_SAVE:'권한 변경',ADMIN_PROVISION:'최초 권한 지정',ISSUER_SETUP:'발급 단체 설정',RECEIPT_SHARE:'개인 영수증 발급',RECEIPT_CANCEL:'영수증 취소',ISSUE_PAPER:'영수증 발급',BUDGET_SAVE:'예산 변경'};
 
 export function FinanceWorkspace({ministryUrl,initialData,initialError}:{ministryUrl:string;initialData?:FinanceSnapshot;initialError?:string}) {
   const [year, setYear] = useState(initialData?.year??Number(today().slice(0, 4)));
