@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import type {FinanceCategory} from '@daegwang/contracts/finance';
-import {groupedAccounts} from './finance-account-groups';
+import {budgetRate,groupedAccounts} from './finance-account-groups';
 
 type Archive={id:string;revision:number;meetingDate:string;reference:string};
 type Annual={version:number;year:number;available:boolean;closed:boolean;categories:FinanceCategory[]};
@@ -24,6 +24,7 @@ export function FinanceCommittee({year,version,meetingDate,manager}:{manager:boo
     return ()=>cancel.abort();
   },[year,version,retry,id]);
   const [current,next]=reports??[];
+  const priorAccounts=new Map(current?.categories.map(c=>[c.id,c]));
   async function preserve(event:React.FormEvent){
     event.preventDefault();if(saving.current||!current||!next)return;
     const body={action:'COMMITTEE_ARCHIVE',year,version:current.version,nextVersion:next.version,meetingDate,reference:ref.trim(),note:note.trim()};
@@ -55,10 +56,24 @@ export function FinanceCommittee({year,version,meetingDate,manager}:{manager:boo
         <p>세입·세출은 장부에 반영된 현금·예금 거래 기준이며 계좌 간 이체는 제외합니다. 차년도 증감은 당해 편성 예산을 기준으로 합니다.</p>
       </>}
       {part!=='main'&&<div className={part==='full'?'committee-appendix':''}><h3>별첨 · 계정과목별 심의 명세</h3>
-        {reports.filter(r=>r.available).map(report=><section key={report.year}><h3>{report.year}년 {report.year===year?'결산안':'예산안'}</h3><div className="finance-table"><table><thead><tr><th>분류·계정과목</th><th>예산액</th>{report.year===year&&<><th>결산액</th><th>결산 − 예산</th></>}</tr></thead><tbody>{groupedAccounts(report.categories).flatMap(group=>[
-          <tr className="finance-group-total" key={group.name}><th>{group.name} 소계</th><td>{won(group.budget)}</td>{report.year===year&&<><td>{won(group.actual)}</td><td>{won(group.actual-group.budget)}</td></>}</tr>,
-          ...group.items.map(c=><tr key={c.id}><th className="finance-account-name">{c.name}</th><td>{won(c.budget)}</td>{report.year===year&&<><td>{won(c.actual)}</td><td>{won(c.actual-c.budget)}</td></>}</tr>),
-        ])}</tbody></table></div></section>)}</div>}
+        {reports.filter(r=>r.available).map(report=><section key={report.year}><h3>{report.year}년 {report.year===year?'결산안':'예산안'}</h3>
+        {report.year!==year&&<p>차년도 편성의 비교 기준은 {year}년 동일 계정과목의 예산과 실적입니다. 대응하는 계정이 없으면 비교 자료 없음으로 표시합니다.</p>}
+        {types.map(kind=>{
+          const settlement=report.year===year;
+          const groups=groupedAccounts(report.categories.filter(c=>c.kind===kind));
+          const rateName=kind==='INCOME'?'세입 달성률':'세출 집행률';
+          function cells(items:FinanceCategory[]){
+            const planned=items.reduce((n,c)=>n+c.budget,0);
+            const peers=settlement?items:items.map(c=>priorAccounts.get(c.id)).filter((c):c is FinanceCategory=>!!c&&c.kind===kind);
+            if(!settlement&&(!peers.length||peers.length!==items.length))return <><td>{won(planned)}</td><td colSpan={3}>비교 자료 없음</td></>;
+            const budget=peers.reduce((n,c)=>n+c.budget,0),actual=peers.reduce((n,c)=>n+c.actual,0);
+            return <><td>{won(planned)}</td>{!settlement&&<td>{won(budget)}</td>}<td>{won(actual)}</td><td><strong>{budgetRate(actual,budget)}</strong></td>{settlement&&<td>{won(actual-budget)}</td>}</>;
+          }
+          return <div key={kind} className="finance-table"><table><caption>{kind==='INCOME'?'세입':'세출'} 명세</caption><thead><tr><th>분류·계정과목</th><th>{settlement?'예산액':'차년도 예산안'}</th>{!settlement&&<th>{year}년 예산</th>}<th>{settlement?'결산액':year+'년 실적'}</th><th>{settlement?'':year+'년 '}{rateName}</th>{settlement&&<th>결산 − 예산</th>}</tr></thead><tbody>{groups.flatMap(group=>[
+            <tr className="finance-group-total" key={group.name}><th>{group.name} 소계</th>{cells(group.items)}</tr>,
+            ...group.items.map(c=><tr key={c.id}><th className="finance-account-name">{c.name}</th>{cells([c])}</tr>)
+          ])}</tbody></table></div>;
+        })}</section>)}</div>}
       {manager&&!id&&year<2200&&<details className="finance-no-print"><summary>심의 자료 보존</summary><form className="finance-actions" onSubmit={preserve}><label>회의록·심의 근거<input required maxLength={150} value={ref} onChange={e=>setRef(e.target.value)} placeholder="회의명·안건 번호"/></label><button className="button" disabled={busy||!meetingDate||(!current.available&&!next.available)}>현재 수치로 보존본 생성</button></form><p>헌금자 이름 등 개인정보는 메모에 적지 마세요. 보존 시점의 수치와 근거를 새 버전에 기록합니다.</p></details>}
       {feedback&&<p role="alert">{feedback} <button className="button" onClick={()=>setRetry(retry+1)}>장부 다시 조회</button></p>}
     </>}

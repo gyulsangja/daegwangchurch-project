@@ -14,3 +14,5 @@ export function groupedAccounts(categories: FinanceCategory[]) {
     budget:items.reduce((n,c)=>n+c.budget,0),actual:items.reduce((n,c)=>n+c.actual,0),
   }));
 }
+
+export const budgetRate=(actual:number,budget:number)=>budget ? (100*actual/budget).toLocaleString('ko-KR',{maximumFractionDigits:1})+'%' : '예산 미편성';
