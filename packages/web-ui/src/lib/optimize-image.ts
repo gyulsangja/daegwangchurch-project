@@ -1,11 +1,11 @@
-export async function optimizeImage(file: File, budget: number, reencode = false): Promise<File> {
+export async function optimizeImage(file: File, budget: number, reencode = false, maxEdge = 2560): Promise<File> {
   if (file.size > 40 * 1024 * 1024) throw new Error(`${file.name}: 원본 이미지가 너무 큽니다. 40MB 이하 파일을 선택해 주세요.`);
   const url = URL.createObjectURL(file);
   const image = new Image();
   try {
     await new Promise<void>((resolve, reject) => { image.onload = () => resolve(); image.onerror = () => reject(new Error(`${file.name}: 이미지를 읽을 수 없습니다. JPG·PNG·WebP 파일을 확인해 주세요.`)); image.src = url; });
     if (!image.naturalWidth || !image.naturalHeight || image.naturalWidth * image.naturalHeight > 60000000) throw new Error(`${file.name}: 이미지 해상도가 너무 큽니다. 6천만 화소 이하 파일을 선택해 주세요.`);
-    let scale = Math.min(1, 2560 / Math.max(image.naturalWidth, image.naturalHeight));
+    let scale = Math.min(1, maxEdge / Math.max(image.naturalWidth, image.naturalHeight));
     if (!reencode && scale === 1 && file.size <= budget) return file;
     const canvas = document.createElement('canvas');
     try {
@@ -22,7 +22,7 @@ export async function optimizeImage(file: File, budget: number, reencode = false
           const extension = blob.type === 'image/webp' ? 'webp' : blob.type === 'image/jpeg' ? 'jpg' : 'png';
           return new File([blob], `${file.name.replace(/\.[^.]+$/, '')}.${extension}`, { type: blob.type, lastModified: file.lastModified });
         }
-        scale *= 0.8;
+        scale *= Math.min(0.8, Math.sqrt(budget / blob.size) * 0.95);
       }
       throw new Error(`${file.name}: 자동 축소 후에도 용량이 큽니다. 이미지를 나눠 올려 주세요.`);
     } finally { canvas.width = 0; canvas.height = 0; }

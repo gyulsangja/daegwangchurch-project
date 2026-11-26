@@ -7,7 +7,8 @@ const money = z.number().int().min(0).max(1_000_000_000_000);
 const name = z.string().trim().min(1).max(100);
 const base = z.object({ requestId: z.uuid(), year, version: z.number().int().nonnegative() });
 export const financeCommand = z.discriminatedUnion('action', [
-  base.extend({action:z.literal('ISSUER_SETUP'),name,address:z.string().trim().min(1).max(200),registration:z.string().regex(/^\d{10}$/),legalBasis:z.string().trim().min(1).max(150),giftCode:z.string().regex(/^\d{2}$/),confirmed:z.literal(true),reason:z.string().trim().min(1).max(300)}).strict(),
+  base.extend({action:z.literal('ISSUER_SETUP'),name,recipient:z.string().trim().max(100).optional(),seal:z.string().max(90000).regex(/^data:image\/png;base64,iVBORw0KGgo[A-Za-z0-9+/]*={0,2}$/).nullable().optional(),address:z.string().trim().min(1).max(200),registration:z.string().regex(/^\d{10}$/),legalBasis:z.string().trim().min(1).max(150),giftCode:z.string().regex(/^\d{2}$/),confirmed:z.literal(true),reason:z.string().trim().min(1).max(300)}).strict(),
+  base.extend({action:z.literal('RECEIPT_WRITE'),id:z.uuid().nullable(),date:z.iso.date(),description:z.string().trim().min(1).max(100),goods:z.object({quantity:money.positive(),unitPrice:money.positive()}).strict().optional(),memberId:z.string().min(1).max(100).nullable(),donorName:z.string().trim().max(100).optional(),amount:money.positive(),reason:z.string().trim().min(1).max(300)}).strict(),
   base.extend({action:z.literal('RECEIPT_SHARE'),id:z.uuid(),memberId:z.string().min(1).max(100).nullable(),donorName:z.string().trim().max(100).optional(),amount:money.positive(),reason:z.string().trim().min(1).max(300)}).strict(),
   base.extend({action:z.literal('RECEIPT_CANCEL'),serial:z.string().regex(/^\d{1,19}$/),reason:z.string().trim().min(1).max(300)}).strict(),
   base.extend({action:z.literal('ISSUE_PAPER'),id:z.uuid()}).strict(),
@@ -20,7 +21,7 @@ export const financeCommand = z.discriminatedUnion('action', [
   base.extend({ action: z.literal('ACCOUNT_SAVE'), id: z.uuid(), name, opening: money }).strict(),
   base.extend({ action: z.literal('BUDGET_SAVE'), categoryId: z.uuid(), amount: money, reason: z.string().trim().min(1).max(300) }).strict(),
   base.extend({
-    action: z.literal('ENTRY_SAVE'), id: z.uuid(), date: z.iso.date(), kind: z.enum(['INCOME', 'EXPENSE', 'TRANSFER']),
+    action: z.enum(['ENTRY_SAVE','ENTRY_RECORD']), id: z.uuid(), date: z.iso.date(), kind: z.enum(['INCOME', 'EXPENSE', 'TRANSFER']),
     accountId: z.uuid(), destinationId: z.uuid().nullable(), categoryId: z.uuid().nullable(), amount: money.positive(),
     memberId: z.string().max(100).nullable(), party: z.string().trim().max(100), memo: z.string().trim().min(1).max(1000),
     receipt: z.string().trim().max(300),
@@ -39,10 +40,10 @@ export type FinanceRole = z.infer<typeof financeRole>;
 export type FinanceAccount = { id: string; name: string; opening: number; balance: number };
 export type FinanceCategory = { id: string; name: string; kind: 'INCOME' | 'EXPENSE'; offering: boolean; budget: number; actual: number; section?:string; active?:boolean; annualActual?: number };
 export type FinanceEntry = { id: string; date: string; kind: 'INCOME' | 'EXPENSE' | 'TRANSFER'; accountId: string; destinationId: string | null; categoryId: string | null; amount: number; memberId: string | null; party: string; memo: string; receipt: string; status: 'DRAFT' | 'POSTED' | 'VOID'; createdBy: string; approvedBy: string | null };
-export type PaperReceipt = { serial:string; share?:boolean; voided?:boolean; id:string; memberId:string; name:string; date:string; issued:string; amount:number; issuer:{name:string;registration:string;address:string;legal_basis:string;gift_code:string} };
+export type PaperReceipt = { serial:string; description?:string; goods?:{quantity:number;unitPrice:number}|null; share?:boolean; voided?:boolean; id:string|null; memberId:string; name:string; date:string; issued:string; amount:number; issuer:{name:string;registration:string;address:string;legal_basis:string;gift_code:string;recipient?:string|null;seal?:string|null} };
 export type FinanceSnapshot = {
   families?:{id:string;name:string;memberIds:string[]}[]; organizations?:string[];
-  paperEnabled?:boolean;receipts?:PaperReceipt[];
+  issuer?:PaperReceipt["issuer"]|null; paperEnabled?:boolean;receipts?:PaperReceipt[];
   role: FinanceRole | null; canManageAccess: boolean; year: number; version: number; closed: boolean; years: number[]; months?:number[];
   accounts: FinanceAccount[]; categories: FinanceCategory[]; entries: FinanceEntry[];
   members: { id: string; name: string }[];

@@ -33,7 +33,7 @@ export async function saveFinance(raw: Record<string, unknown>) {
       verified = true;
     } finally { await verifier.auth.signOut({ scope: 'local' }).catch(() => {}); }
   }
-  return accessQuery<{ saved: boolean }>(user.id, aal, ['ISSUER_SETUP','RECEIPT_SHARE','RECEIPT_CANCEL'].includes(input.action)?'SELECT finance.receipt_command($1::jsonb) AS result' : ['MONTH_CLOSE','MONTH_REOPEN','CATEGORY_CONFIG','ISSUE_PAPER'].includes(input.action) ? 'SELECT finance.manage($1::jsonb) AS result' : 'SELECT finance.command($1::jsonb) AS result', [JSON.stringify(input)], verified);
+  return accessQuery<{ saved: boolean }>(user.id, aal, ['ISSUER_SETUP','RECEIPT_SHARE','RECEIPT_CANCEL','RECEIPT_WRITE'].includes(input.action)?'SELECT finance.receipt_command($1::jsonb) AS result' : ['MONTH_CLOSE','MONTH_REOPEN','CATEGORY_CONFIG','ISSUE_PAPER'].includes(input.action) ? 'SELECT finance.manage($1::jsonb) AS result' : 'SELECT finance.command($1::jsonb) AS result', [JSON.stringify(input)], verified);
 }
 export function financeError(error: unknown) {
   const message = error instanceof Error ? error.message : '';

@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   if (!authOrigin(request)) return new Response(null, { status: 403 });
   try {
-    const input = await readInput(request, 16384);
+    const input = await readInput(request, 98304);
     if (!input || typeof input !== 'object' || Array.isArray(input)) throw new SyntaxError();
     return Response.json(await saveFinance(input), { headers: { 'Cache-Control': 'private, no-store' } });
   } catch (error) { return financeError(error); }

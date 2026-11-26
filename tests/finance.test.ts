@@ -30,6 +30,7 @@ async function fixture() {
   await db.exec('CREATE TABLE ministry.families(church_id text,id text,payload jsonb);CREATE TABLE ministry.organizations(church_id text,id text,payload jsonb)');
   await db.exec(readFileSync('packages/database/ministry/013_month_categories.sql','utf8'));
   await db.exec(readFileSync('packages/database/ministry/014_giving_receipts.sql','utf8'));
+  await db.exec(readFileSync('packages/database/ministry/015_direct_finance.sql','utf8'));
   await db.exec('SET ROLE daegwang_ministry_runtime');
   const as = async (user = manager, church = 'one', verified = true) => {
     await db.query("SELECT set_config('ministry.user_id',$1,false),set_config('ministry.church_id',$2,false),set_config('ministry.aal','aal1',false),set_config('ministry.reauthenticated',$3,false)", [user, church, String(verified)]);
@@ -124,6 +125,23 @@ test('finance postings, budgets, transfers, close and carry preserve balances an
     await assert.rejects(manage('ISSUE_PAPER',{id:entry.id}),/PAPER_DISABLED/);
     const receipt=async(action:string,fields:Record<string,unknown>)=>f.db.query('select finance.receipt_command($1::jsonb)',[JSON.stringify({action,requestId:randomUUID(),year:2026,version:(await f.read()).version,reason:'가상 확인',...fields})]);
     await receipt('ISSUER_SETUP',{name:'가상',address:'가상 주소',registration:'0000000000',legalBasis:'가상 근거',giftCode:'41',confirmed:true});
+    const manual={id:null,memberId:null,donorName:'가상 기부자',amount:1100,date:'2026-03-05',description:'수기 장부 기부',reason:'가상 대조'};
+    await assert.rejects(receipt('RECEIPT_WRITE',{...manual,date:'2025-03-05'}),/FINANCE_INVALID/);
+    await assert.rejects(receipt('RECEIPT_WRITE',{...manual,goods:{quantity:3,unitPrice:550}}),/FINANCE_INVALID/);
+    await receipt('RECEIPT_WRITE',{...manual,goods:{quantity:2,unitPrice:550}});
+    const direct=(await f.db.query<{s:FinanceSnapshot}>('select finance.giving_workspace(2026,null,null) s')).rows[0].s;
+    assert.equal(direct.receipts![0].description,manual.description);assert.equal(direct.receipts![0].id,null);
+    assert.equal(direct.receipts![0].goods?.quantity,2);
+    assert.equal(direct.issuer?.registration,'0000000000');
+    await f.as(writer);
+    const instant={...entry,kind:'EXPENSE',categoryId:expense.id,memberId:null,id:randomUUID(),action:'ENTRY_RECORD',amount:5};
+    await f.write(instant);
+    assert.equal((await f.read()).entries.find(e=>e.id===instant.id)?.status,'POSTED');
+    const overdraw={...instant,id:randomUUID(),amount:100000};
+    await assert.rejects(f.write(overdraw),/FINANCE_BALANCE/);
+    assert.equal((await f.read()).entries.some(e=>e.id===overdraw.id),false);
+    await f.as();await f.write({action:'ENTRY_VOID',id:instant.id,reason:'가상 검증 완료'});
+
     await assert.rejects(receipt('RECEIPT_SHARE',{id:entry.id,amount:100,memberId:'member2'}),/FINANCE_INVALID/);
     await receipt('RECEIPT_SHARE',{id:entry.id,amount:300,memberId:'member1'});
     await assert.rejects(receipt('RECEIPT_SHARE',{id:entry.id,amount:501,memberId:'member1'}),/SHARE_AMOUNT/);

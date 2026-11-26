@@ -1,6 +1,7 @@
 'use client';
 import {useState} from 'react';
 import type {FinanceEntry,FinanceSnapshot} from '@daegwang/contracts/finance';
+import {IssuerForm} from './finance-issuer';
 import {previewGiftForm} from './finance-receipt';
 
 type Props={data:FinanceSnapshot;save:(p:Record<string,unknown>)=>Promise<boolean>};
@@ -13,6 +14,12 @@ export function GiftSource({data,entry,change}:{data:FinanceSnapshot;entry:Finan
 
 export function PaperDesk({data,save}:Props){
  const [id,setId]=useState(''),[family,setFamily]=useState(''),[person,setPerson]=useState(''),[amount,setAmount]=useState(''),[msg,setMsg]=useState('');
+ const [view,setView]=useState<'write'|'list'|'issuer'>('write');
+ const [date,setDate]=useState(new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'}).replace(/^\d{4}/,String(data.year)));
+ const [description,setDescription]=useState('');
+ const [inKind,setInKind]=useState(false),[quantity,setQuantity]=useState('1'),[price,setPrice]=useState('');
+ const goods=inKind?{quantity:Number(quantity),unitPrice:Number(price)}:undefined;
+ const total=goods?goods.quantity*goods.unitPrice:Number(amount);
  const receipts=data.receipts??[];
  const available=(e:FinanceEntry)=>e.amount-receipts.filter(r=>r.id===e.id&&!r.voided).reduce((n,r)=>n+r.amount,0);
  const sources=data.entries.filter(e=>e.kind==='INCOME'&&e.status==='POSTED'&&data.categories.some(k=>k.id===e.categoryId&&k.offering)&&available(e)>0);
@@ -22,24 +29,24 @@ export function PaperDesk({data,save}:Props){
  const name=person==='__external'?outside.trim():data.members.find(m=>m.id===person)?.name;
  const [serial,setSerial]=useState('');
  return <section className="panel detail-body"><h2>서면 기부금영수증</h2>
- <details open={!data.paperEnabled}><summary>교회 발급 정보 · {data.year}년</summary>
- <form className="finance-form" onSubmit={async e=>{e.preventDefault();const f=new FormData(e.currentTarget);await save({action:'ISSUER_SETUP',...Object.fromEntries(f),confirmed:true});}}>
- <label>단체명<input required name="name" defaultValue="대광교회" maxLength={100}/></label><label>교회 고유번호 · 숫자 10자리<input name="registration" required pattern="[0-9]{10}" inputMode="numeric" maxLength={10}/></label>
- <label>교회 주소<input required name="address" maxLength={200}/></label><label>공제 대상 근거 법령<input required name="legalBasis" maxLength={150}/></label>
- <label>기부금 유형 코드<input required name="giftCode" pattern="[0-9]{2}" maxLength={2}/></label><label>확인한 근거 자료<input required name="reason" maxLength={300} placeholder="소속 증명서 등 자료명"/></label>
- <label><input type="checkbox" required/> 해당 연도 발급 자격과 서면 발급 가능 여부를 확인했습니다.</label><button className="button">발급 정보 저장</button></form></details>
- <form className="finance-form" onSubmit={async e=>{e.preventDefault();if(!entry||!name)return;const f=new FormData(e.currentTarget);if(await save({action:'RECEIPT_SHARE',id,memberId:person==='__external'?null:person,donorName:person==='__external'?outside.trim():undefined,amount:Number(amount),reason:f.get('reason')})){setId('');setAmount('');}}}>
- <label>원본 헌금 전표<select required value={entry?id:''} onChange={e=>{const selected=sources.find(v=>v.id===e.target.value);setId(e.target.value);setFamily('');setOutside('');setPerson(selected?.memberId??'');setAmount(selected?String(available(selected)):'');}}>
- <option value="">조회 기간의 승인된 헌금 선택</option>{sources.map(e=><option key={e.id} value={e.id}>{e.date} · {data.members.find(m=>m.id===e.memberId)?.name||e.party||'무명'} · 남은 {available(e).toLocaleString()}원 · {e.id.slice(-6)}</option>)}</select></label>
+ <div className="finance-view-switch" aria-label="영수증 업무">{([['write','영수증 작성'],['list','발급 대장'],['issuer','교회 발급 정보']] as const).map(([key,label])=><button key={key} className="button" aria-pressed={key===view} onClick={()=>setView(key)}>{label}</button>)}</div>
+ {view==='issuer' && <><h3>{data.year}년 교회 발급 정보</h3>
+ <IssuerForm issuer={data.issuer} save={save}/></>}
+ {view==='write' && <><p>직접 작성하거나 기존 헌금을 선택해 날짜·내용·금액을 불러오세요.</p>{!data.paperEnabled&&<p>정식 발급 전 <button className="button" onClick={()=>setView('issuer')}>교회 발급 정보 설정</button></p>}
+ <form className="finance-form" onSubmit={async e=>{e.preventDefault();if(!name)return;const f=new FormData(e.currentTarget);if(await save({action:'RECEIPT_WRITE',id:entry?.id??null,date,description,memberId:person==='__external'?null:person,donorName:person==='__external'?outside.trim():undefined,goods,amount:total,reason:f.get('reason')})){setId('');setAmount('');setDescription('');setView('list');}}}>
+ <label>헌금 불러오기 · 선택<select value={entry?id:''} onChange={e=>{const selected=sources.find(v=>v.id===e.target.value);setId(e.target.value);if(!selected)return;setInKind(false);setDate(selected.date);setDescription((selected.memo||data.categories.find(c=>c.id===selected.categoryId)?.name||'헌금').slice(0,100));setFamily('');setOutside('');setPerson(selected?.memberId??'');setAmount(selected?String(available(selected)):'');}}>
+ <option value="">직접 작성</option>{sources.map(e=><option key={e.id} value={e.id}>{e.date} · {data.members.find(m=>m.id===e.memberId)?.name||e.party||'무명'} · 남은 {available(e).toLocaleString()}원 · {e.id.slice(-6)}</option>)}</select></label>
  <label>가족에서 찾기<select value={family} onChange={e=>{setFamily(e.target.value);setPerson('');}}><option value="">전체 교인</option>{data.families?.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select></label>
  <label>영수증의 실제 기부자<select required value={person} onChange={e=>setPerson(e.target.value)}><option value="">교인 선택</option>{!family&&<option value="__external">교적에 없는 기부자 직접 입력</option>}{members.map(m=><option key={m.id} value={m.id}>{m.name} · {m.id.slice(-6)}</option>)}</select></label>
  {person==='__external'&&<label>실제 기부자 성명<input required maxLength={100} value={outside} onChange={e=>setOutside(e.target.value)}/></label>}
- <label>이 기부자가 낸 금액<input type="number" min={1} max={entry?available(entry):0} step={1} required value={amount} onChange={e=>setAmount(e.target.value)}/></label>
+ <label>기부 구분<select value={inKind?'goods':'money'} disabled={!!entry} onChange={e=>setInKind(e.target.value==='goods')}><option value="money">금전</option><option value="goods">현물</option></select></label>
+ <label>기부일<input required type="date" min={data.year+'-01-01'} max={data.year+'-12-31'} value={date} onChange={e=>setDate(e.target.value)}/></label><label>{inKind?'품명':'기부 내용'}<input required maxLength={100} value={description} onChange={e=>setDescription(e.target.value)}/></label>
+ {inKind?<><label>수량<input required type="number" min={1} step={1} value={quantity} onChange={e=>setQuantity(e.target.value)}/></label><label>단가 · 원<input required type="number" min={1} step={1} value={price} onChange={e=>setPrice(e.target.value)}/></label><p>현물 평가액 {total.toLocaleString()}원</p></>:<label>이 기부자가 낸 금액<input type="number" min={1} max={entry?available(entry):1_000_000_000_000} step={1} required value={amount} onChange={e=>setAmount(e.target.value)}/></label>}
  <label>실제 기부자·금액 확인 근거<input name="reason" required maxLength={300} placeholder="예: 헌금자 확인 기록"/></label>
- <p>가족 공동 헌금은 각자가 낸 금액만 발급하세요. 조직 자체의 헌금을 개인 명의로 발급할 수 없습니다. 주소·식별번호와 서명은 인쇄 후 서면에 기재하세요.</p>
- <button type="button" className="button" disabled={!entry||!name||!Number.isSafeInteger(+amount)||+amount<=0||+amount>available(entry)} onClick={()=>{if(entry&&name&&!previewGiftForm(name,[{date:entry.date,amount:+amount}]))setMsg('팝업을 허용해 주세요.');}}>서식 미리보기</button>
- <button className="button primary" disabled={!entry||!name||!data.paperEnabled}>개인 영수증 발급</button></form>
- <h3>발급 대장 · {data.year}년</h3>{!receipts.length&&<p>발급한 영수증이 없습니다.</p>}{receipts.map(r=><div className="finance-line" key={r.serial}><span>제{r.serial}호 · {r.name} · {r.amount.toLocaleString()}원 · {r.voided?'취소':'발급'}</span>{!r.voided&&<div><button className="button" onClick={()=>{if(!previewGiftForm(r.name,[r],r))setMsg('팝업을 허용해 주세요.');}}>인쇄·재인쇄</button>{r.share&&<button className="button" onClick={()=>setSerial(r.serial)}>취소·정정</button>}</div>}</div>)}
+ <p>가족 공동 헌금은 각자가 낸 금액만 발급하세요. 조직 자체의 헌금을 개인 명의로 발급할 수 없습니다. 주민등록번호와 주소는 인쇄 창에서 입력하세요.</p>
+ <button type="button" className="button" disabled={!name||!description.trim()||!date.startsWith(data.year+'-')||!Number.isSafeInteger(total)||total<=0||total>1e12} onClick={()=>{if(name&&!previewGiftForm(name,[{date,amount:total,description,goods}],undefined,data.issuer??undefined))setMsg('팝업을 허용해 주세요.');}}>서식 미리보기</button>
+ <button className="button primary" disabled={!name||!data.paperEnabled}>개인 영수증 발급</button></form></>}
+ {view==='list' && <><h3>발급 대장 · {data.year}년</h3>{!receipts.length&&<p>발급한 영수증이 없습니다.</p>}{receipts.map(r=><div className="finance-line" key={r.serial}><span>제{r.serial}호 · {r.name} · {r.amount.toLocaleString()}원 · {r.voided?'취소':'발급'}</span>{!r.voided&&<div><button className="button" onClick={()=>{if(!previewGiftForm(r.name,[r],r))setMsg('팝업을 허용해 주세요.');}}>인쇄·재인쇄</button>{r.share&&<button className="button" onClick={()=>setSerial(r.serial)}>취소·정정</button>}</div>}</div>)}
  {serial&&<form onSubmit={async e=>{e.preventDefault();const f=new FormData(e.currentTarget);if(await save({action:'RECEIPT_CANCEL',serial,reason:f.get('reason')}))setSerial('');}}><label>제{serial}호 취소 사유<input required maxLength={300} name="reason"/></label><p>기존 발급본을 회수하거나 취소를 안내하고, 정정분은 새 번호로 발급하세요.</p><button className="button">취소 확정</button><button type="button" className="button" onClick={()=>setSerial('')}>닫기</button></form>}
- <p role="status">{msg}</p></section>;
+ </>}<p role="status">{msg}</p></section>;
 }
