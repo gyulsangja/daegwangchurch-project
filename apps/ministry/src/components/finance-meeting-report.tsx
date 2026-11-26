@@ -1,4 +1,5 @@
 'use client';
+import {FinanceCommittee} from './finance-committee';
 import {PriorPeriod} from './finance-prior-period';
 import {groupedAccounts} from './finance-account-groups';
 import { Fragment, useState } from 'react';
@@ -12,6 +13,7 @@ type DocumentKind = keyof typeof titles;
 type ReportProps={data:FinanceSnapshot;period:string;range:{start:string;end:string}|null;enabled:boolean;save:(command:Record<string,unknown>)=>Promise<boolean>;editAccounts:()=>void;closeBooks:()=>void;download:(rows:(string|number)[][],name:string)=>void};
 export function MeetingReport({data,period,range,enabled,save,editAccounts,closeBooks,download}:ReportProps) {
   const [kind, setKind] = useState<DocumentKind>('settlement');
+  const [committee,setCommittee]=useState(false);
   const [editId,setEditId]=useState('');
   const [meeting, setMeeting] = useState('제직회');
   const [date, setDate] = useState(() => new Date().toLocaleDateString('sv-SE', {timeZone:'Asia/Seoul'}));
@@ -26,7 +28,8 @@ export function MeetingReport({data,period,range,enabled,save,editAccounts,close
   const journalTotal = posted.reduce((sum,e) => sum + e.amount, 0);
   const incomeBudget = data.categories.filter(c => c.kind === 'INCOME').reduce((sum,c) => sum + c.budget, 0);
   return <section className="panel detail-body finance-print finance-meeting">
-    <div className="finance-view-switch finance-no-print" aria-label="재정 자료 선택">{(Object.keys(titles) as DocumentKind[]).filter(k=>k!=='journal'||detail).map(k=><button type="button" key={k} className="button" aria-pressed={documentKind===k} onClick={()=>{setKind(k);setEditId('')}}>{k==='settlement'?'결산':k==='budget'?'예산안':'분개장'}</button>)}</div>
+    <div className="finance-view-switch finance-no-print" aria-label="재정 자료 선택">{(Object.keys(titles) as DocumentKind[]).filter(k=>k!=='journal'||detail).map(k=><button type="button" key={k} className="button" aria-pressed={!committee&&documentKind===k} onClick={()=>{setCommittee(false);setKind(k);setEditId('')}}>{k==='settlement'?'결산':k==='budget'?'예산안':'분개장'}</button>)}<button type="button" className="button" aria-pressed={committee} onClick={()=>setCommittee(true)}>위원회 자료</button></div>
+    {committee?<><label className="finance-no-print">위원회 회의일<input type="date" value={date} onChange={e=>setDate(e.target.value)}/></label><FinanceCommittee key={data.year} year={data.year} version={data.version} meetingDate={date}/></>:<>
     <div className="finance-actions finance-no-print">
       {data.role==='MANAGER'&&budgetOnly&&<button className="button" onClick={editAccounts}>예산 항목 관리</button>}
       {data.role==='MANAGER'&&documentKind==='settlement'&&<button className="button" onClick={closeBooks}>장부 마감 관리</button>}
@@ -71,6 +74,7 @@ export function MeetingReport({data,period,range,enabled,save,editAccounts,close
           <tbody>{groupedAccounts(rows).map(group=><Fragment key={group.name}><tr className="finance-group-total"><th scope="row">{group.name} 소계</th>{values(group.budget,group.actual)}{budgetOnly&&data.role==='MANAGER'&&<td className="finance-no-print"/>}</tr>{group.items.map(c=><Fragment key={c.id}><tr><th scope="row" className="finance-account-name">{c.name}{c.active===false?' (사용 중지)':''}</th>{values(c.budget,c.actual)}{budgetOnly&&data.role==='MANAGER'&&<td className="finance-no-print"><button type="button" className="button" disabled={!enabled} aria-label={c.name+' 예산 수정'} onClick={()=>setEditId(c.id)}>수정</button></td>}</tr>{editId===c.id&&budgetOnly&&data.role==='MANAGER'&&<tr className="finance-no-print"><td colSpan={3}><form className="finance-actions" onSubmit={async e=>{e.preventDefault();const f=new FormData(e.currentTarget);if(await save({action:'BUDGET_SAVE',categoryId:c.id,amount:Number(f.get('amount')),reason:f.get('reason')}))setEditId('')}}><label>{c.name} 연간 예산 · 원<input autoFocus required type="number" name="amount" min="0" max="1000000000000" defaultValue={c.budget}/></label><label>편성·추경 사유<input required name="reason" maxLength={300}/></label><button className="button primary" disabled={!enabled}>예산 저장</button><button type="button" className="button" onClick={()=>setEditId('')}>취소</button></form></td></tr>}</Fragment>)}</Fragment>)}</tbody><tfoot><tr><th>합계</th>{values(budget,actual)}</tr></tfoot></table></div></section>;
       })}
       {!budgetOnly && <><PriorPeriod key={period} year={data.year} period={range} current={sums}/><h3>계좌별 기말 잔액</h3><div className="finance-table"><table><thead><tr><th>계좌</th><th>잔액</th></tr></thead><tbody>{data.accounts.map(a => <tr key={a.id}><td>{a.name}</td><td>{won(a.balance)}</td></tr>)}</tbody><tfoot><tr><th>합계</th><td>{won(sums.balance)}</td></tr></tfoot></table></div><section><h3>작성 기준</h3><p>선택 기간에 장부에 반영한 현금·예금 거래를 집계했습니다. 계좌 간 이체는 세입과 세출에서 제외합니다. 예산 대비율은 해당 연도 편성액을, 구성비는 같은 기간의 세입 또는 세출 총액을 기준으로 합니다.</p></section></>}
+    </>}
     </>}
   </section>;
 }

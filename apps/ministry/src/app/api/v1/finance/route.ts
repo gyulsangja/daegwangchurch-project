@@ -14,6 +14,10 @@ export async function GET(request: Request) {
     }
     const period = params.has('start') || params.has('end') ? z.object({ start:z.iso.date(),end:z.iso.date() }).refine(p=>p.start<=p.end && [p.start,p.end].every(d=>Number(d.slice(0,4))===year)).parse({start:params.get('start'),end:params.get('end')}) : undefined;
     const snapshot=await financeSnapshot(year, period);
+    if(params.get('committee')==='1'){
+      if(!snapshot.role)return new Response(null,{status:403,headers:{'Cache-Control':'no-store'}});
+      return Response.json({year,available:!!snapshot.version,closed:snapshot.closed,categories:snapshot.categories},{headers:{'Cache-Control':'private, no-store'}});
+    }
     if(params.get('summary')==='1'){
       if(!snapshot.role)return new Response(null,{status:403,headers:{'Cache-Control':'no-store'}});
       const {income,expense,balance}=financeTotals(snapshot);
