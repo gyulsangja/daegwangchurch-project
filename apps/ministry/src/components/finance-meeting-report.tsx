@@ -4,6 +4,7 @@ import { Fragment, useState } from 'react';
 import { financeTotals, type FinanceSnapshot } from '@daegwang/contracts/finance';
 
 const won = (value: number) => value.toLocaleString('ko-KR');
+const ratio=(actual:number,budget:number)=>budget ? (100*actual/budget).toLocaleString('ko-KR',{maximumFractionDigits:1})+'%' : '예산 미편성';
 const titles = { settlement: '세입·세출 결산서', budget: '세입·세출 예산안', journal: '현금거래 분개장' };
 type DocumentKind = keyof typeof titles;
 
@@ -53,16 +54,18 @@ export function MeetingReport({data,period,enabled,save,editAccounts,closeBooks,
       <tfoot><tr><th colSpan={2}>합계</th><td>{won(journalTotal)}</td><td></td><td>{won(journalTotal)}</td></tr></tfoot></table></div>
     </> : <>
       {budgetOnly ? <p>세입 예산 {won(incomeBudget)}원　·　세출 예산 {won(sums.budget)}원　·　차액 {won(incomeBudget-sums.budget)}원</p>
-      : <><p>{data.closed ? '마감 회계연도' : '회계연도 마감 전 집계'}</p><h3>수지 총괄</h3>
+      : <><p>{data.closed ? '마감 회계연도' : '회계연도 마감 전 집계'}</p><div className="finance-summary-pair">
+        {([{title:'세입 달성률',budget:incomeBudget,actual:sums.income},{title:'세출 집행률',budget:sums.budget,actual:sums.expense}]).map(item=><div key={item.title}><h3>{item.title}</h3><strong>{ratio(item.actual,item.budget)}</strong><p>기간 실적 {won(item.actual)}원 / 연간 {item.title==='세입 달성률'?'목표':'예산'} {won(item.budget)}원</p></div>)}</div>
+        <h3>수지 총괄</h3>
         <div className="finance-table"><table><thead><tr>{['기초 잔액','기간 세입','기간 세출','수지 차액','기말 잔액'].map(h => <th key={h}>{h}</th>)}</tr></thead>
         <tbody><tr>{[opening,sums.income,sums.expense,sums.income-sums.expense,sums.balance].map((n,i) => <td key={i}>{won(n)}</td>)}</tr></tbody></table></div></>}
       {(['INCOME','EXPENSE'] as const).map(type => {
         const rows = data.categories.filter(c => c.kind === type);
         const budget = rows.reduce((sum,c) => sum+c.budget,0);
         const actual = rows.reduce((sum,c) => sum+c.actual,0);
-        const values = (b:number,a:number) => <><td>{won(b)}</td>{!budgetOnly && <><td>{won(a)}</td><td>{won(type==='INCOME' ? a-b : b-a)}</td><td>{b ? (100*a/b).toFixed(1)+'%' : '—'}</td></>}</>;
+        const values = (b:number,a:number) => <><td>{won(b)}</td>{!budgetOnly && <><td>{won(a)}</td><td>{won(type==='INCOME' ? a-b : b-a)}</td><td>{ratio(a,b)}</td></>}</>;
         return <section key={type}><h3>{type==='INCOME' ? '세입' : '세출'} {budgetOnly ? '예산안' : '결산 명세'}</h3>
-          <div className="finance-table"><table><thead><tr><th>항목</th><th>연간 예산액</th>{budgetOnly&&data.role==='MANAGER'&&<th className="finance-no-print">편성</th>}{!budgetOnly && <><th>기간 결산액</th><th>{type==='INCOME' ? '예산 대비 증감' : '예산 잔액'}</th><th>예산 대비율</th></>}</tr></thead>
+          <div className="finance-table"><table><thead><tr><th>항목</th><th>{type==='INCOME'?'연간 세입 목표액':'연간 세출 예산액'}</th>{budgetOnly&&data.role==='MANAGER'&&<th className="finance-no-print">편성</th>}{!budgetOnly && <><th>기간 결산액</th><th>{type==='INCOME' ? '목표 대비 증감' : '예산 대비 차액'}</th><th>{type==='INCOME'?'세입 달성률':'세출 집행률'}</th></>}</tr></thead>
           <tbody>{groupedAccounts(rows).map(group=><Fragment key={group.name}><tr className="finance-group-total"><th scope="row">{group.name} 소계</th>{values(group.budget,group.actual)}{budgetOnly&&data.role==='MANAGER'&&<td className="finance-no-print"/>}</tr>{group.items.map(c=><Fragment key={c.id}><tr><th scope="row" className="finance-account-name">{c.name}{c.active===false?' (사용 중지)':''}</th>{values(c.budget,c.actual)}{budgetOnly&&data.role==='MANAGER'&&<td className="finance-no-print"><button type="button" className="button" disabled={!enabled} aria-label={c.name+' 예산 수정'} onClick={()=>setEditId(c.id)}>수정</button></td>}</tr>{editId===c.id&&budgetOnly&&data.role==='MANAGER'&&<tr className="finance-no-print"><td colSpan={3}><form className="finance-actions" onSubmit={async e=>{e.preventDefault();const f=new FormData(e.currentTarget);if(await save({action:'BUDGET_SAVE',categoryId:c.id,amount:Number(f.get('amount')),reason:f.get('reason')}))setEditId('')}}><label>{c.name} 연간 예산 · 원<input autoFocus required type="number" name="amount" min="0" max="1000000000000" defaultValue={c.budget}/></label><label>편성·추경 사유<input required name="reason" maxLength={300}/></label><button className="button primary" disabled={!enabled}>예산 저장</button><button type="button" className="button" onClick={()=>setEditId('')}>취소</button></form></td></tr>}</Fragment>)}</Fragment>)}</tbody><tfoot><tr><th>합계</th>{values(budget,actual)}</tr></tfoot></table></div></section>;
       })}
       {!budgetOnly && <><h3>계좌별 기말 잔액</h3><div className="finance-table"><table><thead><tr><th>계좌</th><th>잔액</th></tr></thead><tbody>{data.accounts.map(a => <tr key={a.id}><td>{a.name}</td><td>{won(a.balance)}</td></tr>)}</tbody><tfoot><tr><th>합계</th><td>{won(sums.balance)}</td></tr></tfoot></table></div></>}
