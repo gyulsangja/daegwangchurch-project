@@ -41,7 +41,9 @@ export function FinanceWorkspace({ministryUrl,initialData,initialError}:{ministr
   const menuToggle=useRef<HTMLButtonElement>(null);
   const [tab, setTab] = useState<Tab>('overview');
   const [period, setPeriod] = useState<Period | null>(null);
-  const range = annualTabs.includes(tab) ? null : period;
+  const [closingOpen, setClosingOpen] = useState(false);
+  const annualView = annualTabs.includes(tab) || (tab === 'budget' && closingOpen);
+  const range = annualView ? null : period;
   const periodQuery = range ? '&'+new URLSearchParams(range).toString() : '';
   const periodLabel = range ? range.start+' ~ '+range.end : year+'년 전체';
   const [reload, setReload] = useState(0);
@@ -135,13 +137,13 @@ export function FinanceWorkspace({ministryUrl,initialData,initialError}:{ministr
         <div className="finance-brand"><div><small>대한예수교장로회 대광교회</small><strong>재정 관리</strong></div>
           <button className="finance-menu-toggle" ref={menuToggle} aria-expanded={menuOpen} aria-controls="finance-navigation" onClick={()=>setMenuOpen(!menuOpen)}>{menuOpen?'메뉴 닫기':'재정 메뉴'}</button></div>
         <div id="finance-navigation" className={menuOpen?'finance-rail-body is-open':'finance-rail-body'} onKeyDown={e=>{if(e.key==='Escape'){setMenuOpen(false);menuToggle.current?.focus();}}}>
-          <nav className="finance-tabs" aria-label="재정 업무">{Array.from(new Set(visibleTabs.map(item=>item.group))).map(group=><div className="finance-nav-group" key={group}><p>{group}</p>{visibleTabs.filter(item=>item.group===group).map(item=><button key={item.id} disabled={busy || !!editing} aria-current={activeTab===item.id?'page':undefined} onClick={()=>{setTab(item.id);setReview(null);setMenuOpen(false);if(menuOpen)menuToggle.current?.focus();}}>{item.title}</button>)}</div>)}</nav>
+          <nav className="finance-tabs" aria-label="재정 업무">{Array.from(new Set(visibleTabs.map(item=>item.group))).map(group=><div className="finance-nav-group" key={group}><p>{group}</p>{visibleTabs.filter(item=>item.group===group).map(item=><button key={item.id} disabled={busy || !!editing} aria-current={activeTab===item.id?'page':undefined} onClick={()=>{setClosingOpen(false);setTab(item.id);setReview(null);setMenuOpen(false);if(menuOpen)menuToggle.current?.focus();}}>{item.title}</button>)}</div>)}</nav>
           <div className="finance-rail-links"><a href={ministryUrl}>목회시스템으로 돌아가기</a><LogoutButton/></div>
         </div>
       </aside>
       <div className="finance-content">
-    <header className="finance-command"><div><h1>{editing?workflows[flow].label:tabs.find(item=>item.id===activeTab)?.title??'재정 관리'}</h1>{data && <p className="finance-role">{data.role ? financeRoles[data.role] : '재정 권한 지정'} · {data.version ? data.closed ? '마감된 연도' : '장부 작성 중' : '회계연도 개설 전'}</p>}</div><div className="finance-command-filters"><label>회계연도<select value={year} disabled={busy || !!editing} onChange={event => { setPeriod(null); setYear(Number(event.target.value)); setData(null); setPage(0); setReview(null); }}>{Array.from(new Set([...(data?.years ?? []), ...Array.from({ length: Number(today().slice(0, 4)) + 6 - 2000 }, (_, index) => 2000 + index)])).sort((a, b) => b - a).map(value => <option key={value}>{value}</option>)}</select></label>{!editing&&data?.role&&!annualTabs.includes(activeTab)&&<PeriodPicker key={year} year={year} value={period} disabled={busy || !!editing} onChange={next=>{setPeriod(next);setReview(null);setPage(0);}}/>}</div></header>
-    {data?.role&&!annualTabs.includes(activeTab)&&<p className="finance-print-period">{periodLabel}</p>}
+    <header className="finance-command"><div><h1>{editing?workflows[flow].label:tabs.find(item=>item.id===activeTab)?.title??'재정 관리'}</h1>{data && <p className="finance-role">{data.role ? financeRoles[data.role] : '재정 권한 지정'} · {data.version ? data.closed ? '마감된 연도' : '장부 작성 중' : '회계연도 개설 전'}</p>}</div><div className="finance-command-filters"><label>회계연도<select value={year} disabled={busy || !!editing} onChange={event => { setPeriod(null); setYear(Number(event.target.value)); setData(null); setPage(0); setReview(null); }}>{Array.from(new Set([...(data?.years ?? []), ...Array.from({ length: Number(today().slice(0, 4)) + 6 - 2000 }, (_, index) => 2000 + index)])).sort((a, b) => b - a).map(value => <option key={value}>{value}</option>)}</select></label>{!editing&&data?.role&&!annualView&&<PeriodPicker key={year} year={year} value={period} disabled={busy || !!editing} onChange={next=>{setPeriod(next);setReview(null);setPage(0);}}/>}</div></header>
+    {data?.role&&!annualView&&<p className="finance-print-period">{periodLabel}</p>}
     {loading && <p role="status">재정 자료를 불러오는 중…</p>}
     {error && <div className="finance-error" role="alert"><p>{error}</p><button className="button" disabled={busy} onClick={() => setReload(value => value + 1)}>새로고침</button> <a href="/login?next=/finance">다시 로그인</a></div>}
     {notice&&<p role="status">{notice}</p>}
@@ -185,7 +187,8 @@ export function FinanceWorkspace({ministryUrl,initialData,initialError}:{ministr
         <div className="finance-actions finance-no-print">
           <button className="button" onClick={() => download([['구분', '항목', '연간 예산', '기간 집행', '연간 잔여'], ...data.categories.map(c => [kinds[c.kind], c.name, c.budget, c.actual, c.budget - (c.annualActual ?? c.actual)])], '예산결산')}>CSV 내려받기</button>
           {manager && <details className="finance-edit-panel finance-no-print"><summary>예산 편성·수정</summary><form className="finance-form finance-no-print" onSubmit={e => formAction(e, f => ({ action: 'BUDGET_SAVE', categoryId: f.get('categoryId'), amount: Number(f.get('amount')), reason: f.get('reason') }))}><label>예산 항목<select name="categoryId" required>{data.categories.map(c => <option key={c.id} value={c.id}>{kinds[c.kind]} · {c.name}</option>)}</select></label><label>연간 예산 · 원<input name="amount" type="number" step={1} min={0} max={1_000_000_000_000} required/></label><label>편성·추경 사유<input name="reason" maxLength={300} required/></label><button className="button primary" disabled={!enabled}>예산 저장</button></form></details>}
-          {manager && <details className="finance-edit-panel"><summary>월·연도 마감 관리</summary><div className="finance-columns"><MonthClose data={data} enabled={enabled} save={save}/><section className="panel detail-body"><h2>연도 마감</h2><p>전표와 계좌 잔액을 확인한 뒤 마감합니다. 마감하면 해당 연도의 입력이 잠깁니다.</p><form onSubmit={e => formAction(e, f => ({ action: data.closed ? 'YEAR_REOPEN' : 'YEAR_CLOSE', reason: f.get('reason') }))}><label>사유<input name="reason" maxLength={300} required/></label><button className="button" disabled={busy || !data.version}>{data.closed ? '마감 해제' : `${year}년 마감`}</button></form></section></div></details>}
+          {manager && <button className="button" aria-expanded={closingOpen} onClick={()=>setClosingOpen(!closingOpen)}>{closingOpen ? '마감 관리 닫기' : '월·연도 마감 관리'}</button>}
+          {manager && closingOpen && <div className="finance-columns"><MonthClose data={data} enabled={enabled} save={save}/><section className="panel detail-body"><h2>연도 마감</h2><p>전표와 계좌 잔액을 확인한 뒤 마감합니다. 마감하면 해당 연도의 입력이 잠깁니다.</p><form onSubmit={e => formAction(e, f => ({ action: data.closed ? 'YEAR_REOPEN' : 'YEAR_CLOSE', reason: f.get('reason') }))}><label>사유<input name="reason" maxLength={300} required/></label><button className="button" disabled={busy || !data.version}>{data.closed ? '마감 해제' : `${year}년 마감`}</button></form></section></div>}
         </div>
         <MeetingReport data={data} period={periodLabel}/>
       </>}
