@@ -40,7 +40,7 @@ export type FinanceRole = z.infer<typeof financeRole>;
 export type FinanceAccount = { id: string; name: string; opening: number; balance: number };
 export type FinanceCategory = { id: string; name: string; kind: 'INCOME' | 'EXPENSE'; offering: boolean; budget: number; actual: number; section?:string; active?:boolean; annualActual?: number };
 export type FinanceEntry = { id: string; date: string; kind: 'INCOME' | 'EXPENSE' | 'TRANSFER'; accountId: string; destinationId: string | null; categoryId: string | null; amount: number; memberId: string | null; party: string; memo: string; receipt: string; status: 'DRAFT' | 'POSTED' | 'VOID'; createdBy: string; approvedBy: string | null };
-export type PaperReceipt = { serial:string; description?:string; goods?:{quantity:number;unitPrice:number}|null; share?:boolean; voided?:boolean; id:string|null; memberId:string; name:string; date:string; issued:string; amount:number; issuer:{name:string;registration:string;address:string;legal_basis:string;gift_code:string;recipient?:string|null;seal?:string|null} };
+export type PaperReceipt = { serial:string; documentNo?:string; ledgerYear?:number; voidAt?:string; voidBy?:string; voidReason?:string; description?:string; goods?:{quantity:number;unitPrice:number}|null; share?:boolean; voided?:boolean; id:string|null; memberId:string; name:string; date:string; issued:string; amount:number; issuer:{name:string;registration:string;address:string;legal_basis:string;gift_code:string;recipient?:string|null;seal?:string|null} };
 export type FinanceSnapshot = {
   families?:{id:string;name:string;memberIds:string[]}[]; organizations?:string[];
   issuer?:PaperReceipt["issuer"]|null; paperEnabled?:boolean;receipts?:PaperReceipt[];

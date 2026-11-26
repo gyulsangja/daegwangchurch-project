@@ -19,6 +19,10 @@ export async function financeSnapshot(year: number, period?: {start:string; end:
   const { user, aal } = await financeSession();
   return accessQuery<FinanceSnapshot>(user.id, aal, 'SELECT finance.giving_workspace($1::integer,$2::date,$3::date) AS result',[year,period?.start??null,period?.end??null]);
 }
+export async function receiptRegister(year:number, byIssue:boolean) {
+  const {user,aal}=await financeSession();
+  return accessQuery<NonNullable<FinanceSnapshot['receipts']>>(user.id,aal,'SELECT finance.receipt_register($1,$2) AS result',[year,byIssue]);
+}
 export async function saveFinance(raw: Record<string, unknown>) {
   const { password, ...body } = raw;
   const input = financeCommand.parse(body);
@@ -33,7 +37,7 @@ export async function saveFinance(raw: Record<string, unknown>) {
       verified = true;
     } finally { await verifier.auth.signOut({ scope: 'local' }).catch(() => {}); }
   }
-  return accessQuery<{ saved: boolean }>(user.id, aal, ['ISSUER_SETUP','RECEIPT_SHARE','RECEIPT_CANCEL','RECEIPT_WRITE'].includes(input.action)?'SELECT finance.receipt_command($1::jsonb) AS result' : ['MONTH_CLOSE','MONTH_REOPEN','CATEGORY_CONFIG','ISSUE_PAPER'].includes(input.action) ? 'SELECT finance.manage($1::jsonb) AS result' : 'SELECT finance.command($1::jsonb) AS result', [JSON.stringify(input)], verified);
+  return accessQuery<{ saved: boolean }>(user.id, aal, ['ISSUER_SETUP','RECEIPT_SHARE','RECEIPT_CANCEL','RECEIPT_WRITE'].includes(input.action)?(input.action==='RECEIPT_CANCEL' ? 'SELECT finance.cancel_receipt($1::jsonb) AS result' : 'SELECT finance.receipt_command($1::jsonb) AS result') : ['MONTH_CLOSE','MONTH_REOPEN','CATEGORY_CONFIG','ISSUE_PAPER'].includes(input.action) ? 'SELECT finance.manage($1::jsonb) AS result' : 'SELECT finance.command($1::jsonb) AS result', [JSON.stringify(input)], verified);
 }
 export function financeError(error: unknown) {
   const message = error instanceof Error ? error.message : '';

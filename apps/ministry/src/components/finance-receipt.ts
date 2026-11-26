@@ -5,7 +5,7 @@ export function previewGiftForm(name:string,entries:ReceiptInput['entries'],rece
   const tab=window.open('about:blank','_blank');
   if(!tab)return false;
   tab.opener=null;
-  const doc=tab.document;doc.documentElement.lang='ko';doc.title=receipt?'기부금 영수증 '+receipt.serial:'기부금 영수증 검토용';
+  const doc=tab.document;doc.documentElement.lang='ko';doc.title=receipt?'기부금 영수증 '+(receipt.documentNo ?? receipt.serial):'기부금 영수증 검토용';
   function el<K extends keyof HTMLElementTagNameMap>(tag:K,text:string,parent:HTMLElement){
     const node=doc.createElement(tag);node.textContent=text;parent.append(node);return node;
   }

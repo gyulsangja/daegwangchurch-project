@@ -1,59 +1,38 @@
 'use client';
+import {useState} from 'react';
+import type {FinanceSnapshot} from '@daegwang/contracts/finance';
 
-import { previewGiftForm } from './finance-receipt';
-import { useState } from 'react';
-import type { FinanceSnapshot } from '@daegwang/contracts/finance';
+type Props={data:FinanceSnapshot;download:(rows:(string|number)[][],name:string)=>void};
+const labels={national:'소득세',local:'지방소득세',other:'기타 공제',activity:'비과세 종교활동비',exempt:'그 밖의 확인된 비과세액'};
+const empty={national:'',local:'',other:'',activity:'',exempt:''};
+const won=(n:number)=>n.toLocaleString('ko-KR')+'원';
 
-type Props = {
-  mode:'tax'|'payroll';
-  data: FinanceSnapshot;
-  save:(command:Record<string,unknown>)=>Promise<boolean>;
-  download: (rows: (string | number)[][], name: string) => void;
-};
-
-export function FinanceTax({ data, download, save, mode }: Props) {
-  const [popupError,setPopupError]=useState(false);
-  const [person, setPerson] = useState('');
-  const [issue,setIssue]=useState('');
-  const [payment, setPayment] = useState('');
-  const [incomeType, setIncomeType] = useState('');
-  const [national, setNational] = useState('');
-  const [local, setLocal] = useState('');
-  const [exempt, setExempt] = useState('');
-  const paid = data.entries.filter(e => e.status === 'POSTED');
-  const gifts = paid.filter(e => e.kind === 'INCOME' && person && e.memberId === person && data.categories.some(c => c.id === e.categoryId && c.offering));
-  const expenses = paid.filter(e => e.kind === 'EXPENSE');
-  const expense = expenses.find(e => e.id === payment);
-  const gross = (expense?.amount ?? 0) + Number(national) + Number(local);
-  return <section className="panel detail-body">
-    {mode==='tax' ? <><h2>기부금영수증 발급 검토</h2>
-    <p>교적에 연결된 승인 헌금을 확인하고, 공제 대상과 실제 기부자를 확인한 뒤 홈택스에서 발급하세요.</p>
-    <label>기부자 선택<select value={person} onChange={e => {setPerson(e.target.value);setIssue('');}}><option value="">교인 선택</option>{data.members.map(m => <option key={m.id} value={m.id}>{m.name} · {m.id.slice(-6)}</option>)}</select></label>
-    <p>확인 대상 {gifts.length}건 · {gifts.reduce((sum, e) => sum + e.amount, 0).toLocaleString()}원</p>
-    <button className="button" disabled={!gifts.length} onClick={() => download([['전표번호','기부자','기부일','헌금 항목','확인 대상 금액'], ...gifts.map(e => [e.id, data.members.find(m => m.id === person)!.name, e.date, data.categories.find(c => c.id === e.categoryId)!.name, e.amount])], '기부금발급검토')}>발급 검토표 내려받기</button>
-    <button className="button" disabled={!gifts.length} onClick={()=>setPopupError(!previewGiftForm(data.members.find(m=>m.id===person)!.name,gifts))}>정부 서식 미리보기·인쇄</button>
-    {popupError && <p role="alert">브라우저에서 팝업을 허용해 주세요.</p>}
-    <p>검토본에는 일련번호가 없습니다. 전자영수증 발급과 발급본 재출력은 홈택스에서 진행하세요.</p>
-    <a className="button" href="https://www.hometax.go.kr/" target="_blank" rel="noreferrer">홈택스 발급·재출력</a>
-    <h3>서면 발급 대장</h3>
-    {data.paperEnabled ? <form onSubmit={async e=>{e.preventDefault();if(issue && await save({action:'ISSUE_PAPER',id:issue}))setIssue('');}}>
-      <label>발급할 헌금 전표<select required value={issue} onChange={e=>setIssue(e.target.value)}><option value="">선택</option>{gifts.filter(g=>!data.receipts?.some(r=>r.id===g.id)).map(g=><option key={g.id} value={g.id}>{g.date} · {g.amount.toLocaleString()}원 · {g.id.slice(-6)}</option>)}</select></label>
-      <label><input key={issue} required type="checkbox"/> 실제 기부자와 공제 대상 여부, 홈택스 중복 발급 여부 확인</label><button className="button" disabled={!issue}>일련번호 발급</button></form> : <p>이 연도의 교회 발급 자격·고유번호·서면 발급 가능 여부를 확인하면 발급을 열 수 있습니다.</p>}
-    {data.receipts?.filter(r=>r.memberId===person).map(r=><p key={r.serial}>{r.issued} · 제{r.serial}호 · {r.amount.toLocaleString()}원 <button className="button" onClick={()=>setPopupError(!previewGiftForm(r.name,[r],r))}>발급본 인쇄·재인쇄</button></p>)}
-    </> : <><h2>목회자 사례비 지급 검토표</h2>
-    <p>실수령액으로 기록한 지출 전표를 선택하세요. 다른 공제가 없는 지급 건에 사용하며, 확인한 세액을 입력해 검토표를 내려받습니다.</p>
-    <form className="finance-form" onSubmit={e => {
-      e.preventDefault();
-      if (!expense || !incomeType || Number(exempt) > gross) return;
-      download([['전표번호','지급일','지급처','소득 구분','총지급액','확인된 비과세액','과세 대상 지급액','소득세','지방소득세','실수령액'], [expense.id, expense.date, expense.party, incomeType, gross, Number(exempt), gross - Number(exempt), Number(national), Number(local), expense.amount]], '사례비지급검토');
+export function FinanceTax({data,download}:Props){
+  const [id,setId]=useState(''),[basis,setBasis]=useState('net'),[type,setType]=useState(''),[name,setName]=useState(''),[source,setSource]=useState(''),[month,setMonth]=useState('');
+  const [fields,setFields]=useState(empty);
+  const expenses=data.entries.filter(e=>e.status==='POSTED'&&e.kind==='EXPENSE');
+  const entry=expenses.find(e=>e.id===id);
+  const withheld=Number(fields.national)+Number(fields.local)+Number(fields.other);
+  const exempt=Number(fields.activity)+Number(fields.exempt);
+  const gross=(entry?.amount??0)+(basis==='net'?withheld:0);
+  const net=gross-withheld;
+  const valid=!!entry&&net>=0&&exempt<=gross;
+  return <section className="panel detail-body"><h2>목회자 사례비 지급 검토표</h2>
+    <form className="finance-form" onSubmit={e=>{e.preventDefault();if(!valid||!entry)return;
+      download([['전표번호','귀속월','지급일','수령인','소득 구분','전표 금액 기준','총지급액','종교활동비(비과세)','기타 비과세','과세 대상 지급액','소득세','지방소득세','기타 공제','실수령액','증빙번호','비과세·공제 근거'],
+        [entry.id,month,entry.date,name,type,basis==='net'?'실수령액':'총지급액',gross,Number(fields.activity),Number(fields.exempt),gross-exempt,Number(fields.national),Number(fields.local),Number(fields.other),net,entry.receipt,source]],'목회자사례비-지급검토표');
     }}>
-      <label>실지급 전표<select required value={payment} onChange={e => {setPayment(e.target.value);setNational('');setLocal('');setExempt('');setIncomeType('');}}><option value="">지출 선택</option>{expenses.map(e => <option key={e.id} value={e.id}>{e.date} · {e.party} · {e.amount.toLocaleString()}원 · {e.id.slice(-6)}</option>)}</select></label>
-      <label>소득 구분<select required value={incomeType} onChange={e => setIncomeType(e.target.value)}><option value="">선택</option><option>기타소득(종교인소득)</option><option>근로소득</option></select></label>
-      <label>원천징수 소득세<input required type="number" min="0" max="1000000000000" value={national} onChange={e => setNational(e.target.value)}/></label>
-      <label>지방소득세<input required type="number" min="0" max="1000000000000" value={local} onChange={e => setLocal(e.target.value)}/></label>
-      <label>요건을 확인한 비과세액<input required type="number" min="0" max={gross} value={exempt} onChange={e => setExempt(e.target.value)}/></label>
-      <button className="button" disabled={!expense}>지급 검토표 내려받기</button>
+      <label>지출 전표<select required value={id} onChange={e=>{const row=expenses.find(x=>x.id===e.target.value);setId(e.target.value);setFields(empty);setName(row?.party??'');setMonth(row?.date.slice(0,7)??'');setSource('');setBasis('net');setType('')}}><option value="">전표 선택</option>{expenses.map(e=><option key={e.id} value={e.id}>{e.date} · {e.party||e.memo} · {won(e.amount)}</option>)}</select></label>
+      <label>전표 금액 기준<select value={basis} onChange={e=>setBasis(e.target.value)}><option value="net">공제 후 실수령액</option><option value="gross">공제 전 총지급액</option></select></label>
+      <label>지급 대상자<input required maxLength={100} value={name} onChange={e=>setName(e.target.value)}/></label>
+      <label>귀속월<input type="month" required value={month} onChange={e=>setMonth(e.target.value)}/></label>
+      <label>소득 구분<select required value={type} onChange={e=>setType(e.target.value)}><option value="">선택</option><option>기타소득(종교인소득)</option><option>근로소득</option></select></label>
+      {(Object.keys(labels) as (keyof typeof labels)[]).map(k=><label key={k}>{labels[k]} · 원<input type="number" min="0" max="1000000000000" step="1" placeholder="0" value={fields[k]} onChange={e=>setFields({...fields,[k]:e.target.value})}/></label>)}
+      <label>비과세·기타 공제 근거<input required={exempt>0||Number(fields.other)>0} maxLength={300} placeholder="예: 지급 기준 의결일·증빙번호" value={source} onChange={e=>setSource(e.target.value)}/></label>
+      {entry&&<p className="finance-wide" role="status">{valid?'총지급 '+won(gross)+' · 과세 대상 '+won(gross-exempt)+' · 실수령 '+won(net):'비과세액 또는 총 공제액이 지급액을 초과합니다.'}</p>}
+      <button className="button" disabled={!valid}>지급 검토표 CSV 저장</button>
     </form>
-    <a href="https://nts.go.kr/nts/cm/cntnts/cntntsView.do?cntntsId=238899&amp;mi=40170">국세청 지급명세서 서식 안내</a>
-  </>}</section>;
+    <p>확인된 세액과 공제액을 입력하세요. 지급 검토표는 내려받은 파일에 보관됩니다. 종교활동비는 교회 지급 기준과 실제 용도를 확인해 구분하세요.</p>
+    <p>종교인소득 지급명세서의 일반 제출 기한은 지급한 해의 다음 해 3월 10일입니다. 소득 구분과 원천징수·연말정산 방식에 따라 제출할 서식을 확인하세요. <a href="https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?cntntsId=7702&amp;mi=2433">국세청 원천징수·연말정산 안내</a></p>
+  </section>;
 }

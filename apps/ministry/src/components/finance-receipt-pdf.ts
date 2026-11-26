@@ -20,7 +20,7 @@ export async function createReceiptPdf(input:ReceiptInput, number='', address=''
   const digits=await pdf.embedFont(StandardFonts.Helvetica);
   const {receipt,name}=input, org=receipt?.issuer??input.issuer;
   const stamp=receipt&&org?.seal?await pdf.embedPng(org.seal):null;
-  pdf.setTitle(receipt?'기부금 영수증 '+receipt.serial:'기부금 영수증 검토용');
+  pdf.setTitle(receipt?'기부금 영수증 '+(receipt.documentNo ?? receipt.serial):'기부금 영수증 검토용');
   // Field bounds in PDF points measured on the unaltered 595 × 841 point government form.
   function field(page:PDFPage,value:string|undefined,x:number,top:number,width:number,height=17,align:'left'|'center'|'right'='left',singleLine=false){
     const text=value?.trim();if(!text)return;
@@ -40,7 +40,7 @@ export async function createReceiptPdf(input:ReceiptInput, number='', address=''
   for(let i=0;i<entries.length;i+=6){
     const [page]=await pdf.copyPages(source,[0]);pdf.addPage(page);
     if(!receipt)page.drawText('검토용 · 미발급',{x:412,y:745,size:11,font,color:rgb(.48,.15,.1)});
-    field(page,receipt?.serial,120,80,51,19,'center');
+    field(page,receipt?.documentNo ?? receipt?.serial,120,80,51,19,'center',true);
     field(page,name,124,148,138,28);field(page,number.replace(/^(\d{6})-?(\d{7})$/,'$1-$2'),353,148,195,28);
     field(page,address,123,177,427,30);
     field(page,org?.name,103,239,239,17);field(page,org?.registration,472,239,82,17);
@@ -65,7 +65,7 @@ export async function createReceiptPdf(input:ReceiptInput, number='', address=''
   const notes=entries.filter(v=>!v.goods&&v.description);
   if(notes.length){let annex=pdf.addPage([595,841]);let top=56;
     for(const item of notes){if(top>745){annex=pdf.addPage([595,841]);top=56;}
-      if(top===56){field(annex,receipt?'기부 명세 · 제'+receipt.serial+'호':'기부 명세 · 검토용',58,top,490);top+=34;}
+      if(top===56){field(annex,receipt?'기부 명세 · 제'+(receipt.documentNo ?? receipt.serial)+'호':'기부 명세 · 검토용',58,top,490);top+=34;}
       field(annex,item.date+'　'+item.description+'　'+won(item.amount)+'원',58,top,490,40);top+=44;
     }
   }

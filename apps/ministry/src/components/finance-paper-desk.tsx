@@ -1,6 +1,7 @@
 'use client';
 import {useState} from 'react';
 import type {FinanceEntry,FinanceSnapshot} from '@daegwang/contracts/finance';
+import {ReceiptRegister} from './finance-receipt-register';
 import {IssuerForm} from './finance-issuer';
 import {previewGiftForm} from './finance-receipt';
 
@@ -27,7 +28,7 @@ export function PaperDesk({data,save}:Props){
  const members=family?data.members.filter(m=>data.families?.find(f=>f.id===family)?.memberIds.includes(m.id)):data.members;
  const [outside,setOutside]=useState('');
  const name=person==='__external'?outside.trim():data.members.find(m=>m.id===person)?.name;
- const [serial,setSerial]=useState('');
+
  return <section className="panel detail-body"><h2>서면 기부금영수증</h2>
  <div className="finance-view-switch" aria-label="영수증 업무">{([['write','영수증 작성'],['list','발급 대장'],['issuer','교회 발급 정보']] as const).map(([key,label])=><button key={key} className="button" aria-pressed={key===view} onClick={()=>setView(key)}>{label}</button>)}</div>
  {view==='issuer' && <><h3>{data.year}년 교회 발급 정보</h3>
@@ -46,7 +47,5 @@ export function PaperDesk({data,save}:Props){
  <p>가족 공동 헌금은 각자가 낸 금액만 발급하세요. 조직 자체의 헌금을 개인 명의로 발급할 수 없습니다. 주민등록번호와 주소는 인쇄 창에서 입력하세요.</p>
  <button type="button" className="button" disabled={!name||!description.trim()||!date.startsWith(data.year+'-')||!Number.isSafeInteger(total)||total<=0||total>1e12} onClick={()=>{if(name&&!previewGiftForm(name,[{date,amount:total,description,goods}],undefined,data.issuer??undefined))setMsg('팝업을 허용해 주세요.');}}>서식 미리보기</button>
  <button className="button primary" disabled={!name||!data.paperEnabled}>개인 영수증 발급</button></form></>}
- {view==='list' && <><h3>발급 대장 · {data.year}년</h3>{!receipts.length&&<p>발급한 영수증이 없습니다.</p>}{receipts.map(r=><div className="finance-line" key={r.serial}><span>제{r.serial}호 · {r.name} · {r.amount.toLocaleString()}원 · {r.voided?'취소':'발급'}</span>{!r.voided&&<div><button className="button" onClick={()=>{if(!previewGiftForm(r.name,[r],r))setMsg('팝업을 허용해 주세요.');}}>인쇄·재인쇄</button>{r.share&&<button className="button" onClick={()=>setSerial(r.serial)}>취소·정정</button>}</div>}</div>)}
- {serial&&<form onSubmit={async e=>{e.preventDefault();const f=new FormData(e.currentTarget);if(await save({action:'RECEIPT_CANCEL',serial,reason:f.get('reason')}))setSerial('');}}><label>제{serial}호 취소 사유<input required maxLength={300} name="reason"/></label><p>기존 발급본을 회수하거나 취소를 안내하고, 정정분은 새 번호로 발급하세요.</p><button className="button">취소 확정</button><button type="button" className="button" onClick={()=>setSerial('')}>닫기</button></form>}
- </>}<p role="status">{msg}</p></section>;
+ {view==='list'&&<ReceiptRegister year={data.year} version={data.version} save={save}/>}<p role="status">{msg}</p></section>;
 }

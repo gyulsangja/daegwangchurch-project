@@ -31,6 +31,7 @@ async function fixture() {
   await db.exec(readFileSync('packages/database/ministry/013_month_categories.sql','utf8'));
   await db.exec(readFileSync('packages/database/ministry/014_giving_receipts.sql','utf8'));
   await db.exec(readFileSync('packages/database/ministry/015_direct_finance.sql','utf8'));
+  await db.exec(readFileSync('packages/database/ministry/016_receipt_register.sql','utf8'));
   await db.exec('SET ROLE daegwang_ministry_runtime');
   const as = async (user = manager, church = 'one', verified = true) => {
     await db.query("SELECT set_config('ministry.user_id',$1,false),set_config('ministry.church_id',$2,false),set_config('ministry.aal','aal1',false),set_config('ministry.reauthenticated',$3,false)", [user, church, String(verified)]);
@@ -123,7 +124,7 @@ test('finance postings, budgets, transfers, close and carry preserve balances an
     await manage('CATEGORY_CONFIG',{kind:'INCOME',id:income.id,name:income.name,offering:true,section:'헌금',active:false});
     await assert.rejects(f.write({...entry,id:randomUUID()}),/CATEGORY_INACTIVE/);
     await assert.rejects(manage('ISSUE_PAPER',{id:entry.id}),/PAPER_DISABLED/);
-    const receipt=async(action:string,fields:Record<string,unknown>)=>f.db.query('select finance.receipt_command($1::jsonb)',[JSON.stringify({action,requestId:randomUUID(),year:2026,version:(await f.read()).version,reason:'가상 확인',...fields})]);
+    const receipt=async(action:string,fields:Record<string,unknown>)=>f.db.query(action==='RECEIPT_CANCEL'?'select finance.cancel_receipt($1::jsonb)':'select finance.receipt_command($1::jsonb)',[JSON.stringify({action,requestId:randomUUID(),year:2026,version:(await f.read()).version,reason:'가상 확인',...fields})]);
     await receipt('ISSUER_SETUP',{name:'가상',address:'가상 주소',registration:'0000000000',legalBasis:'가상 근거',giftCode:'41',confirmed:true});
     const manual={id:null,memberId:null,donorName:'가상 기부자',amount:1100,date:'2026-03-05',description:'수기 장부 기부',reason:'가상 대조'};
     await assert.rejects(receipt('RECEIPT_WRITE',{...manual,date:'2025-03-05'}),/FINANCE_INVALID/);
@@ -147,7 +148,7 @@ test('finance postings, budgets, transfers, close and carry preserve balances an
     await assert.rejects(receipt('RECEIPT_SHARE',{id:entry.id,amount:501,memberId:'member1'}),/SHARE_AMOUNT/);
     await assert.rejects(manage('ISSUE_PAPER',{id:entry.id}),/RECEIPT_ISSUED/);
     const desk=async()=>(await f.db.query<{s:FinanceSnapshot}>('select finance.giving_workspace(2026,null,null) s')).rows[0].s;
-    const first=(await desk()).receipts![0];assert.equal(first.amount,300);
+    const first=(await desk()).receipts![0];assert.equal(first.amount,300);assert.match(first.documentNo!,/^\d{4}-\d{5,}$/);
     await f.as(writer);await assert.rejects(receipt('RECEIPT_CANCEL',{serial:first.serial}),/FINANCE_FORBIDDEN/);
     assert.equal((await desk()).receipts,undefined);await f.as();
     await receipt('RECEIPT_CANCEL',{serial:first.serial});assert.equal((await desk()).receipts![0].voided,true);
@@ -157,9 +158,15 @@ test('finance postings, budgets, transfers, close and carry preserve balances an
     await assert.rejects(f.write({action:'ENTRY_VOID',id:entry.id,reason:'검증'}),/RECEIPT_ISSUED/);
     const issued=(await f.db.query<{s:FinanceSnapshot}>('select finance.workspace(2026,null,null) s')).rows[0].s.receipts!;
     assert.equal(issued.length,1);assert.equal(issued[0].amount,800);assert.equal(issued[0].id,entry.id);
+    await receipt('RECEIPT_CANCEL',{serial:issued[0].serial});
+    const registry=(await f.db.query<{r:NonNullable<FinanceSnapshot['receipts']>}>('select finance.receipt_register(2026,false) r')).rows[0].r;
+    assert.equal(registry.find(r=>r.serial===issued[0].serial)?.voidBy,manager);
+    assert.ok(registry.find(r=>r.serial===first.serial)?.voidAt);
+    assert.ok(registry.every(r=>r.documentNo));
     await f.as(reporter);
     assert.equal((await f.db.query<{s:FinanceSnapshot}>('select finance.workspace(2026,null,null) s')).rows[0].s.receipts,undefined);
     const period = async (start:string,end:string) => (await f.db.query<{s:FinanceSnapshot}>('select finance.read_period(2026,$1,$2) s',[start,end])).rows[0].s;
+    await assert.rejects(f.db.query('select finance.receipt_register(2026,true)'),/FINANCE_FORBIDDEN/);
     const october = await period('2026-10-01','2026-10-31');
     assert.equal(financeTotals(october).balance,1000);
     assert.equal(financeTotals(october).income,0);
