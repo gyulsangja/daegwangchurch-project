@@ -1,3 +1,6 @@
+import {headers} from 'next/headers';
+import {financeHref,financeTab} from '@/lib/finance-routes';
+import {financeHost} from '@/lib/church-domains';
 import { redirect } from 'next/navigation';
 import { financeSession } from '@/lib/finance';
 import { operationalEnabled } from '@/lib/operational-config';
@@ -10,7 +13,11 @@ export default async function FinanceLayout({ children }: { children: React.Reac
     try {
       await financeSession();
     } catch (error) {
-      if (error instanceof Error && error.message === 'MINISTRY_LOGIN_REQUIRED') redirect('/login?next=/finance');
+      if (error instanceof Error && error.message === 'MINISTRY_LOGIN_REQUIRED') {
+        const h=await headers();
+        const next=financeHref(financeTab(h.get('x-ministry-path')??'')??'overview',h.get('host')===financeHost);
+        redirect('/login?next='+encodeURIComponent(next));
+      }
       if (error instanceof Error && error.message === 'MINISTRY_MFA_REQUIRED') redirect('/account/security');
       throw error;
     }

@@ -1,6 +1,7 @@
 import {NextResponse,type NextRequest} from 'next/server';
 import {createServerClient} from '@supabase/ssr';
 import {operationalEnabled,operationalOrigin} from './lib/operational-config';
+import {financeTab,financeHref} from './lib/finance-routes';
 import {customDestination,financeHost,ministryHost} from './lib/church-domains';
 export async function proxy(request:NextRequest){
  let rewrite:URL|undefined;
@@ -13,6 +14,11 @@ export async function proxy(request:NextRequest){
    if(path==='/forgot-password'||path==='/invite'){
      const canonical=new URL(operationalOrigin());
      if(host!==canonical.host){canonical.pathname=path;canonical.search=request.nextUrl.search;return NextResponse.redirect(canonical);}
+   }
+   const tab=financeTab(path);
+   if(host===financeHost&&tab&&path!=='/'&&!path.startsWith('/finance')){
+     rewrite=new URL(request.url);rewrite.pathname=financeHref(tab,false);
+     requestHeaders.set('x-ministry-path',rewrite.pathname);
    }
    const next=customDestination(host,path,request.nextUrl.search);
    if(next){
@@ -29,8 +35,9 @@ export async function proxy(request:NextRequest){
  const client=createServerClient(url,key,{cookieOptions:{name:'ministry-auth',httpOnly:true,sameSite:'lax',secure:process.env.NODE_ENV==='production'},cookies:{getAll:()=>request.cookies.getAll(),setAll(values){for(const {name,value} of values)request.cookies.set(name,value);const forwarded=new Headers(request.headers);forwarded.set('x-ministry-path',rewrite?.pathname??request.nextUrl.pathname);response=forward(forwarded);for(const {name,value,options} of values)response.cookies.set(name,value,options);}}});
  // Refresh expiring cookies only. Protected layouts and APIs verify the user and MFA.
  const session=await client.auth.getSession();
- if(!session.error&&!session.data.session&&host===financeHost&&requestHeaders.get('x-ministry-path')==='/finance'&&['GET','HEAD'].includes(request.method)){
+ if(!session.error&&!session.data.session&&host===financeHost&&!!financeTab(requestHeaders.get('x-ministry-path')??'')&&['GET','HEAD'].includes(request.method)){
    const login=new URL('/login?next=/finance','https://'+financeHost);
+   if(request.nextUrl.pathname!=='/')login.searchParams.set('next',request.nextUrl.pathname);
    const redirect=NextResponse.redirect(login);
    for(const cookie of response.cookies.getAll())redirect.cookies.set(cookie);
    redirect.headers.set('Cache-Control','private, no-store');return redirect;

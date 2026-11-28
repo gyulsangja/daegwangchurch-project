@@ -1,5 +1,6 @@
 'use client';
 
+import {financeHref,financeTab} from '../lib/finance-routes';
 import {MoneyAccounts} from './finance-money-accounts';
 import {RepeatPayment} from './finance-repeat-payment';
 import { PeriodPicker, type Period } from './finance-period';
@@ -38,12 +39,22 @@ type Tab = typeof tabs[number]['id'];
 const annualTabs:readonly Tab[]=['audit','accounts','categories','access'];
 const actionLabels: Record<string,string>={COMMITTEE_ARCHIVE:'위원회 자료 보존',ENTRY_RECORD:'거래 즉시 반영',RECEIPT_WRITE:'서면 영수증 발급',ENTRY_SAVE:'전표 작성·수정',ENTRY_POST:'전표 승인',ENTRY_VOID:'전표 취소',YEAR_CREATE:'회계연도 개설',YEAR_CLOSE:'연도 마감',YEAR_REOPEN:'연도 마감 해제',MONTH_CLOSE:'월 마감',MONTH_REOPEN:'월 마감 해제',CATEGORY_CONFIG:'항목 설정',CATEGORY_SAVE:'항목 저장',ACCOUNT_SAVE:'계좌 저장',ACCESS_SAVE:'권한 변경',ADMIN_PROVISION:'최초 권한 지정',ISSUER_SETUP:'발급 단체 설정',RECEIPT_SHARE:'개인 영수증 발급',RECEIPT_CANCEL:'영수증 취소',ISSUE_PAPER:'영수증 발급',BUDGET_SAVE:'예산 변경'};
 
-export function FinanceWorkspace({ministryUrl,initialData,initialError}:{ministryUrl:string;initialData?:FinanceSnapshot;initialError?:string}) {
+export function FinanceWorkspace({ministryUrl,initialTab='overview',customHost=false,initialData,initialError}:{ministryUrl:string;initialTab?:Tab;customHost?:boolean;initialData?:FinanceSnapshot;initialError?:string}) {
   const [year, setYear] = useState(initialData?.year??Number(today().slice(0, 4)));
   const [data, setData] = useState<FinanceSnapshot | null>(initialData??null);
   const [menuOpen,setMenuOpen]=useState(false);
   const menuToggle=useRef<HTMLButtonElement>(null);
-  const [tab, setTab] = useState<Tab>('overview');
+  const [tab, showTab] = useState<Tab>(initialTab);
+  function setTab(next:Tab){
+    const href=financeHref(next,customHost);
+    if(window.location.pathname!==href)window.history.pushState(null,'',href);
+    showTab(next);
+  }
+  useEffect(()=>{
+    const restore=()=>{showTab(financeTab(window.location.pathname)??'overview');setMenuOpen(false);setEditing(null);setClosingOpen(false);setReview(null);};
+    window.addEventListener('popstate',restore);
+    return ()=>window.removeEventListener('popstate',restore);
+  },[]);
   const [period, setPeriod] = useState<Period | null>(null);
   const [closeLevel,setCloseLevel]=useState<'month'|'year'>('month');
   const [closingOpen, setClosingOpen] = useState(false);
@@ -149,7 +160,7 @@ export function FinanceWorkspace({ministryUrl,initialData,initialError}:{ministr
         <div className="finance-brand"><div><small>대한예수교장로회 대광교회</small><strong>재정 관리</strong></div>
           <button className="finance-menu-toggle" ref={menuToggle} aria-expanded={menuOpen} aria-controls="finance-navigation" onClick={()=>setMenuOpen(!menuOpen)}>{menuOpen?'메뉴 닫기':'재정 메뉴'}</button></div>
         <div id="finance-navigation" className={menuOpen?'finance-rail-body is-open':'finance-rail-body'} onKeyDown={e=>{if(e.key==='Escape'){setMenuOpen(false);menuToggle.current?.focus();}}}>
-          <nav className="finance-tabs" aria-label="재정 업무">{Array.from(new Set(visibleTabs.map(item=>item.group))).map(group=><div className="finance-nav-group" key={group}><p>{group}</p>{visibleTabs.filter(item=>item.group===group).map(item=><button key={item.id} disabled={busy || !!editing} aria-current={activeTab===item.id?'page':undefined} onClick={()=>{setClosingOpen(false);setTab(item.id);setReview(null);setMenuOpen(false);if(menuOpen)menuToggle.current?.focus();}}>{item.title}</button>)}</div>)}</nav>
+          <nav className="finance-tabs" aria-label="재정 업무">{Array.from(new Set(visibleTabs.map(item=>item.group))).map(group=><div className="finance-nav-group" key={group}><p>{group}</p>{visibleTabs.filter(item=>item.group===group).map(item=><a key={item.id} href={financeHref(item.id,customHost)} aria-disabled={busy || !!editing} aria-current={activeTab===item.id?'page':undefined} onClick={e=>{if(busy||editing){e.preventDefault();return;}if(e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;e.preventDefault();setClosingOpen(false);setTab(item.id);setReview(null);setMenuOpen(false);if(menuOpen)menuToggle.current?.focus();}}>{item.title}</a>)}</div>)}</nav>
           <div className="finance-rail-links"><a href={ministryUrl}>목회시스템으로 돌아가기</a><LogoutButton/></div>
         </div>
       </aside>
@@ -157,7 +168,8 @@ export function FinanceWorkspace({ministryUrl,initialData,initialError}:{ministr
     <header className="finance-command"><div><h1>{editing?workflows[flow].label:tabs.find(item=>item.id===activeTab)?.title??'재정 관리'}</h1>{data && <p className="finance-role">{data.role ? financeRoles[data.role] : '재정 권한 지정'} · {data.version ? data.closed ? '마감된 연도' : '장부 작성 중' : '회계연도 개설 전'}</p>}</div><div className="finance-command-filters"><label>회계연도<select value={year} disabled={busy || !!editing} onChange={event => { setAccountFilter('ALL');setStatement('');setPeriod(null); setYear(Number(event.target.value)); setData(null); setPage(0); setReview(null); }}>{Array.from(new Set([...(data?.years ?? []), ...Array.from({ length: Number(today().slice(0, 4)) + 6 - 2000 }, (_, index) => 2000 + index)])).sort((a, b) => b - a).map(value => <option key={value}>{value}</option>)}</select></label>{!editing&&data?.role&&!annualView&&<PeriodPicker key={year} year={year} value={period} disabled={busy || !!editing} onChange={next=>{setStatement('');setPeriod(next);setReview(null);setPage(0);}}/>}</div></header>
     {data?.role&&!annualView&&<p className="finance-print-period">{periodLabel}</p>}
     {loading && <p role="status">재정 자료를 불러오는 중…</p>}
-    {error && <div className="finance-error" role="alert"><p>{error}</p><button className="button" disabled={busy} onClick={() => setReload(value => value + 1)}>새로고침</button> <a href="/login?next=/finance">다시 로그인</a></div>}
+    {error && <div className="finance-error" role="alert"><p>{error}</p><button className="button" disabled={busy} onClick={() => setReload(value => value + 1)}>새로고침</button> <a href={'/login?next='+encodeURIComponent(financeHref(tab,customHost))}>다시 로그인</a></div>}
+    {data && !visibleTabs.some(item=>item.id===activeTab) && <p role="alert">이 메뉴를 열람할 재정 권한이 없습니다.</p>}
     {notice&&<p role="status">{notice}</p>}
     {data && loadedKey.current===String(year)+periodQuery && <>
       {data.role && !data.version && <div className="panel detail-body"><h2>{year}년 장부를 시작하세요</h2><p>재정 책임자가 회계연도를 개설하고 입출금 계좌의 기초잔액을 입력하면 기록할 수 있습니다.</p>{manager && <form onSubmit={e => formAction(e, f => ({ action: 'YEAR_CREATE', carry: f.get('carry') === 'on' }))}><label className="check"><input type="checkbox" name="carry" defaultChecked={data.years.includes(year-1)}/>전년도 마감 잔액·항목·예산을 이어받기</label><button className="button primary" disabled={busy}>회계연도 개설</button></form>}</div>}
