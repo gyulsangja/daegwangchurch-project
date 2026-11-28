@@ -82,3 +82,7 @@
   .giving-mobile-list li{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}
   .finance-form{grid-template-columns:minmax(0,1fr)}
 }
+.audit-day{margin:1.25rem 0 .35rem;color:#40594c;font-size:1rem}
+.audit-event{display:grid;grid-template-columns:3.5rem minmax(0,1fr);gap:.6rem;padding:.65rem 0;border-bottom:1px solid var(--border)}
+.audit-event time{font-variant-numeric:tabular-nums;color:#495d52}
+.audit-event p{margin:.2rem 0 0;white-space:pre-wrap;overflow-wrap:anywhere}

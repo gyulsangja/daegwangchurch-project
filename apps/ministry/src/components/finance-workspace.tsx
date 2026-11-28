@@ -1,6 +1,7 @@
 'use client';
 
 import {financeHref,financeTab} from '../lib/finance-routes';
+import {FinanceAudit} from './finance-audit';
 import {MoneyAccounts} from './finance-money-accounts';
 import {RepeatPayment} from './finance-repeat-payment';
 import { PeriodPicker, type Period } from './finance-period';
@@ -30,14 +31,14 @@ const tabs = [
   {id:'tax', title:'기부금영수증', group:'헌금·세무'},
   {id:'payroll', title:'목회자 사례비', group:'헌금·세무'},
   {id:'budget', title:'예산·결산', group:'장부'},
-  {id:'audit', title:'처리 이력', group:'재정 설정'},
   {id:'accounts', title:'통장·현금 관리', group:'재정 설정'},
   {id:'categories', title:'계정과목·헌금 종류', group:'재정 설정'},
   {id:'access', title:'사용자 권한', group:'재정 설정'},
+  {id:'audit', title:'처리 이력', group:'재정 설정'},
 ] as const;
 type Tab = typeof tabs[number]['id'];
 const annualTabs:readonly Tab[]=['audit','accounts','categories','access'];
-const actionLabels: Record<string,string>={COMMITTEE_ARCHIVE:'위원회 자료 보존',ENTRY_RECORD:'거래 즉시 반영',RECEIPT_WRITE:'서면 영수증 발급',ENTRY_SAVE:'전표 작성·수정',ENTRY_POST:'전표 승인',ENTRY_VOID:'전표 취소',YEAR_CREATE:'회계연도 개설',YEAR_CLOSE:'연도 마감',YEAR_REOPEN:'연도 마감 해제',MONTH_CLOSE:'월 마감',MONTH_REOPEN:'월 마감 해제',CATEGORY_CONFIG:'항목 설정',CATEGORY_SAVE:'항목 저장',ACCOUNT_SAVE:'계좌 저장',ACCESS_SAVE:'권한 변경',ADMIN_PROVISION:'최초 권한 지정',ISSUER_SETUP:'발급 단체 설정',RECEIPT_SHARE:'개인 영수증 발급',RECEIPT_CANCEL:'영수증 취소',ISSUE_PAPER:'영수증 발급',BUDGET_SAVE:'예산 변경'};
+
 
 export function FinanceWorkspace({ministryUrl,initialTab='overview',customHost=false,initialData,initialError}:{ministryUrl:string;initialTab?:Tab;customHost?:boolean;initialData?:FinanceSnapshot;initialError?:string}) {
   const [year, setYear] = useState(initialData?.year??Number(today().slice(0, 4)));
@@ -222,7 +223,7 @@ export function FinanceWorkspace({ministryUrl,initialTab='overview',customHost=f
       </section> : <MeetingReport key={year} data={data} period={periodLabel} range={range} enabled={enabled} save={save} editAccounts={()=>setTab('categories')} closeBooks={()=>{setCloseLevel('month');setClosingOpen(true)}} download={download}/> )}
       {activeTab==='accounts' && manager && <MoneyAccounts data={data} enabled={enabled} save={save}/>}
       {activeTab==='categories' && manager && <CategoryEditor data={data} enabled={enabled} save={save}/>}
-      {activeTab==='audit' && (manager || data.role==='AUDITOR') && <section className="panel detail-body"><h2>최근 처리 이력</h2>{!data.events.length && <p>기록된 변경이 없습니다.</p>}<ul>{data.events.map((event, index) => <li key={index}>{new Date(event.at).toLocaleString('ko-KR')} · {actionLabels[event.action] ?? event.action}<small>{event.reason}</small></li>)}</ul></section>}
+      {activeTab==='audit' && (manager || data.role==='AUDITOR') && <FinanceAudit key={year} events={data.events}/>}
       {activeTab === 'access' && data.canManageAccess && <section className="panel detail-body"><h2>재정 접근 권한</h2><p>기존 가입 계정의 이메일로 권한을 지정합니다. 헌금자별 내역은 재정 책임자·입력 담당·감사만 열람합니다. 결산 요약 역할에는 개인별 내역이 제공되지 않습니다.</p><div className="finance-table"><table><thead><tr><th>계정</th><th>역할</th><th>상태</th></tr></thead><tbody>{data.grants.map(g => <tr key={g.email}><td>{g.email}</td><td>{financeRoles[g.role]}</td><td>{g.active ? '사용' : '중지'}</td></tr>)}</tbody></table></div><details className="finance-edit-panel finance-no-print"><summary>사용자 권한 설정</summary><form className="finance-form" onSubmit={e => formAction(e, f => { const email = String(f.get('email')).trim().toLowerCase(); return { action: 'ACCESS_SAVE', email, role: f.get('role'), active: f.get('active') === 'true', version: data.grants.find(g => g.email.toLowerCase() === email)?.version ?? 0, reason: f.get('reason'), password: f.get('password') }; })}><label>가입 이메일<input name="email" type="email" autoComplete="off" required/></label><label>재정 역할<select name="role">{Object.entries(financeRoles).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label>접근 상태<select name="active"><option value="true">사용</option><option value="false">중지</option></select></label><label>변경 사유<input name="reason" required maxLength={300}/></label><label>현재 관리자 비밀번호<input name="password" type="password" autoComplete="current-password"/><small>2단계 인증을 완료한 세션에서는 생략할 수 있습니다.</small></label><button className="button primary" disabled={busy}>권한 저장</button></form></details></section>}
     </>}
   </div></div></section>;
