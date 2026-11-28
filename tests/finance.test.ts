@@ -33,6 +33,8 @@ async function fixture() {
   await db.exec(readFileSync('packages/database/ministry/015_direct_finance.sql','utf8'));
   await db.exec(readFileSync('packages/database/ministry/016_receipt_register.sql','utf8'));
   await db.exec(readFileSync('packages/database/ministry/017_committee_archives.sql','utf8'));
+  await db.exec("CREATE TABLE ministry.years(church_id text,id text,payload jsonb); INSERT INTO ministry.years VALUES ('one','2026','{\"assignments\":[{\"memberId\":\"member1\",\"position\":\"E\",\"affiliations\":[{\"organizationId\":\"g\"}]}]}'),('two','2026','{\"assignments\":[{\"memberId\":\"other\"}]}')");
+  await db.exec(readFileSync('packages/database/ministry/018_giving_directory.sql','utf8'));
   await db.exec('SET ROLE daegwang_ministry_runtime');
   const as = async (user = manager, church = 'one', verified = true) => {
     await db.query("SELECT set_config('ministry.user_id',$1,false),set_config('ministry.church_id',$2,false),set_config('ministry.aal','aal1',false),set_config('ministry.reauthenticated',$3,false)", [user, church, String(verified)]);
@@ -236,4 +238,18 @@ test('committee evidence freezes both fiscal years and restricts creation to the
     await assert.rejects(f.db.query('select finance.committee_report(2026)'),/permission denied/);
     await f.as(outsider);await assert.rejects(get(null),/FINANCE_FORBIDDEN/);
   }finally{await f.db.close()}
+});
+
+test('giving directory requires detailed finance access and isolates church and year',async()=>{
+  const f=await fixture();
+  const directory=async(year:number)=>(await f.db.query<{result:{members:unknown[]}}>('SELECT finance.giving_directory($1) AS result',[year])).rows[0].result;
+  try{
+    await assert.rejects(directory(2026),/FINANCE_FORBIDDEN/);
+    await f.grant('writer@example.invalid','BOOKKEEPER');
+    await f.grant('reporter@example.invalid','REPORTER');
+    await f.as(writer);
+    assert.deepEqual((await directory(2026)).members,[{id:'member1',position:'E',organizations:['g']}]);
+    assert.deepEqual((await directory(2025)).members,[]);
+    await f.as(reporter);await assert.rejects(directory(2026),/FINANCE_FORBIDDEN/);
+  }finally{await f.db.close();}
 });

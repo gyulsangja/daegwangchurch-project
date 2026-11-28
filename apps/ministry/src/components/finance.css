@@ -41,3 +41,7 @@
 .finance-output-options{margin-inline-start:auto}.finance-output-options summary{cursor:pointer;list-style:none}.finance-output-options[open]>div{margin-top:.65rem}.finance-meeting h2{margin-top:.4rem}@media(max-width:600px){.finance-output-options{margin-inline-start:0}.finance-meeting .finance-view-switch button{flex:1}}
 .finance-summary-pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:.8rem;margin:1rem 0}.finance-summary-pair>div{border:1px solid var(--border);border-radius:9px;padding:.8rem 1rem}.finance-summary-pair h3,.finance-summary-pair p{margin:.25rem 0}.finance-summary-pair strong{font-size:1.4rem;font-variant-numeric:tabular-nums}.finance-summary-pair{break-inside:avoid}
 @media print{.committee-appendix{break-before:page}.committee-report textarea{display:none}}.committee-report td{text-align:right}.committee-report textarea{display:block;width:100%;font:inherit}
+.giving-choices{border:0;padding:0;margin:0 0 .85rem;min-width:0}
+.giving-choices legend{font-weight:650;margin-bottom:.35rem}
+.giving-choices .button[aria-pressed=true]{background:#145348;color:white;border-color:#145348}
+.giving-choices .button:focus-visible{outline:3px solid #977225;outline-offset:2px}

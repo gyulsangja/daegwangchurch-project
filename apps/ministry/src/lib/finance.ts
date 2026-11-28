@@ -19,6 +19,10 @@ export async function financeSnapshot(year: number, period?: {start:string; end:
   const { user, aal } = await financeSession();
   return accessQuery<FinanceSnapshot>(user.id, aal, 'SELECT finance.giving_workspace($1::integer,$2::date,$3::date) AS result',[year,period?.start??null,period?.end??null]);
 }
+export async function givingDirectory(year:number){
+  const {user,aal}=await financeSession();
+  return accessQuery(user.id,aal,'SELECT finance.giving_directory($1::integer) AS result',[year]);
+}
 export async function repeatTransactions(year:number){
   const {user,aal}=await financeSession();
   // The core ledger already enforces church and role scope; omit the donor, payroll and receipt workspaces.
@@ -81,3 +85,4 @@ export function financeError(error: unknown) {
   const status = message === 'MINISTRY_LOGIN_REQUIRED' ? 401 : message.includes('FORBIDDEN') ? 403 : message === 'FINANCE_CONFLICT' ? 409 : error instanceof ZodError ? 422 : code === '42P01' || code === '42883' || message.includes('SETUP') ? 503 : messages[message] ? 422 : 500;
   return Response.json({ message: error instanceof ZodError ? error.issues[0]?.message ?? '입력값을 확인하세요.' : messages[message] ?? (code === '23505' ? '같은 이름이나 번호가 이미 있습니다.' : status === 503 ? '재정 데이터베이스 연결을 준비하고 있습니다.' : '재정 요청을 처리하지 못했습니다. 입력값을 확인하고 다시 시도하세요.') }, { status, headers: { 'Cache-Control': 'private, no-store' } });
 }
+
