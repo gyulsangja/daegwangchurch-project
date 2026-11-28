@@ -2,12 +2,13 @@ import {financeTotals} from '@daegwang/contracts/finance';
 import { z } from 'zod';
 import { authOrigin } from '@/lib/auth-security';
 import { readInput } from '@/lib/http';
-import { financeSnapshot, committeeFiles, archiveCommittee, receiptRegister, saveFinance, financeError } from '@/lib/finance';
+import { repeatTransactions, financeSnapshot, committeeFiles, archiveCommittee, receiptRegister, saveFinance, financeError } from '@/lib/finance';
 
 export async function GET(request: Request) {
   try {
     const year = z.coerce.number().int().min(2000).max(2200).parse(new URL(request.url).searchParams.get('year'));
     const params = new URL(request.url).searchParams;
+    if(params.get('repeat')==='1')return Response.json(await repeatTransactions(year),{headers:{'Cache-Control':'private, no-store'}});
     if(params.has('committeeFiles')){
       const id=z.uuid().nullable().parse(params.get('archive'));
       return Response.json(await committeeFiles(year,id),{headers:{'Cache-Control':'private, no-store'}});

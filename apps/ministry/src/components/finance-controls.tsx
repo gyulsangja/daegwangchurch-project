@@ -18,15 +18,18 @@ export function MonthClose({data,enabled,save,initialMonth}:Props&{initialMonth?
 export function CategoryEditor({data,enabled,save}:Props){
  const [kind,setKind]=useState<'INCOME'|'EXPENSE'>('INCOME');
  const [id,setId]=useState('');
+ const [preset,setPreset]=useState('');
  const items=data.categories.filter(c=>c.kind===kind);
  const item=items.find(c=>c.id===id);
  return <section className="panel detail-body"><h2>계정과목 · 헌금 종류</h2>
- <label>장부 구분<select value={kind} onChange={e=>{setKind(e.target.value as typeof kind);setId('');}}><option value="INCOME">수입</option><option value="EXPENSE">지출</option></select></label>
- <label>관리할 항목<select value={id} onChange={e=>setId(e.target.value)}><option value="">새 항목</option>{items.map(c=><option key={c.id} value={c.id}>{c.section && c.section+' / '}{c.name}{c.active===false?' (사용 중지)':''}</option>)}</select></label>
- <form key={kind+id} className="finance-form" onSubmit={async e=>{e.preventDefault();const f=new FormData(e.currentTarget);const key=id||crypto.randomUUID();
+ <details className="finance-edit-panel"><summary>대출 항목 간편 설정</summary><p>대출 입금, 원금 상환, 이자 지급은 현금 장부에서 각각 구분합니다. 원리금을 함께 낸 경우 원금과 이자를 나눠 입력하세요.</p>
+ <div className="finance-actions">{['대출금 입금','대출 원금 상환','대출이자'].map(label=><button key={label} className="button" onClick={()=>{const k=label==='대출금 입금'?'INCOME':'EXPENSE';setKind(k);setId(data.categories.find(c=>c.kind===k&&c.name===label)?.id??'');setPreset(label)}}>{label}</button>)}</div></details>
+ <label>장부 구분<select value={kind} onChange={e=>{setKind(e.target.value as typeof kind);setId('');setPreset('');}}><option value="INCOME">수입</option><option value="EXPENSE">지출</option></select></label>
+ <label>관리할 항목<select value={id} onChange={e=>{setId(e.target.value);setPreset('')}}><option value="">새 항목</option>{items.map(c=><option key={c.id} value={c.id}>{c.section && c.section+' / '}{c.name}{c.active===false?' (사용 중지)':''}</option>)}</select></label>
+ <form key={kind+id+preset} className="finance-form" onSubmit={async e=>{e.preventDefault();const f=new FormData(e.currentTarget);const key=id||crypto.randomUUID();
  if(await save({action:'CATEGORY_CONFIG',id:key,kind,section:f.get('section'),name:f.get('name'),offering:item?item.offering:f.has('offering'),active:f.has('active')}))setId(key);}}>
- <label>상위 분류<input name="section" list="finance-sections" defaultValue={item?.section} maxLength={80}/><datalist id="finance-sections">{[...new Set(items.map(c=>c.section).filter(Boolean))].map(s=><option key={s} value={s}/>)}</datalist></label>
- <label>항목 이름<input required name="name" defaultValue={item?.name} maxLength={100}/></label>
+ <label>상위 분류·집행 기관<input name="section" list="finance-sections" defaultValue={item?.section??(preset?(preset==='대출이자'?'금융비용':'차입금'):'')} maxLength={80}/><datalist id="finance-sections">{[...new Set([...items.map(c=>c.section),...(data.organizations??[])].filter(Boolean))].map(s=><option key={s} value={s}/>)}</datalist></label>
+ <label>항목 이름<input required name="name" defaultValue={item?.name??preset} maxLength={100}/></label>
  {kind==='INCOME'&&<label><input name="offering" type="checkbox" disabled={!!item} defaultChecked={item?.offering}/> 개인별 헌금 집계</label>}
  <label><input name="active" type="checkbox" defaultChecked={item?.active!==false}/> 신규 전표에 사용</label>
  <button className="button primary" disabled={!enabled}>항목 저장</button></form></section>;

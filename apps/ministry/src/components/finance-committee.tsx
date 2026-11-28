@@ -13,6 +13,7 @@ export function FinanceCommittee({year,version,meetingDate,manager}:{manager:boo
   const [archives,setArchives]=useState<Archive[]>([]),[archive,setArchive]=useState<Archive|null>(null),[id,setId]=useState('');
   const [ref,setRef]=useState(''),[busy,setBusy]=useState(false),[feedback,setFeedback]=useState('');
   const pending=useRef({signature:'',id:''});const saving=useRef(false);
+  const [recipient,setRecipient]=useState('');
   const [part,setPart]=useState('full'),[note,setNote]=useState('');
   useEffect(()=>{
     const cancel=new AbortController();setReports(null);setError(false);
@@ -39,9 +40,9 @@ export function FinanceCommittee({year,version,meetingDate,manager}:{manager:boo
   return <section className="committee-report">
     <div className="finance-no-print"><label>자료 버전<select disabled={busy} value={id} onChange={e=>setId(e.target.value)}><option value="">현재 장부 · 작업본</option>{archives.map(a=><option key={a.id} value={a.id}>보존본 {a.revision} · {a.meetingDate} · {a.reference}</option>)}</select></label></div>
     {archive&&<p>위원회 보존본 {archive.revision} · 회의록 근거 {archive.reference}</p>}
-    <div className="finance-actions finance-no-print"><label>위원회 자료 구성<select value={part} onChange={e=>setPart(e.target.value)}><option value="full">보고 본문 + 세부 별첨</option><option value="main">보고 본문만</option><option value="detail">세부 별첨만</option></select></label>
+    <div className="finance-actions finance-no-print"><label>배부처<select value={recipient} onChange={e=>setRecipient(e.target.value)}><option value="">위원회 내부</option><option>당회</option><option>제직회</option><option>공동의회</option></select></label><label>위원회 자료 구성<select value={part} onChange={e=>setPart(e.target.value)}><option value="full">보고 본문 + 세부 별첨</option><option value="main">보고 본문만</option><option value="detail">세부 별첨만</option></select></label>
     <button className="button primary" disabled={!reports||!reports.some(r=>r.available)} onClick={()=>window.print()}>선택한 자료 인쇄 / PDF 저장</button></div>
-    <small>대한예수교장로회 대광교회 · 예결산위원회</small><h2>{year}년 결산안 · {year+1}년 예산안</h2>
+    <small>대한예수교장로회 대광교회 · 예결산위원회{recipient&&' · '+recipient+' 제출용'}</small><h2>{year}년 결산안 · {year+1}년 예산안</h2>
     <p>위원회 심의자료 · 연간 전체 · 단위 원{(archive?.meetingDate||meetingDate)&&' · 회의일 '+(archive?.meetingDate||meetingDate)}</p>
     {error?<p role="alert">연간 자료 조회에 실패했습니다. <button onClick={()=>setRetry(retry+1)}>다시 조회</button></p>:!reports?<p role="status">두 회계연도의 자료를 불러오는 중…</p>:<>
       {!current.available&&<p>{year}년 결산 장부 미개설</p>}

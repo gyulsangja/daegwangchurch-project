@@ -19,6 +19,14 @@ export async function financeSnapshot(year: number, period?: {start:string; end:
   const { user, aal } = await financeSession();
   return accessQuery<FinanceSnapshot>(user.id, aal, 'SELECT finance.giving_workspace($1::integer,$2::date,$3::date) AS result',[year,period?.start??null,period?.end??null]);
 }
+export async function repeatTransactions(year:number){
+  const {user,aal}=await financeSession();
+  // The core ledger already enforces church and role scope; omit the donor, payroll and receipt workspaces.
+  const ledger=await accessQuery<FinanceSnapshot>(user.id,aal,'SELECT finance.read_year($1::integer) AS result',[year]);
+  if(ledger.role!=='MANAGER'&&ledger.role!=='BOOKKEEPER')throw Error('FINANCE_FORBIDDEN');
+  const income=new Set(ledger.categories.filter(c=>c.kind==='INCOME'&&!c.offering).map(c=>c.id));
+  return ledger.entries.filter(e=>e.status==='POSTED'&&(e.kind==='EXPENSE'||(e.kind==='INCOME'&&!e.memberId&&income.has(e.categoryId??'')))).map(({kind,accountId,categoryId,amount,party,memo,date})=>({kind,accountId,categoryId,amount,party,memo,date}));
+}
 export async function committeeFiles(year:number,id:string|null){
   const {user,aal}=await financeSession();
   return accessQuery(user.id,aal,'SELECT finance.committee_files($1::int,$2::uuid) AS result',[year,id]);
